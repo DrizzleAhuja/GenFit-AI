@@ -1,9 +1,8 @@
-setuptools==65.5.1
+setuptools
 wheel
-streamlit==1.36.0
-opencv-python==4.10.0.84
-numpy
-ultralytics==8.2.56
+opencv-python
+streamlit
+ultralytics
 plotly==5.17.0
 Pillow
 torch==2.8.0

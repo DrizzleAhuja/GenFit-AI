@@ -107,6 +107,7 @@ export default function NavBar() {
           { path: "/about", label: "ABOUT US" },
           { path: "/features", label: "FEATURES" }, // New tab for non-signed-in users
           { path: "/Contactus", label: "CONTACT US" },
+          { path: "/leaderboard", label: "LEADERBOARD" },
         ]
       : [
           { path: "/Aicoach", label: "AI COACH" },
@@ -115,6 +116,7 @@ export default function NavBar() {
           { path: "/calorie-tracker", label: "CALORIE TRACKER" },
           { path: "/Workout", label: "WORKOUT" },
           { path: "/diet-chart", label: "DIET CHART" },
+          { path: "/leaderboard", label: "LEADERBOARD" },
         ]),
   ];
 
@@ -196,6 +198,13 @@ export default function NavBar() {
                   </div>
                   {dropdownOpen && (
                     <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 z-50 bg-gray-800 border border-gray-700">
+                      <NavLink
+                        to="/dashboard"
+                        className="flex px-4 py-2 text-sm items-center text-gray-200 hover:bg-gray-700"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        My Dashboard
+                      </NavLink>
                       <NavLink
                         to="/EditProfile"
                         className="flex px-4 py-2 text-sm items-center text-gray-200 hover:bg-gray-700"

@@ -9,6 +9,7 @@ const authRoutes = require("./routes/authRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const userRoutes = require("./routes/userRoutes");
 const bmiRoutes = require("./routes/bmiRoutes");
+const gamifyRoutes = require("./routes/gamifyRoutes");
 // const messageRoutes = require("./routes/messageRoutes");
 
 const app = express();
@@ -91,6 +92,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/bmi", bmiRoutes);
+app.use("/api/gamify", gamifyRoutes);
 // app.use("/api", messageRoutes);
 
 // ✅ Error handling middleware

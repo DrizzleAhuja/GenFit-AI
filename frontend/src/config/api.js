@@ -22,6 +22,7 @@ export const API_ENDPOINTS = {
   REPORTS: "/api/reports",
   AUTH: "/api/auth",
   BMI: "/api/bmi",
+  GAMIFY: "/api/gamify",
   USERS: "/api/users",
   LOGS: "/api/logs",
   SAVE_WORKOUT_PLAN: "/api/auth/workout-plan/save",

@@ -74,9 +74,8 @@ router.post("/generate-plan", async (req, res) => {
     The user's BMI data is: ${JSON.stringify(bmiData)}.
     Consider any health conditions from bmiData.diseases or bmiData.allergies to make the plan safe and effective. 
     The user also has the following diseases: ${diseases.join(", ") || "None"}.
-    The user also has the following allergies: ${
-      allergies.join(", ") || "None"
-    }.
+    The user also has the following allergies: ${allergies.join(", ") || "None"
+      }.
 
     OUTPUT REQUIREMENTS (STRICT):
     - Return a JSON ARRAY with EXACTLY ${daysPerWeek} objects (representing ONE week's schedule). No more, no less.
@@ -483,6 +482,10 @@ router.post("/workout-session/log", async (req, res) => {
       allPlannedExercisesCompletedForThisDay; // Update the session log's own completion status
 
     await workoutSession.save();
+    try {
+      const { awardPoints } = require("../utils/gamify");
+      await awardPoints(userId, 'workout_log');
+    } catch (e) { console.error('Gamify award error:', e); }
 
     // Link session to user if it's a new session
     if (!user.workoutSessionLogs.includes(workoutSession._id)) {
@@ -560,13 +563,12 @@ router.post("/workout-session/log", async (req, res) => {
                 {
                   parts: [
                     {
-                      text: `Create a varied workout plan for week ${
-                        plan.currentWeek
-                      } given the user's initial parameters: ${JSON.stringify(
-                        requestData
-                      )}. The previous week's plan content was: ${JSON.stringify(
-                        plan.planContent
-                      )}. Only return the JSON array for this week's plan.`, // Include previous plan content for variation
+                      text: `Create a varied workout plan for week ${plan.currentWeek
+                        } given the user's initial parameters: ${JSON.stringify(
+                          requestData
+                        )}. The previous week's plan content was: ${JSON.stringify(
+                          plan.planContent
+                        )}. Only return the JSON array for this week's plan.`, // Include previous plan content for variation
                     },
                   ],
                 },
@@ -832,51 +834,34 @@ router.post("/chat", async (req, res) => {
             .lean();
 
           if (latestBMI) {
-            userContext += `\n\nUser's Health Profile:\n   645|- BMI: ${
-              latestBMI.bmi
-            } (${latestBMI.category})\n   646|- Age: ${
-              latestBMI.age
-            }\n   647|- Height: ${latestBMI.heightFeet}'${
-              latestBMI.heightInches
-            }"\n   648|- Weight: ${
-              latestBMI.weight
-            }kg\n   649|- Target Weight: ${
-              latestBMI.targetWeight || "Not set"
-            }kg\n   650|- Target Timeline: ${
-              latestBMI.targetTimeline || "Not set"
-            }\n   651|- Diseases: ${
-              user.diseases?.join(", ") || "None"
-            }\n   652|- Allergies: ${user.allergies?.join(", ") || "None"}`;
+            userContext += `\n\nUser's Health Profile:\n   645|- BMI: ${latestBMI.bmi
+              } (${latestBMI.category})\n   646|- Age: ${latestBMI.age
+              }\n   647|- Height: ${latestBMI.heightFeet}'${latestBMI.heightInches
+              }"\n   648|- Weight: ${latestBMI.weight
+              }kg\n   649|- Target Weight: ${latestBMI.targetWeight || "Not set"
+              }kg\n   650|- Target Timeline: ${latestBMI.targetTimeline || "Not set"
+              }\n   651|- Diseases: ${user.diseases?.join(", ") || "None"
+              }\n   652|- Allergies: ${user.allergies?.join(", ") || "None"}`;
           }
 
           if (activeWorkoutPlan) {
-            userContext += `\n\nUser's Current Active Workout Plan (${
-              activeWorkoutPlan.name
-            }):\n   657|- Goal: ${
-              activeWorkoutPlan.generatedParams.fitnessGoal
+            userContext += `\n\nUser's Current Active Workout Plan (${activeWorkoutPlan.name
+              }):\n   657|- Goal: ${activeWorkoutPlan.generatedParams.fitnessGoal
                 ?.replace(/_/g, " ")
                 .split(" ")
                 .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
                 .join(" ") || "N/A"
-            }\n   658|- Current Weight: ${
-              activeWorkoutPlan.generatedParams.currentWeight || "N/A"
-            }kg\n   659|- Target Weight: ${
-              activeWorkoutPlan.generatedParams.targetWeight || "N/A"
-            }kg\n   660|- Workout Type: ${
-              activeWorkoutPlan.generatedParams.workoutType || "N/A"
-            }\n   661|- Training Method: ${
-              activeWorkoutPlan.generatedParams.trainingMethod || "N/A"
-            }\n   662|- Strength Level: ${
-              activeWorkoutPlan.generatedParams.strengthLevel || "N/A"
-            }\n   663|- Time Commitment: ${
-              activeWorkoutPlan.generatedParams.timeCommitment || "N/A"
-            } min\n   664|- Days Per Week: ${
-              activeWorkoutPlan.generatedParams.daysPerWeek || "N/A"
-            }\n   665|- Duration: ${
-              activeWorkoutPlan.generatedParams.durationWeeks || "N/A"
-            } weeks\n   666|- Plan Details (first day): ${JSON.stringify(
-              activeWorkoutPlan.planContent[0]
-            )}...`;
+              }\n   658|- Current Weight: ${activeWorkoutPlan.generatedParams.currentWeight || "N/A"
+              }kg\n   659|- Target Weight: ${activeWorkoutPlan.generatedParams.targetWeight || "N/A"
+              }kg\n   660|- Workout Type: ${activeWorkoutPlan.generatedParams.workoutType || "N/A"
+              }\n   661|- Training Method: ${activeWorkoutPlan.generatedParams.trainingMethod || "N/A"
+              }\n   662|- Strength Level: ${activeWorkoutPlan.generatedParams.strengthLevel || "N/A"
+              }\n   663|- Time Commitment: ${activeWorkoutPlan.generatedParams.timeCommitment || "N/A"
+              } min\n   664|- Days Per Week: ${activeWorkoutPlan.generatedParams.daysPerWeek || "N/A"
+              }\n   665|- Duration: ${activeWorkoutPlan.generatedParams.durationWeeks || "N/A"
+              } weeks\n   666|- Plan Details (first day): ${JSON.stringify(
+                activeWorkoutPlan.planContent[0]
+              )}...`;
           }
         }
       } catch (contextError) {
@@ -1008,25 +993,18 @@ router.post("/generate-diet-chart", async (req, res) => {
     }
 
     if (activeWorkoutPlan) {
-      dietChartPrompt += `\n\nUser's Current Active Workout Plan (ID: ${
-        activeWorkoutPlan._id
-      }):\n- Name: ${activeWorkoutPlan.name}\n- Goal: ${
-        activeWorkoutPlan.generatedParams.fitnessGoal
+      dietChartPrompt += `\n\nUser's Current Active Workout Plan (ID: ${activeWorkoutPlan._id
+        }):\n- Name: ${activeWorkoutPlan.name}\n- Goal: ${activeWorkoutPlan.generatedParams.fitnessGoal
           ?.replace(/_/g, " ")
           .split(" ")
           .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
           .join(" ") || "N/A"
-      }\n- Days Per Week: ${
-        activeWorkoutPlan.generatedParams.daysPerWeek || "N/A"
-      }\n- Workout Type: ${
-        activeWorkoutPlan.generatedParams.workoutType || "N/A"
-      }\n- Intensity: ${
-        activeWorkoutPlan.generatedParams.intensity || "N/A"
-      }\n- Time Commitment: ${
-        activeWorkoutPlan.generatedParams.timeCommitment || "N/A"
-      } minutes\n- Current Week: ${activeWorkoutPlan.currentWeek || "N/A"} of ${
-        activeWorkoutPlan.durationWeeks || "N/A"
-      } weeks`;
+        }\n- Days Per Week: ${activeWorkoutPlan.generatedParams.daysPerWeek || "N/A"
+        }\n- Workout Type: ${activeWorkoutPlan.generatedParams.workoutType || "N/A"
+        }\n- Intensity: ${activeWorkoutPlan.generatedParams.intensity || "N/A"
+        }\n- Time Commitment: ${activeWorkoutPlan.generatedParams.timeCommitment || "N/A"
+        } minutes\n- Current Week: ${activeWorkoutPlan.currentWeek || "N/A"} of ${activeWorkoutPlan.durationWeeks || "N/A"
+        } weeks`;
     }
 
     dietChartPrompt += `\n\nProvide a detailed meal plan for each day of the week, including breakfast, lunch, dinner, and snacks. Specify portion sizes and calorie estimates. Ensure the plan is healthy, balanced, and considers the user's health conditions, fitness goal, and active workout plan. The diet chart should be suitable for the entire ${durationWeeks}-week duration, with general guidelines for variation week-to-week.`;

@@ -46,6 +46,27 @@ const userSchema = new mongoose.Schema({
     type: [String],
     default: [],
   },
+  // Sports preferences
+  sportsPreferences: {
+    preferredSports: { type: [String], default: [] },
+    sportLevel: { type: String, enum: ["beginner", "intermediate", "advanced"], default: "beginner" },
+    sportGoals: { type: [String], default: [] },
+  },
+  // Gamification
+  points: { type: Number, default: 0 },
+  weeklyPoints: { type: Number, default: 0 },
+  weeklyStartAt: { type: Date, default: null },
+  streakCount: { type: Number, default: 0 },
+  lastActivityAt: { type: Date, default: null },
+  // Badges & Weekly Challenge
+  badges: { type: [String], default: [] },
+  weeklyChallenge: {
+    title: { type: String, default: "Log 3 workouts this week" },
+    target: { type: Number, default: 3 },
+    progress: { type: Number, default: 0 },
+    completed: { type: Boolean, default: false },
+    weekStartAt: { type: Date, default: null },
+  },
 });
 
 const User = mongoose.model("User", userSchema);

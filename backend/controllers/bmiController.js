@@ -2,6 +2,7 @@ const BMI = require("../models/BMI");
 const User = require("../models/User");
 const axios = require("axios");
 const { GEMINI_API_KEY, GEMINI_API_URL } = require("../config/config");
+const { awardPoints } = require("../utils/gamify");
 
 exports.saveBMI = async (req, res) => {
   try {
@@ -114,6 +115,7 @@ Please provide specific, actionable advice in 2-3 paragraphs. Be encouraging, pr
       aiSuggestions,
     });
     await newBMI.save();
+    try { await awardPoints(user._id, 'bmi_save'); } catch (e) { console.error('Gamify award error:', e); }
 
     res.status(201).json({
       message: "BMI saved successfully",
@@ -260,6 +262,7 @@ Please provide specific, actionable advice in 2-3 paragraphs. Be encouraging, pr
       aiSuggestions,
     });
     await updatedBMI.save();
+    try { await awardPoints(user._id, 'bmi_update'); } catch (e) { console.error('Gamify award error:', e); }
 
     res.status(200).json({
       message: "BMI updated successfully",
@@ -310,9 +313,8 @@ exports.getProgressTracking = async (req, res) => {
         weightChange: (latest.weight - previous.weight).toFixed(1),
         bmiChange: (latest.bmi - previous.bmi).toFixed(1),
         period: period,
-        message: `This ${period}: you ${
-          latest.weight > previous.weight ? "gained" : "lost"
-        } ${Math.abs(latest.weight - previous.weight).toFixed(1)} kg`,
+        message: `This ${period}: you ${latest.weight > previous.weight ? "gained" : "lost"
+          } ${Math.abs(latest.weight - previous.weight).toFixed(1)} kg`,
       };
     } else if (allRecords.length >= 2) {
       const latest = allRecords[0];
@@ -322,9 +324,8 @@ exports.getProgressTracking = async (req, res) => {
         weightChange: (latest.weight - previous.weight).toFixed(1),
         bmiChange: (latest.bmi - previous.bmi).toFixed(1),
         period: "overall",
-        message: `Overall: BMI ${
-          latest.bmi > previous.bmi ? "increased" : "improved"
-        } by ${Math.abs(latest.bmi - previous.bmi).toFixed(1)} points`,
+        message: `Overall: BMI ${latest.bmi > previous.bmi ? "increased" : "improved"
+          } by ${Math.abs(latest.bmi - previous.bmi).toFixed(1)} points`,
       };
     }
 

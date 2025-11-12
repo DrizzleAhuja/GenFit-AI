@@ -20,9 +20,11 @@ import CalorieTracker from "./pages/CalorieTracker/CalorieTracker.jsx";
 import Contactus from "./pages/ContactusPage/Contactus.jsx";
 import { ThemeProvider } from "./context/ThemeContext.jsx"; // Import ThemeProvider
 import About from "./pages/AboutPage/About.jsx"; // Import About component
-import Features from "./pages/FeaturesPage/Features.jsx"; // Import Features component
+import Features from "./pages/FeaturesPage/a.jsx"; // Import Features component
 import MyWorkoutPlan from "./pages/WorkoutPlanGenerator/MyWorkoutPlan.jsx";
 import DietChartGenerator from "./pages/DietChartGenerator/DietChartGenerator.jsx";
+import Leaderboard from "./pages/Leaderboard/Leaderboard.jsx";
+import Dashboard from "./pages/Dashboard/Dashboard.jsx";
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     const savedLoginStatus = localStorage.getItem("isLoggedIn");
@@ -58,6 +60,8 @@ function App() {
           <Route path="/AllUsersLogs" element={<AllUserLogsPage />} />
           <Route path="/my-workout-plan" element={<MyWorkoutPlan />} />
           <Route path="/diet-chart" element={<DietChartGenerator />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           {/* <Route path="/admin-calorie-tracker" element={<CalorieTracker />} />
           <Route path="/admin-calorie-tracker" element={<CalorieTracker />} />
           <Route path="/admin-calorie-tracker" element={<CalorieTracker />} />
