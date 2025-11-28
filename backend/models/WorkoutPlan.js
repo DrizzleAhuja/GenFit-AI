@@ -50,6 +50,17 @@ const WorkoutPlanSchema = new mongoose.Schema(
             bmiData: { type: Object }, // Store BMI data at the time of generation
         },
         planContent: [WorkoutDaySchema], // Structured plan content
+        // Scheduled dates for each workout day
+        scheduledDates: {
+            type: [new mongoose.Schema({
+                date: { type: Date, required: true },
+                dayIndex: { type: Number, required: true },
+                weekNumber: { type: Number, required: true },
+                status: { type: String, enum: ['pending', 'completed', 'missed'], default: 'pending' },
+                completedAt: { type: Date },
+            }, { _id: false })],
+            default: [],
+        },
         // Progress tracking
         completedDayCount: { type: Number, default: 0 },
         dayCompletions: {

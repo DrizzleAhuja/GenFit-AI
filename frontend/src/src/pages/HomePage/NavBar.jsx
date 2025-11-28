@@ -199,13 +199,6 @@ export default function NavBar() {
                   {dropdownOpen && (
                     <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 z-50 bg-gray-800 border border-gray-700">
                       <NavLink
-                        to="/dashboard"
-                        className="flex px-4 py-2 text-sm items-center text-gray-200 hover:bg-gray-700"
-                        onClick={() => setDropdownOpen(false)}
-                      >
-                        My Dashboard
-                      </NavLink>
-                      <NavLink
                         to="/EditProfile"
                         className="flex px-4 py-2 text-sm items-center text-gray-200 hover:bg-gray-700"
                         onClick={() => setDropdownOpen(false)}

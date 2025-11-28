@@ -196,6 +196,59 @@ router.post("/generate-plan", async (req, res) => {
   }
 });
 
+// Helper function to calculate scheduled dates for workouts
+function calculateScheduledDates(startDate, daysPerWeek, durationWeeks, planContent) {
+  const scheduledDates = [];
+  const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0); // Reset time to start of day
+  
+  let currentDate = new Date(start);
+  const daysInWeek = 7;
+  const interval = Math.floor(daysInWeek / daysPerWeek); // Spread workouts evenly
+  
+  // Generate schedule for all weeks
+  for (let week = 1; week <= durationWeeks; week++) {
+    // Reset to start of week (same weekday as start date)
+    if (week > 1) {
+      currentDate = new Date(start);
+      currentDate.setDate(currentDate.getDate() + (week - 1) * 7);
+    }
+    
+    // Schedule workouts for this week
+    for (let dayIndex = 0; dayIndex < planContent.length && dayIndex < daysPerWeek; dayIndex++) {
+      const workoutDate = new Date(currentDate);
+      
+      // Distribute workouts evenly across the week
+      // For 2 days/week: days 0, 3 (or similar)
+      // For 3 days/week: days 0, 2, 4
+      // For 4 days/week: days 0, 1, 3, 5
+      if (daysPerWeek === 2) {
+        workoutDate.setDate(currentDate.getDate() + (dayIndex === 0 ? 0 : 3));
+      } else if (daysPerWeek === 3) {
+        workoutDate.setDate(currentDate.getDate() + (dayIndex === 0 ? 0 : dayIndex === 1 ? 2 : 4));
+      } else if (daysPerWeek === 4) {
+        workoutDate.setDate(currentDate.getDate() + (dayIndex === 0 ? 0 : dayIndex === 1 ? 1 : dayIndex === 2 ? 3 : 5));
+      } else if (daysPerWeek === 5) {
+        workoutDate.setDate(currentDate.getDate() + (dayIndex === 0 ? 0 : dayIndex === 1 ? 1 : dayIndex === 2 ? 2 : dayIndex === 3 ? 4 : 5));
+      } else if (daysPerWeek === 6) {
+        workoutDate.setDate(currentDate.getDate() + (dayIndex === 0 ? 0 : dayIndex === 1 ? 1 : dayIndex === 2 ? 2 : dayIndex === 3 ? 3 : dayIndex === 4 ? 4 : 5));
+      } else {
+        // Default: spread evenly
+        workoutDate.setDate(currentDate.getDate() + Math.floor(dayIndex * (daysInWeek / daysPerWeek)));
+      }
+      
+      scheduledDates.push({
+        date: workoutDate,
+        dayIndex: dayIndex,
+        weekNumber: week,
+        status: 'pending',
+      });
+    }
+  }
+  
+  return scheduledDates.sort((a, b) => a.date - b.date); // Sort by date
+}
+
 // New endpoint to save a workout plan
 router.post("/workout-plan/save", async (req, res) => {
   try {
@@ -235,6 +288,22 @@ router.post("/workout-plan/save", async (req, res) => {
       { isActive: false }
     );
 
+    // Calculate start date (today)
+    const startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
+    
+    // Calculate scheduled dates for all workouts
+    const scheduledDates = calculateScheduledDates(
+      startDate,
+      generatedParams.daysPerWeek || planContent.length,
+      durationWeeks,
+      planContent
+    );
+    
+    // Calculate end date
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + durationWeeks * 7);
+
     const workoutPlan = new WorkoutPlan({
       userId,
       name,
@@ -248,9 +317,9 @@ router.post("/workout-plan/save", async (req, res) => {
       }, // Ensure durationWeeks is explicitly saved in generatedParams
       durationWeeks,
       isActive: true, // Mark the new plan as active
-      endDate: new Date(
-        new Date().setDate(new Date().getDate() + durationWeeks * 7)
-      ), // Calculate endDate
+      startDate: startDate,
+      endDate: endDate,
+      scheduledDates: scheduledDates,
       currentWeek: 1, // Initialize current week
       completed: false, // Initialize as not completed
       dayCompletions: [], // Initialize empty day completions
@@ -261,6 +330,14 @@ router.post("/workout-plan/save", async (req, res) => {
 
     user.workoutPlans.push(workoutPlan._id);
     await user.save();
+
+    // Award points for generating workout plan
+    try {
+      const { awardPoints } = require("../utils/gamify");
+      await awardPoints(userId, "workout_generate");
+    } catch (e) {
+      console.error("Gamify award error:", e);
+    }
 
     res.status(201).json({
       success: true,
@@ -337,6 +414,149 @@ router.get("/workout-plan/active/:userId", async (req, res) => {
   }
 });
 
+// Helper function to mark missed workouts
+async function markMissedWorkouts(workoutPlan) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  let hasUpdates = false;
+  
+  if (workoutPlan.scheduledDates && workoutPlan.scheduledDates.length > 0) {
+    for (let scheduled of workoutPlan.scheduledDates) {
+      const scheduledDate = new Date(scheduled.date);
+      scheduledDate.setHours(0, 0, 0, 0);
+      
+      // If scheduled date is in the past and status is still pending, mark as missed
+      if (scheduledDate < today && scheduled.status === 'pending') {
+        scheduled.status = 'missed';
+        hasUpdates = true;
+      }
+    }
+    
+    if (hasUpdates) {
+      await workoutPlan.save();
+    }
+  }
+  
+  return hasUpdates;
+}
+
+// Endpoint to get today's workout only (blocks tomorrow's workout)
+router.get("/workout-plan/today/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    
+    let activePlan = await WorkoutPlan.findOne({ userId, isActive: true });
+    if (!activePlan) {
+      return res.status(404).json({ 
+        error: "No active workout plan found",
+        todayWorkout: null
+      });
+    }
+    
+    // Mark missed workouts
+    await markMissedWorkouts(activePlan);
+    
+    // Refresh plan from DB after marking missed
+    activePlan = await WorkoutPlan.findOne({ userId, isActive: true });
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Find today's scheduled workout
+    let todayWorkout = null;
+    if (activePlan.scheduledDates && activePlan.scheduledDates.length > 0) {
+      const todaySchedule = activePlan.scheduledDates.find(scheduled => {
+        const scheduledDate = new Date(scheduled.date);
+        scheduledDate.setHours(0, 0, 0, 0);
+        return scheduledDate.getTime() === today.getTime();
+      });
+      
+      if (todaySchedule) {
+        // Get the workout content for this day
+        const dayIndex = todaySchedule.dayIndex;
+        const workoutContent = activePlan.planContent[dayIndex];
+        
+        // Check if already completed today
+        const isCompleted = todaySchedule.status === 'completed';
+        const completedSessionLog = isCompleted 
+          ? await WorkoutSessionLog.findOne({
+              workoutPlanId: activePlan._id,
+              weekNumber: todaySchedule.weekNumber,
+              dayIndex: dayIndex,
+              date: { $gte: today, $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000) }
+            })
+          : null;
+        
+        todayWorkout = {
+          scheduledDate: todaySchedule.date,
+          dayIndex: dayIndex,
+          weekNumber: todaySchedule.weekNumber,
+          status: todaySchedule.status,
+          workoutContent: workoutContent,
+          completedSessionLog: completedSessionLog,
+          isCompleted: isCompleted,
+        };
+      }
+    }
+    
+    // Get next workout date (for info)
+    let nextWorkoutDate = null;
+    if (activePlan.scheduledDates && activePlan.scheduledDates.length > 0) {
+      const upcomingSchedules = activePlan.scheduledDates
+        .filter(s => {
+          const scheduledDate = new Date(s.date);
+          scheduledDate.setHours(0, 0, 0, 0);
+          return scheduledDate > today && s.status === 'pending';
+        })
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+      
+      if (upcomingSchedules.length > 0) {
+        nextWorkoutDate = upcomingSchedules[0].date;
+      }
+    }
+    
+    // Get missed workouts count and details
+    const missedSchedules = activePlan.scheduledDates
+      ? activePlan.scheduledDates.filter(s => s.status === 'missed')
+      : [];
+    const missedCount = missedSchedules.length;
+    
+    // Format missed workouts for display
+    const missedWorkoutDetails = missedSchedules.map(scheduled => {
+      const workoutContent = activePlan.planContent[scheduled.dayIndex];
+      return {
+        date: scheduled.date,
+        weekNumber: scheduled.weekNumber,
+        dayIndex: scheduled.dayIndex,
+        focus: workoutContent?.focus || `Day ${scheduled.dayIndex + 1}`,
+      };
+    });
+    
+    res.status(200).json({
+      success: true,
+      todayWorkout: todayWorkout,
+      nextWorkoutDate: nextWorkoutDate,
+      missedWorkouts: missedCount,
+      missedWorkoutDetails: missedWorkoutDetails,
+      message: todayWorkout 
+        ? (todayWorkout.isCompleted 
+            ? "Today's workout is already completed!" 
+            : "Today's workout is ready!")
+        : "No workout scheduled for today. Rest day!",
+    });
+  } catch (error) {
+    console.error("Error fetching today's workout:", error);
+    res.status(500).json({
+      error: "Failed to fetch today's workout",
+      details: error.message,
+    });
+  }
+});
+
 // New endpoint to get workout session logs for a specific workout plan
 router.get("/workout-plan/:planId/sessions", async (req, res) => {
   try {
@@ -396,6 +616,43 @@ router.post("/workout-session/log", async (req, res) => {
 
     // Use weekNumber from req.body if provided, otherwise compute from date relative to plan.startDate
     const sessionDate = date ? new Date(date) : new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const sessionDateOnly = new Date(sessionDate);
+    sessionDateOnly.setHours(0, 0, 0, 0);
+    
+    // VALIDATION: Only allow logging today's workout (block future dates)
+    if (sessionDateOnly > today) {
+      return res.status(400).json({
+        error: "Cannot log future workouts. You can only log today's scheduled workout.",
+      });
+    }
+    
+    // Check if this workout is scheduled for today
+    let scheduledWorkout = null;
+    if (plan.scheduledDates && plan.scheduledDates.length > 0) {
+      scheduledWorkout = plan.scheduledDates.find(scheduled => {
+        const scheduledDate = new Date(scheduled.date);
+        scheduledDate.setHours(0, 0, 0, 0);
+        return scheduledDate.getTime() === sessionDateOnly.getTime() && 
+               scheduled.dayIndex === dayIndex;
+      });
+      
+      if (!scheduledWorkout && sessionDateOnly.getTime() === today.getTime()) {
+        return res.status(400).json({
+          error: "No workout scheduled for today. Check your plan schedule.",
+        });
+      }
+      
+      // If logging for past date (missed workout), allow it but show warning
+      if (sessionDateOnly < today && scheduledWorkout) {
+        if (scheduledWorkout.status === 'missed') {
+          // Allow making up missed workout
+          console.log(`User logging missed workout from ${sessionDateOnly.toDateString()}`);
+        }
+      }
+    }
+    
     let actualWeekNumber = weekNumber;
     if (actualWeekNumber === undefined) {
       const msInWeek = 7 * 24 * 60 * 60 * 1000;
@@ -511,6 +768,13 @@ router.post("/workout-session/log", async (req, res) => {
       });
       plan.completedDayCount = (plan.completedDayCount || 0) + 1;
       planUpdated = true;
+      
+      // Update scheduled date status to 'completed'
+      if (scheduledWorkout) {
+        scheduledWorkout.status = 'completed';
+        scheduledWorkout.completedAt = new Date();
+        planUpdated = true;
+      }
     } else if (
       !allPlannedExercisesCompletedForThisDay &&
       wasDayAlreadyCompleted
@@ -522,6 +786,15 @@ router.post("/workout-session/log", async (req, res) => {
       );
       plan.completedDayCount = (plan.completedDayCount || 0) - 1;
       planUpdated = true;
+      
+      // Revert scheduled date status back to 'pending' or 'missed'
+      if (scheduledWorkout) {
+        const scheduledDateOnly = new Date(scheduledWorkout.date);
+        scheduledDateOnly.setHours(0, 0, 0, 0);
+        scheduledWorkout.status = scheduledDateOnly < today ? 'missed' : 'pending';
+        scheduledWorkout.completedAt = undefined;
+        planUpdated = true;
+      }
     }
 
     // Check for weekly completion and potentially generate next week's plan
@@ -1132,6 +1405,14 @@ router.post("/diet-chart/save", async (req, res) => {
       isActive: savedDietChart.isActive,
       contentLength: savedDietChart.dietChart?.length || 0,
     });
+
+    // Award points for generating diet chart
+    try {
+      const { awardPoints } = require("../utils/gamify");
+      await awardPoints(userId, "diet_chart");
+    } catch (e) {
+      console.error("Gamify award error:", e);
+    }
 
     res.status(201).json({
       success: true,

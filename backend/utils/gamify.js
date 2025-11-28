@@ -24,10 +24,12 @@ function startOfWeek(d) {
 }
 
 const POINT_MAP = {
-    bmi_save: 10,
-    bmi_update: 10,
-    workout_log: 20,
-    streak_bonus: 5,
+    bmi_save: 10,           // BMI save/update: 10 points
+    bmi_update: 10,         // BMI update: 10 points
+    workout_generate: 20,   // Workout plan generated: 20 points
+    workout_log: 20,        // Workout plan completed (one day): 20 points
+    diet_chart: 20,         // Diet chart generated: 20 points
+    streak_bonus: 5,        // Daily streak bonus: 5 points
 };
 
 async function awardPoints(userId, type) {

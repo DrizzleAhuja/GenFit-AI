@@ -29,6 +29,10 @@ const MyWorkoutPlan = () => {
   const [newPlanDescription, setNewPlanDescription] = useState("");
   const [workoutSessionLogs, setWorkoutSessionLogs] = useState([]); // New state for session logs
   const [activeTab, setActiveTab] = useState("active-pending"); // 'active-pending' or 'completed'
+  const [todayWorkout, setTodayWorkout] = useState(null); // Today's scheduled workout
+  const [nextWorkoutDate, setNextWorkoutDate] = useState(null); // Next workout date
+  const [missedWorkouts, setMissedWorkouts] = useState(0); // Count of missed workouts
+  const [missedWorkoutDetails, setMissedWorkoutDetails] = useState([]); // Details of missed workouts
 
   useEffect(() => {
     if (!user) {
@@ -37,7 +41,30 @@ const MyWorkoutPlan = () => {
       return;
     }
     fetchPlans();
+    fetchTodayWorkout();
   }, [user, navigate]);
+
+  // Fetch today's workout only
+  const fetchTodayWorkout = async () => {
+    if (!user?._id) return;
+    
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}${API_ENDPOINTS.AUTH}/workout-plan/today/${user._id}`
+      );
+      if (res.data.success) {
+        setTodayWorkout(res.data.todayWorkout);
+        setNextWorkoutDate(res.data.nextWorkoutDate);
+        setMissedWorkouts(res.data.missedWorkouts || 0);
+        setMissedWorkoutDetails(res.data.missedWorkoutDetails || []);
+      }
+    } catch (err) {
+      if (err.response && err.response.status !== 404) {
+        console.error("Error fetching today's workout:", err);
+      }
+      setTodayWorkout(null);
+    }
+  };
 
   const fetchPlans = async () => {
     setLoading(true);
@@ -153,6 +180,147 @@ const MyWorkoutPlan = () => {
     }
   };
 
+  // Handle toggle exercise for today's workout
+  const handleToggleExercise = async (
+    dayIndex,
+    weekNumber,
+    exerciseName,
+    sets,
+    reps,
+    weight,
+    isCompleted
+  ) => {
+    if (!user || !activePlan) {
+      toast.error("Please log in and have an active plan to mark exercises.");
+      return;
+    }
+
+    const currentWeekNumber = weekNumber || activePlan.currentWeek || 1;
+    const dayPlan = activePlan.planContent[dayIndex];
+    
+    // Find existing log
+    let existingLog = workoutSessionLogs.find(
+      (log) =>
+        log.workoutPlanId === activePlan._id &&
+        log.weekNumber === currentWeekNumber &&
+        log.dayIndex === dayIndex
+    );
+
+    let updatedWorkoutDetails;
+    if (existingLog) {
+      updatedWorkoutDetails = existingLog.workoutDetails.map((ex) =>
+        ex.exerciseName === exerciseName
+          ? { ...ex, completed: !isCompleted }
+          : ex
+      );
+      // If exercise not in log, add it
+      if (!updatedWorkoutDetails.some((ex) => ex.exerciseName === exerciseName)) {
+        updatedWorkoutDetails.push({
+          exerciseName: exerciseName,
+          sets: sets,
+          reps: reps,
+          weight: weight || "N/A",
+          notes: "",
+          completed: !isCompleted,
+        });
+      }
+    } else {
+      // Create new workout details
+      updatedWorkoutDetails = dayPlan.exercises.map((ex) => ({
+        exerciseName: ex.name,
+        sets: ex.sets,
+        reps: ex.reps,
+        weight: ex.weight || "N/A",
+        notes: "",
+        completed: ex.name === exerciseName ? !isCompleted : false,
+      }));
+    }
+
+    const allExercisesCompletedForDay = updatedWorkoutDetails.every(
+      (ex) => ex.completed
+    );
+
+    try {
+      const res = await axios.post(
+        `${API_BASE_URL}${API_ENDPOINTS.AUTH}/workout-session/log`,
+        {
+          userId: user._id,
+          workoutPlanId: activePlan._id,
+          date: new Date(),
+          dayIndex,
+          weekNumber: currentWeekNumber,
+          workoutDetails: updatedWorkoutDetails,
+          overallNotes: existingLog?.overallNotes || "",
+          perceivedExertion: existingLog?.perceivedExertion || 5,
+          durationMinutes: existingLog?.durationMinutes || 0,
+        }
+      );
+
+      if (res.data.success) {
+        toast.success(
+          `Exercise '${exerciseName}' ${!isCompleted ? "completed" : "unmarked"}!`
+        );
+        fetchPlans();
+        fetchTodayWorkout();
+      }
+    } catch (err) {
+      console.error("Error toggling exercise:", err);
+      toast.error("Failed to update exercise completion.");
+    }
+  };
+
+  // Mark entire workout as complete
+  const handleCompleteWorkout = async () => {
+    if (!user || !activePlan || !todayWorkout) {
+      toast.error("No workout available to complete.");
+      return;
+    }
+
+    if (todayWorkout.isCompleted) {
+      toast.info("Workout is already completed!");
+      return;
+    }
+
+    const dayPlan = activePlan.planContent[todayWorkout.dayIndex];
+    const currentWeekNumber = todayWorkout.weekNumber;
+    
+    // Mark all exercises as completed
+    const allExercisesCompleted = dayPlan.exercises.map((ex) => ({
+      exerciseName: ex.name,
+      sets: ex.sets,
+      reps: ex.reps,
+      weight: ex.weight || "N/A",
+      notes: "",
+      completed: true,
+    }));
+
+    try {
+      const res = await axios.post(
+        `${API_BASE_URL}${API_ENDPOINTS.AUTH}/workout-session/log`,
+        {
+          userId: user._id,
+          workoutPlanId: activePlan._id,
+          date: new Date(),
+          dayIndex: todayWorkout.dayIndex,
+          weekNumber: currentWeekNumber,
+          workoutDetails: allExercisesCompleted,
+          overallNotes: "",
+          perceivedExertion: 5,
+          durationMinutes: 0,
+        }
+      );
+
+      if (res.data.success) {
+        toast.success("🎉 Workout completed! Great job!");
+        fetchPlans();
+        fetchTodayWorkout();
+      }
+    } catch (err) {
+      console.error("Error completing workout:", err);
+      toast.error("Failed to complete workout.");
+    }
+  };
+
   const handleExerciseCompletionToggle = async (
     dayPlan,
     dayIndex,
@@ -241,6 +409,7 @@ const MyWorkoutPlan = () => {
           }!`
         );
         fetchPlans(); // Refresh plans to update UI with latest completion status
+        fetchTodayWorkout(); // Refresh today's workout to update completion status
       } else {
         toast.error("Failed to update exercise completion.");
       }
@@ -554,7 +723,220 @@ const MyWorkoutPlan = () => {
                               )}
                           </div>
 
-                          {currentWeekPlanContent.map((dayPlan, dayIndex) => {
+                          {/* Show only today's workout instead of all days */}
+                          {todayWorkout ? (
+                            <div className="mb-8 p-6 bg-gradient-to-r from-blue-700 to-purple-700 rounded-lg shadow-xl border-2 border-blue-500">
+                              <div className="flex items-center justify-between mb-4">
+                                <h4 className="text-2xl font-bold text-white flex items-center">
+                                  <FaDumbbell className="mr-3 text-yellow-300" />
+                                  Today's Workout - {new Date(todayWorkout.scheduledDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                </h4>
+                                {todayWorkout.isCompleted && (
+                                  <span className="px-4 py-2 bg-green-500 rounded-lg text-white font-bold flex items-center">
+                                    <FaCheckCircle className="mr-2" /> Completed!
+                                  </span>
+                                )}
+                              </div>
+                              
+                              {missedWorkouts > 0 && (
+                                <div className="mb-4 p-4 bg-yellow-900/50 border-2 border-yellow-500 rounded-lg">
+                                  <div className="flex items-start justify-between mb-2">
+                                    <div className="flex items-center">
+                                      <FaTimesCircle className="text-yellow-400 text-xl mr-2" />
+                                      <p className="text-yellow-200 font-bold text-lg">
+                                        {missedWorkouts} Missed Workout{missedWorkouts > 1 ? 's' : ''}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <p className="text-yellow-200 text-sm mb-3">
+                                    Don't worry! Missing workouts happens to everyone. Just continue with today's workout and stay consistent!
+                                  </p>
+                                  {missedWorkoutDetails.length > 0 && (
+                                    <div className="mt-3 pt-3 border-t border-yellow-700">
+                                      <p className="text-yellow-300 text-xs font-semibold mb-2">Missed on:</p>
+                                      <ul className="space-y-1">
+                                        {missedWorkoutDetails.map((missed, idx) => (
+                                          <li key={idx} className="text-yellow-200 text-xs">
+                                            • {new Date(missed.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} - {missed.focus}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                      <p className="text-yellow-300 text-xs mt-3 italic">
+                                        💡 Tip: Focus on today's workout. You cannot make up missed workouts in bulk, but consistency going forward matters most!
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              
+                              {todayWorkout.workoutContent ? (
+                                <>
+                                  {/* Progress Indicator */}
+                                  {(() => {
+                                    const exercises = todayWorkout.workoutContent.exercises || [];
+                                    const existingLog = todayWorkout.completedSessionLog;
+                                    const completedCount = exercises.filter(ex => 
+                                      existingLog?.workoutDetails?.some(
+                                        loggedEx => loggedEx.exerciseName === ex.name && loggedEx.completed
+                                      )
+                                    ).length;
+                                    const totalCount = exercises.length;
+                                    const progressPercentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+                                    
+                                    return (
+                                      <div className="mb-6 p-4 bg-gray-800/50 rounded-lg border border-gray-600">
+                                        <div className="flex items-center justify-between mb-2">
+                                          <p className="text-white font-semibold text-lg">
+                                            Progress: {completedCount} of {totalCount} exercises completed
+                                          </p>
+                                          <span className="text-green-400 font-bold">
+                                            {Math.round(progressPercentage)}%
+                                          </span>
+                                        </div>
+                                        <div className="w-full bg-gray-700 rounded-full h-3">
+                                          <div
+                                            className="bg-gradient-to-r from-green-500 to-green-600 h-3 rounded-full transition-all duration-300"
+                                            style={{ width: `${progressPercentage}%` }}
+                                          ></div>
+                                        </div>
+                                        {completedCount === totalCount && totalCount > 0 && !todayWorkout.isCompleted && (
+                                          <p className="text-green-300 text-sm mt-2 flex items-center">
+                                            <FaCheckCircle className="mr-2" />
+                                            All exercises done! Click "Complete Workout" below to finalize.
+                                          </p>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
+
+                                  {todayWorkout.workoutContent.focus && (
+                                    <p className="text-blue-100 mb-3 text-lg">
+                                      <span className="font-semibold">Focus:</span> {todayWorkout.workoutContent.focus}
+                                    </p>
+                                  )}
+                                  {todayWorkout.workoutContent.warmup && (
+                                    <p className="text-gray-200 mb-3">
+                                      <span className="font-semibold">Warmup:</span> {todayWorkout.workoutContent.warmup}
+                                    </p>
+                                  )}
+                                  <ul className="space-y-3 mb-4">
+                                    {todayWorkout.workoutContent.exercises?.map((exercise, exIndex) => {
+                                      const existingLog = todayWorkout.completedSessionLog;
+                                      const isExerciseCompleted = existingLog?.workoutDetails?.some(
+                                        (loggedEx) => loggedEx.exerciseName === exercise.name && loggedEx.completed
+                                      ) || false;
+                                      
+                                      return (
+                                        <li
+                                          key={exIndex}
+                                          className={`p-4 rounded-lg border-2 ${
+                                            isExerciseCompleted 
+                                              ? 'bg-green-900/30 border-green-500' 
+                                              : 'bg-gray-800 border-gray-600'
+                                          }`}
+                                        >
+                                          <div className="flex items-start justify-between">
+                                            <div className="flex-1">
+                                              <p className="font-bold text-white text-lg mb-1">
+                                                {exercise.name}
+                                              </p>
+                                              <p className="text-gray-300 text-sm">
+                                                Sets: {exercise.sets} | Reps: {exercise.reps} | Weight: {exercise.weight || 'N/A'}
+                                              </p>
+                                              {exercise.rest && (
+                                                <p className="text-gray-400 text-xs mt-1">Rest: {exercise.rest}</p>
+                                              )}
+                                              {exercise.notes && (
+                                                <p className="text-gray-400 text-xs mt-1 italic">{exercise.notes}</p>
+                                              )}
+                                            </div>
+                                            <button
+                                              onClick={() => handleToggleExercise(
+                                                todayWorkout.dayIndex,
+                                                todayWorkout.weekNumber,
+                                                exercise.name,
+                                                exercise.sets,
+                                                exercise.reps,
+                                                exercise.weight,
+                                                isExerciseCompleted
+                                              )}
+                                              className={`ml-4 p-2 rounded-lg transition ${
+                                                isExerciseCompleted
+                                                  ? 'bg-green-500 hover:bg-green-600 text-white'
+                                                  : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                                              }`}
+                                              disabled={todayWorkout.isCompleted}
+                                            >
+                                              {isExerciseCompleted ? (
+                                                <FaCheckCircle className="text-xl" />
+                                              ) : (
+                                                <FaTimesCircle className="text-xl" />
+                                              )}
+                                            </button>
+                                          </div>
+                                        </li>
+                                      );
+                                    })}
+                                  </ul>
+                                  
+                                  {/* Complete Workout Button */}
+                                  {!todayWorkout.isCompleted && (
+                                    <div className="mt-6 flex justify-center">
+                                      <button
+                                        onClick={handleCompleteWorkout}
+                                        className="px-8 py-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold text-lg rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center space-x-3"
+                                      >
+                                        <FaCheckCircle className="text-2xl" />
+                                        <span>Complete Workout</span>
+                                      </button>
+                                    </div>
+                                  )}
+                                  
+                                  {todayWorkout.workoutContent.cooldown && (
+                                    <p className="text-gray-200 mt-3">
+                                      <span className="font-semibold">Cooldown:</span> {todayWorkout.workoutContent.cooldown}
+                                    </p>
+                                  )}
+                                  
+                                  {/* Completion Message */}
+                                  {todayWorkout.isCompleted && (
+                                    <div className="mt-6 p-4 bg-green-900/30 border-2 border-green-500 rounded-lg text-center">
+                                      <FaCheckCircle className="text-green-400 text-4xl mx-auto mb-2" />
+                                      <p className="text-green-300 text-xl font-bold">
+                                        🎉 Workout Completed! Great job!
+                                      </p>
+                                      <p className="text-green-200 text-sm mt-2">
+                                        You've successfully completed all exercises for today.
+                                      </p>
+                                    </div>
+                                  )}
+                                </>
+                              ) : (
+                                <p className="text-gray-300">No workout content available for today.</p>
+                              )}
+                              
+                              {nextWorkoutDate && (
+                                <div className="mt-4 p-3 bg-gray-800/50 rounded-lg border border-gray-600">
+                                  <p className="text-gray-300 text-sm">
+                                    <strong>Next Workout:</strong> {new Date(nextWorkoutDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="mb-8 p-6 bg-gray-700 rounded-lg border border-gray-600 text-center">
+                              <p className="text-xl text-gray-300 mb-2">No workout scheduled for today!</p>
+                              <p className="text-gray-400">Enjoy your rest day. 🎉</p>
+                              {nextWorkoutDate && (
+                                <p className="text-gray-300 mt-4">
+                                  Your next workout is on <strong>{new Date(nextWorkoutDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</strong>
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          
+                          {/* OLD CODE - Keep for reference but hide it */}
+                          {false && currentWeekPlanContent.map((dayPlan, dayIndex) => {
                             // Check if the current day in the current week is marked as completed
                             const isDayCompleted = completedDaysInPlan.some(
                               (dc) =>

@@ -16,17 +16,20 @@ export default function EditProfile() {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
-    diseases: "", // New field for diseases
-    allergies: "", // New field for allergies
+    diseasesAndAllergies: "", // Combined field for diseases and allergies
   });
 
   useEffect(() => {
     if (user) {
+      // Combine diseases and allergies into one field
+      const diseases = user.diseases ? user.diseases.join(', ') : '';
+      const allergies = user.allergies ? user.allergies.join(', ') : '';
+      const combined = [diseases, allergies].filter(item => item !== '').join(', ');
+      
       setFormData({
         firstName: user.firstName,
         lastName: user.lastName,
-        diseases: user.diseases ? user.diseases.join(', ') : '', // Initialize diseases
-        allergies: user.allergies ? user.allergies.join(', ') : '', // Initialize allergies
+        diseasesAndAllergies: combined,
       });
     }
   }, [user]);
@@ -42,12 +45,16 @@ export default function EditProfile() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Split combined field back into diseases and allergies arrays
+      const items = formData.diseasesAndAllergies.split(',').map(item => item.trim()).filter(item => item !== '');
+      
       const res = await axios.put(
         `${API_BASE_URL}${API_ENDPOINTS.USERS}/${user._id}`,
         { 
-          ...formData,
-          diseases: formData.diseases.split(',').map(item => item.trim()).filter(item => item !== ''),
-          allergies: formData.allergies.split(',').map(item => item.trim()).filter(item => item !== ''),
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          diseases: items, // Store all items in diseases
+          allergies: items, // Store all items in allergies (same for now)
         }
       );
 
@@ -150,42 +157,25 @@ export default function EditProfile() {
 
               <div>
                 <label
-                  htmlFor="diseases"
+                  htmlFor="diseasesAndAllergies"
                   className="block text-sm font-medium mb-2 text-gray-300"
                 >
-                  Diseases (comma-separated)
+                  Diseases & Allergies (comma-separated)
                 </label>
                 <div className="relative rounded-md shadow-sm">
                   <textarea
-                    id="diseases"
-                    name="diseases"
-                    value={formData.diseases}
+                    id="diseasesAndAllergies"
+                    name="diseasesAndAllergies"
+                    value={formData.diseasesAndAllergies}
                     onChange={handleChange}
-                    rows="3"
+                    rows="4"
                     className="block w-full pl-3 pr-3 py-3 rounded-md bg-gray-700 border-gray-600 text-white placeholder-gray-400 border focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Diabetes, Hypertension, etc."
+                    placeholder="Diabetes, Hypertension, Pollen, Peanuts, etc."
                   ></textarea>
                 </div>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="allergies"
-                  className="block text-sm font-medium mb-2 text-gray-300"
-                >
-                  Allergies (comma-separated)
-                </label>
-                <div className="relative rounded-md shadow-sm">
-                  <textarea
-                    id="allergies"
-                    name="allergies"
-                    value={formData.allergies}
-                    onChange={handleChange}
-                    rows="3"
-                    className="block w-full pl-3 pr-3 py-3 rounded-md bg-gray-700 border-gray-600 text-white placeholder-gray-400 border focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Pollen, Peanuts, etc."
-                  ></textarea>
-                </div>
+                <p className="mt-1 text-xs text-gray-400">
+                  Enter any diseases, allergies, or health conditions separated by commas
+                </p>
               </div>
 
               <div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { useSelector } from "react-redux";
 import { selectUser } from "../../redux/userSlice";
@@ -237,6 +237,7 @@ export default function DietChartGenerator() {
         console.log(
           "✅ [FRONTEND] Diet chart generated successfully, setting state..."
         );
+        setSavedDietChart(null); // mark as unsaved so user can store & earn points
         setDietChart(response.data.dietChart.dietChart);
         toast.success("Diet chart generated successfully!");
       } else {
@@ -267,6 +268,102 @@ export default function DietChartGenerator() {
       .replace(/\n\s+/g, "\n") // Remove spaces at beginning of lines
       .trim();
   };
+
+  const normalizeHeading = (text) => {
+    if (!text) return "";
+    return text
+      .replace(/[:\-]+$/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+
+  const parseDietChartContent = (content) => {
+    if (!content) return [];
+
+    const cleaned = formatDietChartContent(content);
+    const lines = cleaned.split("\n").map((line) => line.trim()).filter(Boolean);
+
+    const dayHeadingRegex =
+      /^(day\s*\d+|week\s*\d+|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i;
+    const mealHeadingRegex =
+      /^(early\s*morning|breakfast|mid\s*morning|brunch|snack|pre\s*workout|post\s*workout|lunch|evening\s*snack|dinner|dessert|hydration|supplements|bed\s*time|night\s*snack)/i;
+
+    const sections = [];
+    let currentSection = null;
+    let currentMeal = null;
+
+    const pushSection = () => {
+      if (currentSection) {
+        currentSection.meals = currentSection.meals.filter(
+          (meal) => meal.items.length > 0
+        );
+        sections.push(currentSection);
+      }
+    };
+
+    lines.forEach((line) => {
+      const normalizedLine = line.replace(/^[-•\d.]+\s*/, "").trim();
+      if (!normalizedLine) return;
+
+      if (dayHeadingRegex.test(normalizedLine)) {
+        pushSection();
+        currentSection = {
+          title: normalizeHeading(normalizedLine),
+          meals: [],
+          notes: [],
+        };
+        currentMeal = null;
+      } else if (mealHeadingRegex.test(normalizedLine)) {
+        if (!currentSection) {
+          currentSection = {
+            title: "General Plan",
+            meals: [],
+            notes: [],
+          };
+        }
+        const meal = {
+          title: normalizeHeading(normalizedLine),
+          items: [],
+        };
+        currentSection.meals.push(meal);
+        currentMeal = meal;
+      } else {
+        if (!currentSection) {
+          currentSection = {
+            title: "General Guidelines",
+            meals: [],
+            notes: [],
+          };
+        }
+        if (currentMeal) {
+          currentMeal.items.push(normalizedLine);
+        } else {
+          currentSection.notes.push(normalizedLine);
+        }
+      }
+    });
+
+    pushSection();
+
+    return sections.filter(
+      (section) => section.notes.length > 0 || section.meals.length > 0
+    );
+  };
+
+  const resolvedSavedDietChart = useMemo(() => {
+    if (!savedDietChart) return null;
+    return typeof savedDietChart === "string"
+      ? savedDietChart
+      : savedDietChart?.dietChart || null;
+  }, [savedDietChart]);
+
+  const displayDietChart = dietChart || resolvedSavedDietChart;
+
+  const structuredDietChart = useMemo(
+    () => parseDietChartContent(displayDietChart),
+    [displayDietChart]
+  );
 
   const saveDietChart = async () => {
     console.log("💾 [FRONTEND] Starting diet chart save...");
@@ -330,12 +427,12 @@ export default function DietChartGenerator() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 py-12 px-4 sm:px-6 lg:px-8 text-gray-100">
+    <div className="min-h-screen bg-gray-900 pb-12 pt-4 px-4 sm:px-6 lg:px-8 text-gray-100">
       <NavBar />
 
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-12 mt-6">
           <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-red-500">
             AI Diet Chart Generator
           </h1>
@@ -599,7 +696,7 @@ export default function DietChartGenerator() {
                     <FaUtensils className="mr-3" /> Your Personalized Diet Chart
                   </h2>
                   <div className="flex space-x-3">
-                    {dietChart && (
+                    {displayDietChart && (
                       <button
                         onClick={saveDietChart}
                         disabled={loading}
@@ -609,10 +706,10 @@ export default function DietChartGenerator() {
                         <FiSave className="text-lg" />
                       </button>
                     )}
-                    {dietChart && (
+                    {displayDietChart && (
                       <button
                         onClick={() => {
-                          navigator.clipboard.writeText(dietChart);
+                          navigator.clipboard.writeText(displayDietChart);
                           toast.success("Diet chart copied to clipboard!");
                         }}
                         className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition"
@@ -643,18 +740,64 @@ export default function DietChartGenerator() {
               </div>
 
               <div className="p-6 max-h-96 overflow-y-auto w-full min-h-96">
-                {dietChart ? (
-                  <div className="w-full">
-                    <div className="whitespace-pre-wrap text-gray-300 leading-relaxed text-sm w-full">
-                      {formatDietChartContent(dietChart)}
+                {displayDietChart ? (
+                  structuredDietChart.length > 0 ? (
+                    <div className="space-y-6">
+                      {structuredDietChart.map((section, sectionIndex) => (
+                        <div
+                          key={`${section.title}-${sectionIndex}`}
+                          className="bg-gray-900/40 border border-gray-700 rounded-2xl p-6 shadow-lg"
+                        >
+                          <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-white">
+                              {section.title}
+                            </h3>
+                            <span className="text-xs uppercase tracking-widest text-gray-400">
+                              {sectionIndex + 1 < 10
+                                ? `Day ${sectionIndex + 1}`
+                                : "Plan Detail"}
+                            </span>
+                          </div>
+
+                          {section.notes.length > 0 && (
+                            <div className="mb-4 rounded-lg bg-gray-800/60 border border-gray-700 p-4 text-sm text-gray-200">
+                              <ul className="list-disc list-inside space-y-1">
+                                {section.notes.map((note, noteIndex) => (
+                                  <li key={noteIndex}>{note}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {section.meals.length > 0 && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {section.meals.map((meal, mealIndex) => (
+                                <div
+                                  key={`${meal.title}-${mealIndex}`}
+                                  className="p-4 bg-gray-800/70 border border-gray-700 rounded-xl"
+                                >
+                                  <h4 className="font-semibold text-lg text-orange-300 mb-2">
+                                    {meal.title}
+                                  </h4>
+                                  <ul className="list-disc list-inside text-sm text-gray-200 space-y-1">
+                                    {meal.items.map((item, itemIndex) => (
+                                      <li key={itemIndex}>{item}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                ) : savedDietChart ? (
-                  <div className="w-full">
-                    <div className="whitespace-pre-wrap text-gray-300 leading-relaxed text-sm w-full">
-                      {formatDietChartContent(savedDietChart)}
+                  ) : (
+                    <div className="w-full">
+                      <div className="whitespace-pre-wrap text-gray-300 leading-relaxed text-sm w-full">
+                        {formatDietChartContent(displayDietChart)}
+                      </div>
                     </div>
-                  </div>
+                  )
                 ) : (
                   <div className="flex flex-col items-center justify-center text-center p-12">
                     <FaUtensils className="text-5xl text-gray-600 mb-6" />
