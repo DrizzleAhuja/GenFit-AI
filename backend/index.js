@@ -21,26 +21,40 @@ app.use(cookieParser());
 
 // ✅ CORS config (production + localhost) with proper preflight handling
 const allowedOrigins = [
-  "https://mindfitai.vercel.app",
+  "https://genfitai.vercel.app",
+  "https://www.genfitai.vercel.app",
   "http://localhost:5173",
   "http://127.0.0.1:5173",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
 ];
 
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow server-to-server or curl (no origin)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
+
+    // Check if origin is in allowed list
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // Log for debugging
+    console.log("CORS blocked origin:", origin);
     return callback(new Error("Not allowed by CORS"));
   },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
   allowedHeaders: [
     "Content-Type",
     "Authorization",
     "X-Requested-With",
     "X-CSRF-Token",
+    "Accept",
+    "Origin",
   ],
   credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
 };
 
 app.use(cors(corsOptions));
@@ -51,20 +65,24 @@ app.options("*", cors(corsOptions));
 // ✅ Extra CORS headers (for platforms with strict proxying)
 app.use((req, res, next) => {
   const requestOrigin = req.headers.origin;
+
+  // Set CORS headers for allowed origins
   if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
     res.header("Access-Control-Allow-Origin", requestOrigin);
+    res.header("Access-Control-Allow-Credentials", "true");
+    res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS,PATCH");
+    res.header(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization, X-Requested-With, X-CSRF-Token, Accept, Origin"
+    );
+    res.header("Access-Control-Max-Age", "86400"); // 24 hours
   }
-  res.header("Access-Control-Allow-Credentials", "true");
-  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, X-Requested-With, X-CSRF-Token"
-  );
 
-  // Short-circuit preflight
+  // Short-circuit preflight requests
   if (req.method === "OPTIONS") {
-    return res.sendStatus(204);
+    return res.status(204).end();
   }
+
   next();
 });
 
@@ -98,7 +116,17 @@ app.use("/api/gamify", gamifyRoutes);
 // ✅ Error handling middleware
 app.use((err, req, res, next) => {
   console.error("Server Error:", err.stack);
-  res.status(500).send({
+
+  // Handle CORS errors specifically
+  if (err.message === "Not allowed by CORS") {
+    return res.status(403).json({
+      status: "error",
+      message: "CORS: Origin not allowed",
+      origin: req.headers.origin,
+    });
+  }
+
+  res.status(500).json({
     status: "error",
     message: "Internal Server Error",
   });
