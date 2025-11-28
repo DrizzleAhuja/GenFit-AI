@@ -50,7 +50,7 @@ export default function Home() {
       <NavBar />
       {!user && (
         <>
-          <HeroSection />
+      <HeroSection />
           <CallToAction />
           <HowItWorks />
         </>
@@ -243,7 +243,7 @@ export default function Home() {
           </div>
         </div>
       )}
-      
+
       <Footer />
     </div>
   );

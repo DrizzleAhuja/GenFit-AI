@@ -788,15 +788,15 @@ export default function DietChartGenerator() {
                               ))}
                             </div>
                           )}
-                        </div>
+                    </div>
                       ))}
-                    </div>
+                  </div>
                   ) : (
-                    <div className="w-full">
-                      <div className="whitespace-pre-wrap text-gray-300 leading-relaxed text-sm w-full">
+                  <div className="w-full">
+                    <div className="whitespace-pre-wrap text-gray-300 leading-relaxed text-sm w-full">
                         {formatDietChartContent(displayDietChart)}
-                      </div>
                     </div>
+                  </div>
                   )
                 ) : (
                   <div className="flex flex-col items-center justify-center text-center p-12">

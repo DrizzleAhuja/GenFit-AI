@@ -1475,60 +1475,60 @@ def render_calorie_analysis(tracker):
                 is_ai_estimate = food_item not in tracker.food_calorie_db
                 if is_ai_estimate:
                     st.info(f"🤖 Using AI estimation for '{food_item}' (not in database)")
-                
-                st.metric(
-                    label="Detected Food",
+            
+            st.metric(
+                label="Detected Food",
                     value=food_item.title(),
-                    delta=f"{top_prediction['confidence']*100:.1f}% confidence"
-                )
-                
-                st.metric(
-                    label="Portion Size",
-                    value=portion_size.title()
-                )
-                
+                delta=f"{top_prediction['confidence']*100:.1f}% confidence"
+            )
+            
+            st.metric(
+                label="Portion Size",
+                value=portion_size.title()
+            )
+            
                 # Calculate nutritional information (will work for ANY food now)
                 nutrition = tracker.calculate_calories(food_item, portion_size)
+            
+            if nutrition:
+                st.subheader("Nutritional Information")
                 
-                if nutrition:
-                    st.subheader("Nutritional Information")
-                    
-                    col3, col4, col5, col6 = st.columns(4)
-                    
-                    with col3:
-                        st.metric("Calories", f"{nutrition['calories']:.0f}")
-                    with col4:
-                        st.metric("Carbs (g)", f"{nutrition['carbs']:.1f}")
-                    with col5:
-                        st.metric("Protein (g)", f"{nutrition['protein']:.1f}")
-                    with col6:
-                        st.metric("Fat (g)", f"{nutrition['fat']:.1f}")
-                    
-                    # Add to meal history
+                col3, col4, col5, col6 = st.columns(4)
+                
+                with col3:
+                    st.metric("Calories", f"{nutrition['calories']:.0f}")
+                with col4:
+                    st.metric("Carbs (g)", f"{nutrition['carbs']:.1f}")
+                with col5:
+                    st.metric("Protein (g)", f"{nutrition['protein']:.1f}")
+                with col6:
+                    st.metric("Fat (g)", f"{nutrition['fat']:.1f}")
+                
+                # Add to meal history
                     if st.button("Add to Meal History", key='add_predicted'):
-                        meal_entry = {
-                            'timestamp': datetime.now(),
+                    meal_entry = {
+                        'timestamp': datetime.now(),
                             'food_item': food_item,
-                            'portion_size': portion_size,
-                            'calories': nutrition['calories'],
-                            'carbs': nutrition['carbs'],
-                            'protein': nutrition['protein'],
-                            'fat': nutrition['fat'],
+                        'portion_size': portion_size,
+                        'calories': nutrition['calories'],
+                        'carbs': nutrition['carbs'],
+                        'protein': nutrition['protein'],
+                        'fat': nutrition['fat'],
                             'image': st.session_state.get('current_image')
-                        }
-                        st.session_state.meal_history.append(meal_entry)
-                        st.success("Added to meal history!")
-                    
-                    # Show alternative predictions
+                    }
+                    st.session_state.meal_history.append(meal_entry)
+                    st.success("Added to meal history!")
+                
+                # Show alternative predictions
                     if len(st.session_state.predictions) > 1:
-                        st.subheader("Alternative Predictions")
-                        for i, pred in enumerate(st.session_state.predictions[1:], 1):
+                st.subheader("Alternative Predictions")
+                for i, pred in enumerate(st.session_state.predictions[1:], 1):
                             alt_food = pred['food_item']
                             alt_nutrition = tracker.calculate_calories(alt_food, portion_size)
                             if alt_nutrition and alt_food != 'unknown':
                                 st.write(f"{i}. {alt_food.title()} "
-                                       f"({pred['confidence']*100:.1f}% confidence) - "
-                                       f"{alt_nutrition['calories']:.0f} calories")
+                               f"({pred['confidence']*100:.1f}% confidence) - "
+                               f"{alt_nutrition['calories']:.0f} calories")
                 else:
                     st.error(f"Nutritional information not available for '{food_item}'. Please select manually.")
 
