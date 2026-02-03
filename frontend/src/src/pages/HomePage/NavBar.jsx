@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { selectUser, setUser } from "../../redux/userSlice";
-import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
+import { GoogleOAuthProvider, GoogleLogin, useGoogleLogin } from "@react-oauth/google";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
@@ -10,6 +10,8 @@ import { FiMenu, FiX, FiUser, FiEdit2, FiLogOut } from "react-icons/fi";
 import { useTheme } from "../../context/ThemeContext"; // Import useTheme
 import { Brain, Sparkles } from "lucide-react"; // Import Lucide icons for logo
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
+import { isPWAInstalled } from "../../utils/pwaInstall";
+import { getOAuthErrorMessage, isPWAMode } from "../../utils/googleOAuthPWA";
 
 export default function NavBar() {
   const dispatch = useDispatch();
@@ -18,8 +20,14 @@ export default function NavBar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [role, setRole] = useState("user");
+  const [isStandalone, setIsStandalone] = useState(false);
 
   const { darkMode } = useTheme(); // Access dark mode state
+
+  // Check if running as PWA
+  useEffect(() => {
+    setIsStandalone(isPWAInstalled());
+  }, []);
 
   const getUserInitials = (user) => {
     if (user && user.firstName) {
@@ -50,6 +58,11 @@ export default function NavBar() {
     try {
       const { credential } = response;
 
+      if (!credential) {
+        toast.error("No credential received from Google", { autoClose: 2000 });
+        return;
+      }
+
       const res = await axios.post(
         `${API_BASE_URL}${API_ENDPOINTS.AUTH}/login`,
         {
@@ -60,7 +73,6 @@ export default function NavBar() {
           withCredentials: true,
           headers: {
             "Content-Type": "application/json",
-            // Add these headers if needed
             Accept: "application/json",
           },
         }
@@ -89,6 +101,34 @@ export default function NavBar() {
       }
 
       toast.error(errorMessage, { autoClose: 2000 });
+    }
+  };
+
+  const handleLoginError = (error) => {
+    console.error("Google login error:", error);
+    
+    const errorInfo = getOAuthErrorMessage(error);
+    
+    // Show error message
+    toast.error(`${errorInfo.title}: ${errorInfo.message}`, { 
+      autoClose: 5000 
+    });
+    
+    // Show action tip after a delay
+    setTimeout(() => {
+      toast.info(errorInfo.action, { 
+        autoClose: 6000 
+      });
+    }, 2500);
+    
+    // Additional PWA-specific help
+    if (isPWAMode() && error?.error !== "popup_closed_by_user") {
+      setTimeout(() => {
+        toast.info(
+          "💡 Tip: For better sign-in experience, open this site in Chrome browser", 
+          { autoClose: 7000 }
+        );
+      }, 4000);
     }
   };
 
@@ -123,7 +163,18 @@ export default function NavBar() {
   return (
     <>
       {/* Removed ToastContainer as it's now in App.jsx */}
-      <GoogleOAuthProvider clientId="702465560392-1mu8j4kqafadep516m62oa5vf5klt7pu.apps.googleusercontent.com">
+      <GoogleOAuthProvider 
+        clientId="702465560392-1mu8j4kqafadep516m62oa5vf5klt7pu.apps.googleusercontent.com"
+        onScriptLoadError={() => {
+          console.error("Google OAuth script failed to load");
+          toast.error("Google sign-in unavailable. Please check your connection.", { 
+            autoClose: 3000 
+          });
+        }}
+        onScriptLoadSuccess={() => {
+          console.log("Google OAuth script loaded successfully");
+        }}
+      >
         <nav className="sticky top-0 left-0 w-full z-50 bg-gray-900 shadow-lg text-white">
           <div className="container mx-auto px-4 py-3 flex justify-between items-center">
             {/* Logo */}
@@ -217,13 +268,13 @@ export default function NavBar() {
               ) : (
                 <GoogleLogin
                   onSuccess={handleLoginSuccess}
-                  onError={() =>
-                    toast.error("Login failed", { autoClose: 2000 })
-                  }
+                  onError={handleLoginError}
                   theme="filled_blue"
                   shape="pill"
                   size="medium"
                   text="signin_with"
+                  useOneTap={false}
+                  auto_select={false}
                 />
               )}
             </div>
