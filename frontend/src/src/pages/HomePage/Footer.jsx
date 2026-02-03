@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   FaFacebook,
   FaInstagram,
@@ -20,15 +20,113 @@ import {
 import { NavLink } from "react-router-dom";
 import { useTheme } from '../../context/ThemeContext'; // Corrected Import useTheme path
 import { Brain, Sparkles } from 'lucide-react'; // Import Lucide icons for logo
+import { toast } from 'react-toastify';
 
 export default function Footer() {
   const { darkMode } = useTheme();
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isIOS, setIsIOS] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    // Check if running on iOS
+    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    setIsIOS(iOS);
+
+    // Check if already installed
+    const standalone = window.matchMedia('(display-mode: standalone)').matches;
+    setIsStandalone(standalone);
+
+    // Listen for beforeinstallprompt event (Android/Chrome)
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleAndroidInstall = async (e) => {
+    e.preventDefault();
+    
+    if (isStandalone) {
+      toast.info('App is already installed!', { autoClose: 2000 });
+      return;
+    }
+
+    if (deferredPrompt) {
+      // Show the install prompt
+      deferredPrompt.prompt();
+      
+      // Wait for the user to respond
+      const { outcome } = await deferredPrompt.userChoice;
+      
+      if (outcome === 'accepted') {
+        toast.success('App installation started!', { autoClose: 2000 });
+      } else {
+        toast.info('Installation cancelled', { autoClose: 2000 });
+      }
+      
+      // Clear the prompt
+      setDeferredPrompt(null);
+    } else {
+      // Fallback: Show instructions
+      toast.info('Please use the browser menu to install the app', { autoClose: 3000 });
+    }
+  };
+
+  const handleIOSInstall = (e) => {
+    e.preventDefault();
+    if (isStandalone) {
+      toast.info('App is already installed!', { autoClose: 2000 });
+      return;
+    }
+    toast.info(
+      'To install: Tap the Share button, then "Add to Home Screen"',
+      { autoClose: 4000 }
+    );
+  };
+
+  const handleDesktopInstall = (e) => {
+    e.preventDefault();
+    if (isStandalone) {
+      toast.info('App is already installed!', { autoClose: 2000 });
+      return;
+    }
+    if (deferredPrompt) {
+      handleAndroidInstall(e);
+    } else {
+      toast.info('Please use the browser menu (⋮) → "Install GenFit AI"', { autoClose: 3000 });
+    }
+  };
 
   const footerLinks = {
     "Download & Projects": [
-      { icon: <FaAndroid className="mr-2" />, label: "Android App", href: "#" },
-      { icon: <FaApple className="mr-2" />, label: "iOS App", href: "#" },
-      { icon: <FaDesktop className="mr-2" />, label: "Desktop", href: "#" },
+      { 
+        icon: <FaAndroid className="mr-2" />, 
+        label: "Android App", 
+        href: "#",
+        onClick: handleAndroidInstall,
+        show: !isStandalone
+      },
+      { 
+        icon: <FaApple className="mr-2" />, 
+        label: "iOS App", 
+        href: "#",
+        onClick: handleIOSInstall,
+        show: !isStandalone
+      },
+      { 
+        icon: <FaDesktop className="mr-2" />, 
+        label: "Desktop", 
+        href: "#",
+        onClick: handleDesktopInstall,
+        show: !isStandalone
+      },
       { icon: <FaProjectDiagram className="mr-2" />, label: "Projects", href: "#" },
       { icon: <FaTasks className="mr-2" />, label: "My Tasks", href: "#" }
     ],
@@ -70,17 +168,23 @@ export default function Footer() {
                 {title}
               </h5>
               <ul className="space-y-3">
-                {links.map((link, index) => (
-                  <li key={index}>
-                    <a
-                      href={link.href}
-                      className={`flex items-center ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-700 hover:text-gray-900'} transition-colors`}
-                    >
-                      {link.icon}
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
+                {links.map((link, index) => {
+                  // Hide install links if app is already installed
+                  if (link.show === false) return null;
+                  
+                  return (
+                    <li key={index}>
+                      <a
+                        href={link.href}
+                        onClick={link.onClick || undefined}
+                        className={`flex items-center ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-700 hover:text-gray-900'} transition-colors cursor-pointer`}
+                      >
+                        {link.icon}
+                        {link.label}
+                      </a>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))}
