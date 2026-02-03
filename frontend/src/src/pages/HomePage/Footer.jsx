@@ -21,87 +21,134 @@ import { NavLink } from "react-router-dom";
 import { useTheme } from '../../context/ThemeContext'; // Corrected Import useTheme path
 import { Brain, Sparkles } from 'lucide-react'; // Import Lucide icons for logo
 import { toast } from 'react-toastify';
+import { 
+  getInstallPrompt, 
+  onInstallPromptAvailable, 
+  triggerInstall, 
+  isPWAInstalled, 
+  isAndroid, 
+  isIOS, 
+  isMobile 
+} from '../../utils/pwaInstall';
 
 export default function Footer() {
   const { darkMode } = useTheme();
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [isIOS, setIsIOS] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(false);
+  const [hasInstallPrompt, setHasInstallPrompt] = useState(false);
+  const [deviceInfo, setDeviceInfo] = useState({
+    isIOS: false,
+    isAndroid: false,
+    isMobile: false,
+    isStandalone: false
+  });
 
   useEffect(() => {
-    // Check if running on iOS
-    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    setIsIOS(iOS);
+    // Check device info
+    setDeviceInfo({
+      isIOS: isIOS(),
+      isAndroid: isAndroid(),
+      isMobile: isMobile(),
+      isStandalone: isPWAInstalled()
+    });
 
-    // Check if already installed
-    const standalone = window.matchMedia('(display-mode: standalone)').matches;
-    setIsStandalone(standalone);
+    // Check if install prompt is already available
+    if (getInstallPrompt()) {
+      setHasInstallPrompt(true);
+    }
 
-    // Listen for beforeinstallprompt event (Android/Chrome)
-    const handleBeforeInstallPrompt = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
+    // Listen for when install prompt becomes available
+    const cleanup = onInstallPromptAvailable(() => {
+      setHasInstallPrompt(true);
+    });
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
+    return cleanup;
   }, []);
 
   const handleAndroidInstall = async (e) => {
     e.preventDefault();
     
-    if (isStandalone) {
+    if (deviceInfo.isStandalone) {
       toast.info('App is already installed!', { autoClose: 2000 });
       return;
     }
 
-    if (deferredPrompt) {
-      // Show the install prompt
-      deferredPrompt.prompt();
-      
-      // Wait for the user to respond
-      const { outcome } = await deferredPrompt.userChoice;
-      
-      if (outcome === 'accepted') {
-        toast.success('App installation started!', { autoClose: 2000 });
-      } else {
-        toast.info('Installation cancelled', { autoClose: 2000 });
+    // Try to get the install prompt
+    const prompt = getInstallPrompt();
+    
+    if (prompt) {
+      try {
+        // Trigger the install prompt immediately
+        const accepted = await triggerInstall();
+        
+        if (accepted) {
+          toast.success('Installing GenFit AI...', { autoClose: 2000 });
+        } else {
+          toast.info('Installation cancelled', { autoClose: 2000 });
+        }
+        setHasInstallPrompt(false);
+      } catch (error) {
+        console.error('Error showing install prompt:', error);
+        showManualInstallInstructions();
       }
-      
-      // Clear the prompt
-      setDeferredPrompt(null);
     } else {
-      // Fallback: Show instructions
-      toast.info('Please use the browser menu to install the app', { autoClose: 3000 });
+      // Wait a bit for the prompt to become available (sometimes it takes a moment)
+      toast.info('Preparing installation...', { autoClose: 2000 });
+      
+      // Wait up to 3 seconds for prompt to become available
+      let attempts = 0;
+      const checkPrompt = setInterval(() => {
+        attempts++;
+        const prompt = getInstallPrompt();
+        
+        if (prompt) {
+          clearInterval(checkPrompt);
+          handleAndroidInstall(e); // Retry with prompt
+        } else if (attempts >= 6) { // 3 seconds (6 * 500ms)
+          clearInterval(checkPrompt);
+          showManualInstallInstructions();
+        }
+      }, 500);
+    }
+  };
+
+  const showManualInstallInstructions = () => {
+    if (deviceInfo.isAndroid) {
+      toast.info(
+        'Android: Tap menu (⋮) → "Install app" or "Add to Home screen"',
+        { autoClose: 6000 }
+      );
+    } else if (deviceInfo.isIOS) {
+      toast.info(
+        'iOS: Tap Share button → "Add to Home Screen"',
+        { autoClose: 6000 }
+      );
+    } else {
+      toast.info(
+        'Desktop: Click menu (⋮) → "Install GenFit AI"',
+        { autoClose: 6000 }
+      );
     }
   };
 
   const handleIOSInstall = (e) => {
     e.preventDefault();
-    if (isStandalone) {
+    if (deviceInfo.isStandalone) {
       toast.info('App is already installed!', { autoClose: 2000 });
       return;
     }
     toast.info(
       'To install: Tap the Share button, then "Add to Home Screen"',
-      { autoClose: 4000 }
+      { autoClose: 5000 }
     );
   };
 
-  const handleDesktopInstall = (e) => {
+  const handleDesktopInstall = async (e) => {
     e.preventDefault();
-    if (isStandalone) {
+    if (deviceInfo.isStandalone) {
       toast.info('App is already installed!', { autoClose: 2000 });
       return;
     }
-    if (deferredPrompt) {
-      handleAndroidInstall(e);
-    } else {
-      toast.info('Please use the browser menu (⋮) → "Install GenFit AI"', { autoClose: 3000 });
-    }
+    // Desktop install works the same way
+    await handleAndroidInstall(e);
   };
 
   const footerLinks = {
@@ -111,21 +158,21 @@ export default function Footer() {
         label: "Android App", 
         href: "#",
         onClick: handleAndroidInstall,
-        show: !isStandalone
+        show: !deviceInfo.isStandalone
       },
       { 
         icon: <FaApple className="mr-2" />, 
         label: "iOS App", 
         href: "#",
         onClick: handleIOSInstall,
-        show: !isStandalone
+        show: !deviceInfo.isStandalone
       },
       { 
         icon: <FaDesktop className="mr-2" />, 
         label: "Desktop", 
         href: "#",
         onClick: handleDesktopInstall,
-        show: !isStandalone
+        show: !deviceInfo.isStandalone
       },
       { icon: <FaProjectDiagram className="mr-2" />, label: "Projects", href: "#" },
       { icon: <FaTasks className="mr-2" />, label: "My Tasks", href: "#" }
