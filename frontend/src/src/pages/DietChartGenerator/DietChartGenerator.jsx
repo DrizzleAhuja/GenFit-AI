@@ -427,61 +427,61 @@ export default function DietChartGenerator() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 pb-12 pt-4 px-4 sm:px-6 lg:px-8 text-gray-100">
+    <div className="min-h-screen bg-gray-900 pb-12 pt-4 px-3 sm:px-4 lg:px-8 text-gray-100">
       <NavBar />
 
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-12 mt-6">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-red-500">
+        <div className="text-center mb-6 sm:mb-12 mt-4 sm:mt-6">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 sm:mb-4 bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-red-500 px-2">
             AI Diet Chart Generator
           </h1>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+          <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 max-w-3xl mx-auto px-2">
             Get personalized diet plans tailored to your active workout plan and
             health information
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 lg:gap-8">
           {/* Left Side - Information and Controls */}
-          <div className="lg:col-span-1 space-y-6">
+          <div className="lg:col-span-1 space-y-4 sm:space-y-6 order-2 lg:order-1">
             {/* BMI Data Display */}
             {bmiData ? (
               <div className="bg-gray-800 rounded-xl shadow-md border border-gray-700 overflow-hidden">
-                <div className="bg-gradient-to-r from-orange-600 to-red-700 p-6 text-white">
-                  <h2 className="text-2xl font-bold flex items-center">
-                    <FiHeart className="mr-3" /> Your Health Profile
+                <div className="bg-gradient-to-r from-orange-600 to-red-700 p-4 sm:p-6 text-white">
+                  <h2 className="text-lg sm:text-xl lg:text-2xl font-bold flex items-center">
+                    <FiHeart className="mr-2 sm:mr-3 text-base sm:text-lg lg:text-xl" /> <span className="text-sm sm:text-base lg:text-lg">Your Health Profile</span>
                   </h2>
                 </div>
-                <div className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-gray-300">
+                <div className="p-4 sm:p-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div className="space-y-1 sm:space-y-2">
+                      <p className="text-xs sm:text-sm text-gray-300">
                         BMI:{" "}
                         <span className="font-bold text-white">
                           {bmiData.bmi}
                         </span>
                       </p>
-                      <p className="text-gray-300">
+                      <p className="text-xs sm:text-sm text-gray-300">
                         Category:{" "}
                         <span className="font-bold text-white">
                           {bmiResult.category}
                         </span>
                       </p>
-                      <p className="text-gray-300">
+                      <p className="text-xs sm:text-sm text-gray-300">
                         Weight:{" "}
                         <span className="font-bold text-white">
                           {bmiData.weight}kg
                         </span>
                       </p>
-                      <p className="text-gray-300">
+                      <p className="text-xs sm:text-sm text-gray-300">
                         Height:{" "}
                         <span className="font-bold text-white">
                           {bmiData.heightFeet}'{bmiData.heightInches}"
                         </span>
                       </p>
                       {bmiData.age && (
-                        <p className="text-gray-300">
+                        <p className="text-xs sm:text-sm text-gray-300">
                           Age:{" "}
                           <span className="font-bold text-white">
                             {bmiData.age} years
@@ -489,18 +489,18 @@ export default function DietChartGenerator() {
                         </p>
                       )}
                     </div>
-                    <div>
-                      <p className="text-gray-300">
+                    <div className="space-y-1 sm:space-y-2">
+                      <p className="text-xs sm:text-sm text-gray-300">
                         Diseases:{" "}
-                        <span className="font-bold text-white">
+                        <span className="font-bold text-white text-xs sm:text-sm">
                           {user?.diseases && user.diseases.length > 0
                             ? user.diseases.join(", ")
                             : "None"}
                         </span>
                       </p>
-                      <p className="text-gray-300">
+                      <p className="text-xs sm:text-sm text-gray-300">
                         Allergies:{" "}
-                        <span className="font-bold text-white">
+                        <span className="font-bold text-white text-xs sm:text-sm">
                           {user?.allergies && user.allergies.length > 0
                             ? user.allergies.join(", ")
                             : "None"}
@@ -527,20 +527,20 @@ export default function DietChartGenerator() {
                 </div>
               </div>
             ) : (
-              <div className="bg-red-900/20 rounded-xl border border-red-600 p-6">
-                <div className="flex items-center mb-4">
-                  <FaExclamationTriangle className="text-red-400 mr-3" />
-                  <h3 className="text-lg font-semibold text-red-300">
+              <div className="bg-red-900/20 rounded-xl border border-red-600 p-4 sm:p-6">
+                <div className="flex items-center mb-3 sm:mb-4">
+                  <FaExclamationTriangle className="text-red-400 mr-2 sm:mr-3 text-base sm:text-lg" />
+                  <h3 className="text-base sm:text-lg font-semibold text-red-300">
                     BMI Data Required
                   </h3>
                 </div>
-                <p className="text-red-300 mb-4">
+                <p className="text-red-300 mb-3 sm:mb-4 text-xs sm:text-sm">
                   Please calculate your BMI first to generate a personalized
                   diet chart.
                 </p>
                 <button
                   onClick={() => navigate("/CurrentBMI")}
-                  className="bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 transition"
+                  className="bg-blue-600 text-white py-2.5 px-4 rounded-lg font-medium hover:bg-blue-700 transition text-sm sm:text-base w-full sm:w-auto min-h-[44px] active:bg-blue-800"
                 >
                   Go to BMI Calculator
                 </button>
@@ -550,22 +550,22 @@ export default function DietChartGenerator() {
             {/* Active Workout Plan Display */}
             {activeWorkoutPlan ? (
               <div className="bg-gray-800 rounded-xl shadow-md border border-gray-700 overflow-hidden">
-                <div className="bg-gradient-to-r from-green-600 to-blue-700 p-6 text-white">
-                  <h2 className="text-2xl font-bold flex items-center">
-                    <FaChartLine className="mr-3" /> Active Workout Plan
+                <div className="bg-gradient-to-r from-green-600 to-blue-700 p-4 sm:p-6 text-white">
+                  <h2 className="text-lg sm:text-xl lg:text-2xl font-bold flex items-center">
+                    <FaChartLine className="mr-2 sm:mr-3 text-base sm:text-lg lg:text-xl" /> <span className="text-sm sm:text-base lg:text-lg">Active Workout Plan</span>
                   </h2>
                 </div>
-                <div className="p-6">
-                  <div className="space-y-2">
-                    <p className="text-gray-300">
+                <div className="p-4 sm:p-6">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <p className="text-xs sm:text-sm text-gray-300">
                       Plan Name:{" "}
-                      <span className="font-bold text-white">
+                      <span className="font-bold text-white text-xs sm:text-sm">
                         {activeWorkoutPlan.name}
                       </span>
                     </p>
-                    <p className="text-gray-300">
+                    <p className="text-xs sm:text-sm text-gray-300">
                       Goal:{" "}
-                      <span className="font-bold text-white">
+                      <span className="font-bold text-white text-xs sm:text-sm">
                         {activeWorkoutPlan?.generatedParams?.fitnessGoal
                           ?.replace(/_/g, " ")
                           .split(" ")
@@ -576,22 +576,22 @@ export default function DietChartGenerator() {
                           .join(" ") || "N/A"}
                       </span>
                     </p>
-                    <p className="text-gray-300">
+                    <p className="text-xs sm:text-sm text-gray-300">
                       Duration:{" "}
-                      <span className="font-bold text-white">
+                      <span className="font-bold text-white text-xs sm:text-sm">
                         {activeWorkoutPlan.durationWeeks} weeks
                       </span>
                     </p>
-                    <p className="text-gray-300">
+                    <p className="text-xs sm:text-sm text-gray-300">
                       Current Week:{" "}
-                      <span className="font-bold text-white">
+                      <span className="font-bold text-white text-xs sm:text-sm">
                         {activeWorkoutPlan.currentWeek} of{" "}
                         {activeWorkoutPlan.durationWeeks}
                       </span>
                     </p>
-                    <p className="text-gray-300">
+                    <p className="text-xs sm:text-sm text-gray-300">
                       Days Per Week:{" "}
-                      <span className="font-bold text-white">
+                      <span className="font-bold text-white text-xs sm:text-sm">
                         {activeWorkoutPlan?.generatedParams?.daysPerWeek ||
                           "N/A"}
                       </span>
@@ -600,20 +600,20 @@ export default function DietChartGenerator() {
                 </div>
               </div>
             ) : (
-              <div className="bg-yellow-900/20 rounded-xl border border-yellow-600 p-6">
-                <div className="flex items-center mb-4">
-                  <FaExclamationTriangle className="text-yellow-400 mr-3" />
-                  <h3 className="text-lg font-semibold text-yellow-300">
+              <div className="bg-yellow-900/20 rounded-xl border border-yellow-600 p-4 sm:p-6">
+                <div className="flex items-center mb-3 sm:mb-4">
+                  <FaExclamationTriangle className="text-yellow-400 mr-2 sm:mr-3 text-base sm:text-lg" />
+                  <h3 className="text-base sm:text-lg font-semibold text-yellow-300">
                     No Active Workout Plan
                   </h3>
                 </div>
-                <p className="text-yellow-300 mb-4">
+                <p className="text-yellow-300 mb-3 sm:mb-4 text-xs sm:text-sm">
                   Diet charts work in accordance with your active workout plan.
                   Please create and activate a workout plan first.
                 </p>
                 <button
                   onClick={() => navigate("/Workout")}
-                  className="bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-700 transition"
+                  className="bg-green-600 text-white py-2.5 px-4 rounded-lg font-medium hover:bg-green-700 transition text-sm sm:text-base w-full sm:w-auto min-h-[44px] active:bg-green-800"
                 >
                   Go to Workout Generator
                 </button>
@@ -622,28 +622,28 @@ export default function DietChartGenerator() {
 
             {/* Action Buttons */}
             <div className="bg-gray-800 rounded-xl shadow-md border border-gray-700 overflow-hidden">
-              <div className="bg-gradient-to-r from-orange-600 to-red-700 p-6 text-white">
-                <h2 className="text-2xl font-bold flex items-center">
-                  <FaUtensils className="mr-3" /> Generate Diet Chart
+              <div className="bg-gradient-to-r from-orange-600 to-red-700 p-4 sm:p-6 text-white">
+                <h2 className="text-lg sm:text-xl lg:text-2xl font-bold flex items-center">
+                  <FaUtensils className="mr-2 sm:mr-3 text-base sm:text-lg lg:text-xl" /> <span className="text-sm sm:text-base lg:text-lg">Generate Diet Chart</span>
                 </h2>
               </div>
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 {savedDietChart ? (
-                  <div className="mb-4 p-4 bg-green-900/20 border border-green-600 rounded-lg">
-                    <p className="text-green-300 text-sm">
+                  <div className="mb-3 sm:mb-4 p-3 sm:p-4 bg-green-900/20 border border-green-600 rounded-lg">
+                    <p className="text-green-300 text-xs sm:text-sm">
                       ✓ You already have a saved diet chart for this workout
                       plan
                     </p>
                   </div>
                 ) : null}
 
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <button
                     onClick={generateDietChart}
                     disabled={
                       loading || !user || !bmiData || !activeWorkoutPlan
                     }
-                    className="w-full bg-orange-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-orange-700 transition disabled:opacity-50 flex items-center justify-center"
+                    className="w-full bg-orange-600 text-white py-3 sm:py-3 px-6 rounded-lg font-medium hover:bg-orange-700 transition disabled:opacity-50 flex items-center justify-center text-sm sm:text-base min-h-[48px] active:bg-orange-800"
                   >
                     {loading ? (
                       <>
@@ -662,7 +662,7 @@ export default function DietChartGenerator() {
                     <button
                       onClick={saveDietChart}
                       disabled={loading}
-                      className="w-full bg-green-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center"
+                      className="w-full bg-green-600 text-white py-3 sm:py-3 px-6 rounded-lg font-medium hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center text-sm sm:text-base min-h-[48px] active:bg-green-800"
                     >
                       {loading ? (
                         <>
@@ -679,7 +679,7 @@ export default function DietChartGenerator() {
                   )}
                 </div>
 
-                <p className="text-gray-400 text-sm mt-4">
+                <p className="text-gray-400 text-xs sm:text-sm mt-3 sm:mt-4">
                   The diet chart will be personalized based on your BMI data,
                   health conditions, and active workout plan.
                 </p>
@@ -688,22 +688,22 @@ export default function DietChartGenerator() {
           </div>
 
           {/* Right Side - Diet Chart Display */}
-          <div className="lg:col-span-4">
+          <div className="lg:col-span-4 order-1 lg:order-2">
             <div className="bg-gray-800 rounded-xl shadow-md border border-gray-700 h-full overflow-hidden w-full">
-              <div className="bg-gradient-to-r from-orange-600 to-red-700 p-6 text-white">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-2xl font-bold flex items-center">
-                    <FaUtensils className="mr-3" /> Your Personalized Diet Chart
+              <div className="bg-gradient-to-r from-orange-600 to-red-700 p-4 sm:p-6 text-white">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
+                  <h2 className="text-lg sm:text-xl lg:text-2xl font-bold flex items-center">
+                    <FaUtensils className="mr-2 sm:mr-3 text-base sm:text-lg lg:text-xl" /> <span className="text-sm sm:text-base lg:text-lg">Your Personalized Diet Chart</span>
                   </h2>
-                  <div className="flex space-x-3">
+                  <div className="flex space-x-2 sm:space-x-3 w-full sm:w-auto">
                     {displayDietChart && (
                       <button
                         onClick={saveDietChart}
                         disabled={loading}
-                        className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition disabled:opacity-50"
+                        className="p-2 sm:p-2 bg-white/10 rounded-lg hover:bg-white/20 transition disabled:opacity-50 active:bg-white/30 min-w-[44px] min-h-[44px] flex items-center justify-center"
                         title="Save diet chart"
                       >
-                        <FiSave className="text-lg" />
+                        <FiSave className="text-base sm:text-lg" />
                       </button>
                     )}
                     {displayDietChart && (
@@ -712,16 +712,16 @@ export default function DietChartGenerator() {
                           navigator.clipboard.writeText(displayDietChart);
                           toast.success("Diet chart copied to clipboard!");
                         }}
-                        className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition"
+                        className="p-2 sm:p-2 bg-white/10 rounded-lg hover:bg-white/20 transition active:bg-white/30 min-w-[44px] min-h-[44px] flex items-center justify-center"
                         title="Copy to clipboard"
                       >
-                        <FiCopy className="text-lg" />
+                        <FiCopy className="text-base sm:text-lg" />
                       </button>
                     )}
                   </div>
                 </div>
                 {activeWorkoutPlan && (
-                  <div className="mt-4 flex flex-wrap gap-4 text-sm">
+                  <div className="mt-3 sm:mt-4 flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm">
                     <span className="bg-white/20 px-3 py-1 rounded-full">
                       {activeWorkoutPlan.generatedParams?.fitnessGoal
                         ?.replace(/_/g, " ")
@@ -739,17 +739,17 @@ export default function DietChartGenerator() {
                 )}
               </div>
 
-              <div className="p-6 max-h-96 overflow-y-auto w-full min-h-96">
+              <div className="p-4 sm:p-6 max-h-[70vh] sm:max-h-96 overflow-y-auto w-full min-h-[300px] sm:min-h-96">
                 {displayDietChart ? (
                   structuredDietChart.length > 0 ? (
-                    <div className="space-y-6">
+                    <div className="space-y-4 sm:space-y-6">
                       {structuredDietChart.map((section, sectionIndex) => (
                         <div
                           key={`${section.title}-${sectionIndex}`}
-                          className="bg-gray-900/40 border border-gray-700 rounded-2xl p-6 shadow-lg"
+                          className="bg-gray-900/40 border border-gray-700 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg"
                         >
-                          <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-bold text-white">
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 sm:mb-4 gap-2">
+                            <h3 className="text-base sm:text-lg lg:text-xl font-bold text-white">
                               {section.title}
                             </h3>
                             <span className="text-xs uppercase tracking-widest text-gray-400">
@@ -760,7 +760,7 @@ export default function DietChartGenerator() {
                           </div>
 
                           {section.notes.length > 0 && (
-                            <div className="mb-4 rounded-lg bg-gray-800/60 border border-gray-700 p-4 text-sm text-gray-200">
+                            <div className="mb-3 sm:mb-4 rounded-lg bg-gray-800/60 border border-gray-700 p-3 sm:p-4 text-xs sm:text-sm text-gray-200">
                               <ul className="list-disc list-inside space-y-1">
                                 {section.notes.map((note, noteIndex) => (
                                   <li key={noteIndex}>{note}</li>
@@ -770,16 +770,16 @@ export default function DietChartGenerator() {
                           )}
 
                           {section.meals.length > 0 && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                               {section.meals.map((meal, mealIndex) => (
                                 <div
                                   key={`${meal.title}-${mealIndex}`}
-                                  className="p-4 bg-gray-800/70 border border-gray-700 rounded-xl"
+                                  className="p-3 sm:p-4 bg-gray-800/70 border border-gray-700 rounded-lg sm:rounded-xl"
                                 >
-                                  <h4 className="font-semibold text-lg text-orange-300 mb-2">
+                                  <h4 className="font-semibold text-base sm:text-lg text-orange-300 mb-2">
                                     {meal.title}
                                   </h4>
-                                  <ul className="list-disc list-inside text-sm text-gray-200 space-y-1">
+                                  <ul className="list-disc list-inside text-xs sm:text-sm text-gray-200 space-y-1">
                                     {meal.items.map((item, itemIndex) => (
                                       <li key={itemIndex}>{item}</li>
                                     ))}
@@ -793,18 +793,18 @@ export default function DietChartGenerator() {
                   </div>
                   ) : (
                   <div className="w-full">
-                    <div className="whitespace-pre-wrap text-gray-300 leading-relaxed text-sm w-full">
+                    <div className="whitespace-pre-wrap text-gray-300 leading-relaxed text-xs sm:text-sm w-full">
                         {formatDietChartContent(displayDietChart)}
                     </div>
                   </div>
                   )
                 ) : (
-                  <div className="flex flex-col items-center justify-center text-center p-12">
-                    <FaUtensils className="text-5xl text-gray-600 mb-6" />
-                    <h3 className="text-2xl font-medium text-gray-400 mb-3">
+                  <div className="flex flex-col items-center justify-center text-center p-6 sm:p-12 min-h-[300px]">
+                    <FaUtensils className="text-4xl sm:text-5xl text-gray-600 mb-4 sm:mb-6" />
+                    <h3 className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-400 mb-2 sm:mb-3">
                       No Diet Chart Generated
                     </h3>
-                    <p className="text-gray-500 max-w-md">
+                    <p className="text-sm sm:text-base text-gray-500 max-w-md px-2">
                       {!bmiData
                         ? "Please calculate your BMI first to generate a personalized diet chart."
                         : !activeWorkoutPlan

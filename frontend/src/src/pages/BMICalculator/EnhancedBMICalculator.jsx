@@ -385,81 +385,82 @@ export default function EnhancedBMICalculator() {
   return (
     <div className="dark">
       <NavBar />
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 py-8 px-4 sm:px-6 lg:px-8 text-white">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 py-4 sm:py-8 px-3 sm:px-4 lg:px-8 text-white">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-400">
+          <div className="text-center mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 sm:mb-4 bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-400 px-2">
               Enhanced BMI Calculator
             </h1>
-            <p className="text-xl text-gray-300">
+            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 px-2">
               Track your health journey with AI-powered insights
             </p>
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex flex-wrap justify-center mb-8">
+          <div className="flex flex-wrap justify-center mb-4 sm:mb-8 gap-2 sm:gap-0">
             {[
               {
                 id: "calculator",
                 label: "BMI Calculator",
-                icon: <FaWeight className="mr-2" />,
+                icon: <FaWeight className="mr-1 sm:mr-2 text-sm sm:text-base" />,
               },
               {
                 id: "ai-insights",
                 label: "AI Insights",
-                icon: <FaBrain className="mr-2" />,
+                icon: <FaBrain className="mr-1 sm:mr-2 text-sm sm:text-base" />,
               },
               {
                 id: "history",
                 label: "History",
-                icon: <FaHistory className="mr-2" />,
+                icon: <FaHistory className="mr-1 sm:mr-2 text-sm sm:text-base" />,
               },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center px-6 py-3 m-2 rounded-lg font-medium transition-all ${
+                className={`flex items-center px-3 sm:px-6 py-2 sm:py-3 m-1 sm:m-2 rounded-lg font-medium transition-all text-xs sm:text-sm md:text-base min-h-[44px] ${
                   activeTab === tab.id
                     ? "bg-gradient-to-r from-green-500 to-blue-600 text-white shadow-lg"
-                    : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                    : "bg-gray-800 text-gray-300 hover:bg-gray-700 active:bg-gray-600"
                 }`}
               >
                 {tab.icon}
-                {tab.label}
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
               </button>
             ))}
           </div>
 
           {/* Calculator Tab */}
           {activeTab === "calculator" && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
               {/* Form */}
-              <div className="bg-gray-800 rounded-xl shadow-xl border border-gray-700 p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold flex items-center">
-                    <FaWeight className="mr-3 text-green-400" />
-                    {isEditing ? "Update Your Details" : "Calculate Your BMI"}
+              <div className="bg-gray-800 rounded-xl shadow-xl border border-gray-700 p-4 sm:p-6 order-2 lg:order-1">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3">
+                  <h2 className="text-lg sm:text-xl lg:text-2xl font-bold flex items-center">
+                    <FaWeight className="mr-2 sm:mr-3 text-green-400 text-base sm:text-lg lg:text-xl" />
+                    <span className="text-sm sm:text-base lg:text-lg">{isEditing ? "Update Your Details" : "Calculate Your BMI"}</span>
                   </h2>
                   {!isEditing && history.length > 0 && (
                     <button
                       onClick={() => setIsEditing(true)}
-                      className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      className="flex items-center px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm min-h-[44px] active:bg-blue-800 w-full sm:w-auto"
                     >
-                      <FaEdit className="mr-2" />
+                      <FaEdit className="mr-2 text-sm sm:text-base" />
                       Edit
                     </button>
                   )}
                 </div>
 
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   {/* Height */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center">
-                      <GiBodyHeight className="mr-2 text-gray-400" />
+                    <label className="block text-xs sm:text-sm font-medium text-gray-300 mb-2 flex items-center">
+                      <GiBodyHeight className="mr-2 text-gray-400 text-sm sm:text-base" />
                       Height
                     </label>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
                       <div className="relative">
                         <input
                           type="number"
@@ -471,11 +472,11 @@ export default function EnhancedBMICalculator() {
                               heightFeet: e.target.value,
                             })
                           }
-                          className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white"
+                          className="w-full p-3 sm:p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white text-base pr-10"
                           min="1"
                           max="8"
                         />
-                        <span className="absolute right-3 top-3 text-gray-400">
+                        <span className="absolute right-3 top-3 text-gray-400 text-sm">
                           ft
                         </span>
                       </div>
@@ -490,11 +491,11 @@ export default function EnhancedBMICalculator() {
                               heightInches: e.target.value,
                             })
                           }
-                          className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white"
+                          className="w-full p-3 sm:p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white text-base pr-10"
                           min="0"
                           max="11"
                         />
-                        <span className="absolute right-3 top-3 text-gray-400">
+                        <span className="absolute right-3 top-3 text-gray-400 text-sm">
                           in
                         </span>
                       </div>
@@ -503,8 +504,8 @@ export default function EnhancedBMICalculator() {
 
                   {/* Weight */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center">
-                      <FaWeight className="mr-2 text-gray-400" />
+                    <label className="block text-xs sm:text-sm font-medium text-gray-300 mb-2 flex items-center">
+                      <FaWeight className="mr-2 text-gray-400 text-sm sm:text-base" />
                       Weight (kg)
                     </label>
                     <input
@@ -514,14 +515,14 @@ export default function EnhancedBMICalculator() {
                       onChange={(e) =>
                         setFormData({ ...formData, weight: e.target.value })
                       }
-                      className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white"
+                      className="w-full p-3 sm:p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white text-base"
                     />
                   </div>
 
                   {/* Age */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center">
-                      <FaBirthdayCake className="mr-2 text-gray-400" />
+                    <label className="block text-xs sm:text-sm font-medium text-gray-300 mb-2 flex items-center">
+                      <FaBirthdayCake className="mr-2 text-gray-400 text-sm sm:text-base" />
                       Age
                     </label>
                     <input
@@ -531,26 +532,26 @@ export default function EnhancedBMICalculator() {
                       onChange={(e) =>
                         setFormData({ ...formData, age: e.target.value })
                       }
-                      className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white"
+                      className="w-full p-3 sm:p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white text-base"
                     />
                   </div>
 
                   {/* Diseases */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center">
-                      <FaHeartbeat className="mr-2 text-gray-400" />
+                    <label className="block text-xs sm:text-sm font-medium text-gray-300 mb-2 flex items-center">
+                      <FaHeartbeat className="mr-2 text-gray-400 text-sm sm:text-base" />
                       Diseases
                     </label>
-                    <div className="flex flex-wrap gap-2 mb-2">
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-2">
                       {formData.diseases.map((disease, index) => (
                         <span
                           key={index}
-                          className="flex items-center px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm"
+                          className="flex items-center px-2 sm:px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs sm:text-sm"
                         >
                           {disease}
                           <button
                             onClick={() => removeDisease(disease)}
-                            className="ml-2 text-red-600 hover:text-red-800"
+                            className="ml-1.5 sm:ml-2 text-red-600 hover:text-red-800 text-base sm:text-lg font-bold"
                           >
                             ×
                           </button>
@@ -568,11 +569,11 @@ export default function EnhancedBMICalculator() {
                             setShowDiseaseDropdown(true);
                           }}
                           onFocus={() => setShowDiseaseDropdown(true)}
-                          className="flex-1 p-3 rounded-l-lg bg-gray-700 border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white"
+                          className="flex-1 p-3 sm:p-3 rounded-l-lg bg-gray-700 border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white text-sm sm:text-base"
                         />
                         <button
                           onClick={() => addDisease()}
-                          className="px-4 py-3 bg-red-600 text-white rounded-r-lg hover:bg-red-700 transition-colors"
+                          className="px-3 sm:px-4 py-3 bg-red-600 text-white rounded-r-lg hover:bg-red-700 transition-colors text-xs sm:text-sm min-w-[60px] active:bg-red-800"
                         >
                           Add
                         </button>
@@ -593,7 +594,7 @@ export default function EnhancedBMICalculator() {
                               <button
                                 key={index}
                                 onClick={() => addDisease(disease)}
-                                className="w-full px-4 py-2 text-left text-white hover:bg-gray-600 transition-colors"
+                                className="w-full px-3 sm:px-4 py-2 text-left text-white hover:bg-gray-600 transition-colors text-xs sm:text-sm min-h-[44px] active:bg-gray-500"
                               >
                                 {disease}
                               </button>
@@ -606,7 +607,7 @@ export default function EnhancedBMICalculator() {
                               !formData.diseases.includes(disease)
                           ).length === 0 &&
                             newDisease && (
-                              <div className="px-4 py-2 text-gray-400 text-sm">
+                              <div className="px-3 sm:px-4 py-2 text-gray-400 text-xs sm:text-sm">
                                 Press "Add" to add "{newDisease}"
                               </div>
                             )}
@@ -617,20 +618,20 @@ export default function EnhancedBMICalculator() {
 
                   {/* Allergies */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center">
-                      <FaAllergies className="mr-2 text-gray-400" />
+                    <label className="block text-xs sm:text-sm font-medium text-gray-300 mb-2 flex items-center">
+                      <FaAllergies className="mr-2 text-gray-400 text-sm sm:text-base" />
                       Allergies
                     </label>
-                    <div className="flex flex-wrap gap-2 mb-2">
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-2">
                       {formData.allergies.map((allergy, index) => (
                         <span
                           key={index}
-                          className="flex items-center px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm"
+                          className="flex items-center px-2 sm:px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs sm:text-sm"
                         >
                           {allergy}
                           <button
                             onClick={() => removeAllergy(allergy)}
-                            className="ml-2 text-yellow-600 hover:text-yellow-800"
+                            className="ml-1.5 sm:ml-2 text-yellow-600 hover:text-yellow-800 text-base sm:text-lg font-bold"
                           >
                             ×
                           </button>
@@ -648,11 +649,11 @@ export default function EnhancedBMICalculator() {
                             setShowAllergyDropdown(true);
                           }}
                           onFocus={() => setShowAllergyDropdown(true)}
-                          className="flex-1 p-3 rounded-l-lg bg-gray-700 border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white"
+                          className="flex-1 p-3 sm:p-3 rounded-l-lg bg-gray-700 border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white text-sm sm:text-base"
                         />
                         <button
                           onClick={() => addAllergy()}
-                          className="px-4 py-3 bg-yellow-600 text-white rounded-r-lg hover:bg-yellow-700 transition-colors"
+                          className="px-3 sm:px-4 py-3 bg-yellow-600 text-white rounded-r-lg hover:bg-yellow-700 transition-colors text-xs sm:text-sm min-w-[60px] active:bg-yellow-800"
                         >
                           Add
                         </button>
@@ -673,7 +674,7 @@ export default function EnhancedBMICalculator() {
                               <button
                                 key={index}
                                 onClick={() => addAllergy(allergy)}
-                                className="w-full px-4 py-2 text-left text-white hover:bg-gray-600 transition-colors"
+                                className="w-full px-3 sm:px-4 py-2 text-left text-white hover:bg-gray-600 transition-colors text-xs sm:text-sm min-h-[44px] active:bg-gray-500"
                               >
                                 {allergy}
                               </button>
@@ -686,7 +687,7 @@ export default function EnhancedBMICalculator() {
                               !formData.allergies.includes(allergy)
                           ).length === 0 &&
                             newAllergy && (
-                              <div className="px-4 py-2 text-gray-400 text-sm">
+                              <div className="px-3 sm:px-4 py-2 text-gray-400 text-xs sm:text-sm">
                                 Press "Add" to add "{newAllergy}"
                               </div>
                             )}
@@ -696,19 +697,19 @@ export default function EnhancedBMICalculator() {
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex space-x-4">
+                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
                     {isEditing ? (
                       <>
                         <button
                           onClick={updateBMI}
                           disabled={loading}
-                          className="flex-1 bg-gradient-to-r from-green-500 to-blue-600 text-white py-3 rounded-lg font-medium hover:opacity-90 transition-all disabled:opacity-50"
+                          className="flex-1 bg-gradient-to-r from-green-500 to-blue-600 text-white py-3 sm:py-3 rounded-lg font-medium hover:opacity-90 transition-all disabled:opacity-50 text-sm sm:text-base min-h-[48px] active:opacity-80"
                         >
                           {loading ? "Updating..." : "Update BMI"}
                         </button>
                         <button
                           onClick={() => setIsEditing(false)}
-                          className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                          className="px-4 sm:px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm sm:text-base min-h-[48px] active:bg-gray-800"
                         >
                           Cancel
                         </button>
@@ -717,7 +718,7 @@ export default function EnhancedBMICalculator() {
                       <button
                         onClick={calculateBMI}
                         disabled={loading}
-                        className="w-full bg-gradient-to-r from-green-500 to-blue-600 text-white py-3 rounded-lg font-medium hover:opacity-90 transition-all disabled:opacity-50"
+                        className="w-full bg-gradient-to-r from-green-500 to-blue-600 text-white py-3 sm:py-3 rounded-lg font-medium hover:opacity-90 transition-all disabled:opacity-50 text-sm sm:text-base min-h-[48px] active:opacity-80"
                       >
                         {loading ? "Calculating..." : "Calculate BMI"}
                       </button>
@@ -727,26 +728,26 @@ export default function EnhancedBMICalculator() {
               </div>
 
               {/* Results */}
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6 order-1 lg:order-2">
                 {/* BMI Result */}
                 {bmiResult && (
-                  <div className="bg-gray-800 rounded-xl shadow-xl border border-gray-700 p-6">
-                    <h3 className="text-2xl font-bold mb-4 flex items-center">
-                      <FaCheckCircle className="mr-3 text-green-400" />
-                      Your BMI Result
+                  <div className="bg-gray-800 rounded-xl shadow-xl border border-gray-700 p-4 sm:p-6">
+                    <h3 className="text-lg sm:text-xl lg:text-2xl font-bold mb-3 sm:mb-4 flex items-center">
+                      <FaCheckCircle className="mr-2 sm:mr-3 text-green-400 text-base sm:text-lg lg:text-xl" />
+                      <span className="text-sm sm:text-base lg:text-lg">Your BMI Result</span>
                     </h3>
                     <div className="text-center">
                       <div
-                        className={`inline-flex items-center justify-center w-32 h-32 rounded-full ${getBMIBgColor(
+                        className={`inline-flex items-center justify-center w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-full ${getBMIBgColor(
                           bmiResult.bmi
-                        )} mb-4`}
+                        )} mb-3 sm:mb-4`}
                       >
-                        <span className="text-4xl font-bold text-white">
+                        <span className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">
                           {bmiResult.bmi}
                         </span>
                       </div>
                       <p
-                        className={`text-2xl font-semibold ${getBMIColor(
+                        className={`text-lg sm:text-xl lg:text-2xl font-semibold ${getBMIColor(
                           bmiResult.bmi
                         )}`}
                       >
@@ -761,30 +762,30 @@ export default function EnhancedBMICalculator() {
 
           {/* AI Insights Tab */}
           {activeTab === "ai-insights" && (
-            <div className="bg-gray-800 rounded-xl shadow-xl border border-gray-700 p-8">
-              <h2 className="text-3xl font-bold mb-8 text-center flex items-center justify-center">
-                <FaBrain className="mr-3 text-purple-400" />
-                AI Health Insights
+            <div className="bg-gray-800 rounded-xl shadow-xl border border-gray-700 p-4 sm:p-6 lg:p-8">
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6 lg:mb-8 text-center flex items-center justify-center">
+                <FaBrain className="mr-2 sm:mr-3 text-purple-400 text-base sm:text-lg lg:text-xl" />
+                <span className="text-base sm:text-lg lg:text-xl">AI Health Insights</span>
               </h2>
 
               {!aiSuggestions ? (
-                <div className="text-center py-12">
-                  <FaBrain className="text-6xl text-gray-600 mx-auto mb-4" />
-                  <p className="text-xl text-gray-400 mb-2">
+                <div className="text-center py-8 sm:py-12">
+                  <FaBrain className="text-4xl sm:text-5xl lg:text-6xl text-gray-600 mx-auto mb-3 sm:mb-4" />
+                  <p className="text-base sm:text-lg lg:text-xl text-gray-400 mb-2">
                     No AI Insights yet
                   </p>
-                  <p className="text-gray-500">
+                  <p className="text-sm sm:text-base text-gray-500 px-2">
                     Calculate your BMI to get personalized insights.
                   </p>
                 </div>
               ) : (
                 <div className="prose prose-invert max-w-none text-center">
-                  <p className="text-gray-300 leading-relaxed whitespace-pre-line">
+                  <p className="text-xs sm:text-sm lg:text-base text-gray-300 leading-relaxed whitespace-pre-line px-2">
                     {aiSuggestions}
                   </p>
                   <button
                     onClick={() => navigate("/workout", { state: { bmiData: formData, bmiResult: bmiResult } })}
-                    className="mt-6 bg-gradient-to-r from-green-500 to-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-all"
+                    className="mt-4 sm:mt-6 bg-gradient-to-r from-green-500 to-blue-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-medium hover:opacity-90 transition-all text-sm sm:text-base min-h-[48px] active:opacity-80"
                   >
                     Proceed to Workout Plan Generator
                   </button>
@@ -795,52 +796,52 @@ export default function EnhancedBMICalculator() {
 
           {/* History Tab */}
           {activeTab === "history" && (
-            <div className="bg-gray-800 rounded-xl shadow-xl border border-gray-700 p-8">
-              <h2 className="text-3xl font-bold mb-8 flex items-center">
-                <FaHistory className="mr-3 text-green-400" />
-                Your Health Journey
+            <div className="bg-gray-800 rounded-xl shadow-xl border border-gray-700 p-4 sm:p-6 lg:p-8">
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6 lg:mb-8 flex items-center">
+                <FaHistory className="mr-2 sm:mr-3 text-green-400 text-base sm:text-lg lg:text-xl" />
+                <span className="text-base sm:text-lg lg:text-xl">Your Health Journey</span>
               </h2>
 
               {history.length === 0 ? (
-                <div className="text-center py-12">
-                  <FaChartLine className="text-6xl text-gray-600 mx-auto mb-4" />
-                  <p className="text-xl text-gray-400">No BMI records found</p>
-                  <p className="text-gray-500">
+                <div className="text-center py-8 sm:py-12">
+                  <FaChartLine className="text-4xl sm:text-5xl lg:text-6xl text-gray-600 mx-auto mb-3 sm:mb-4" />
+                  <p className="text-base sm:text-lg lg:text-xl text-gray-400 mb-2">No BMI records found</p>
+                  <p className="text-sm sm:text-base text-gray-500 px-2">
                     Start by calculating your BMI to track your progress
                   </p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {history.map((record, index) => (
                     <div
                       key={index}
-                      className="bg-gray-700 rounded-lg p-6 border border-gray-600 hover:border-gray-500 transition-colors"
+                      className="bg-gray-700 rounded-lg p-4 sm:p-6 border border-gray-600 hover:border-gray-500 transition-colors"
                     >
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-3">
+                        <div className="flex items-center w-full sm:w-auto">
                           <div
-                            className={`w-12 h-12 ${getBMIBgColor(
+                            className={`w-10 h-10 sm:w-12 sm:h-12 ${getBMIBgColor(
                               record.bmi
-                            )} rounded-full flex items-center justify-center mr-4`}
+                            )} rounded-full flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0`}
                           >
-                            <span className="text-lg font-bold text-white">
+                            <span className="text-base sm:text-lg font-bold text-white">
                               {record.bmi}
                             </span>
                           </div>
-                          <div>
-                            <h3 className="text-lg font-semibold">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-base sm:text-lg font-semibold truncate">
                               {record.category}
                             </h3>
-                            <p className="text-gray-400">
+                            <p className="text-xs sm:text-sm text-gray-400">
                               {new Date(record.date).toLocaleDateString()}
                             </p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm text-gray-400">
+                        <div className="text-left sm:text-right w-full sm:w-auto">
+                          <p className="text-xs sm:text-sm text-gray-400">
                             Weight: {record.weight}kg
                           </p>
-                          <p className="text-sm text-gray-400">
+                          <p className="text-xs sm:text-sm text-gray-400">
                             Height: {record.heightFeet}'{record.heightInches}"
                           </p>
                         </div>
@@ -848,33 +849,37 @@ export default function EnhancedBMICalculator() {
 
                       {record.diseases.length > 0 && (
                         <div className="mb-2">
-                          <span className="text-sm text-gray-400">
+                          <span className="text-xs sm:text-sm text-gray-400">
                             Diseases:{" "}
                           </span>
-                          {record.diseases.map((disease, i) => (
-                            <span
-                              key={i}
-                              className="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full mr-1"
-                            >
-                              {disease}
-                            </span>
-                          ))}
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {record.diseases.map((disease, i) => (
+                              <span
+                                key={i}
+                                className="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full"
+                              >
+                                {disease}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       )}
 
                       {record.allergies.length > 0 && (
                         <div className="mb-2">
-                          <span className="text-sm text-gray-400">
+                          <span className="text-xs sm:text-sm text-gray-400">
                             Allergies:{" "}
                           </span>
-                          {record.allergies.map((allergy, i) => (
-                            <span
-                              key={i}
-                              className="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full mr-1"
-                            >
-                              {allergy}
-                            </span>
-                          ))}
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {record.allergies.map((allergy, i) => (
+                              <span
+                                key={i}
+                                className="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full"
+                              >
+                                {allergy}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       )}
 
