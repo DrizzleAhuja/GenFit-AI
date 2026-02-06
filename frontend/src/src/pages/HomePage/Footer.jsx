@@ -199,21 +199,21 @@ export default function Footer() {
         label: "Android App", 
         href: "#",
         onClick: handleAndroidInstall,
-        show: !deviceInfo.isStandalone
+        show: !deviceInfo.isStandalone && deviceInfo.isAndroid
       },
       { 
         icon: <FaApple className="mr-2" />, 
         label: "iOS App", 
         href: "#",
         onClick: handleIOSInstall,
-        show: !deviceInfo.isStandalone
+        show: !deviceInfo.isStandalone && deviceInfo.isIOS
       },
       { 
         icon: <FaDesktop className="mr-2" />, 
         label: "Desktop", 
         href: "#",
         onClick: handleDesktopInstall,
-        show: !deviceInfo.isStandalone
+        show: !deviceInfo.isStandalone && !deviceInfo.isMobile
       },
       { icon: <FaProjectDiagram className="mr-2" />, label: "Projects", href: "#" },
       { icon: <FaTasks className="mr-2" />, label: "My Tasks", href: "#" }
