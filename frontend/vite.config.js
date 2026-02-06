@@ -13,7 +13,9 @@ export default defineConfig({
         type: 'module'
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}']
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
+        // Allow precaching of larger bundles (default is 2 MiB)
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024
       },
       includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
       manifest: {
