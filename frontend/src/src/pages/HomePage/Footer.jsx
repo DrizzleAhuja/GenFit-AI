@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   FaFacebook,
   FaInstagram,
@@ -40,6 +40,7 @@ export default function Footer() {
     isMobile: false,
     isStandalone: false
   });
+  const autoPromptShownRef = useRef(false);
 
   useEffect(() => {
     // Check device info
@@ -58,10 +59,50 @@ export default function Footer() {
     // Listen for when install prompt becomes available
     const cleanup = onInstallPromptAvailable(() => {
       setHasInstallPrompt(true);
+      // Auto-prompt on Android when criteria are met and not already installed
+      if (
+        !autoPromptShownRef.current &&
+        isAndroid() &&
+        !isPWAInstalled()
+      ) {
+        autoPromptShownRef.current = true;
+        // Fire and forget; handle errors gracefully
+        triggerInstall()
+          .then((accepted) => {
+            if (accepted) {
+              toast.success("Installing GenFit AI...", { autoClose: 2000 });
+            }
+          })
+          .catch(() => {
+            // If automatic prompt fails, fall back to manual instructions
+            showManualInstallInstructions();
+          });
+      }
     });
 
     return cleanup;
   }, []);
+
+  // If prompt is already available at mount, consider auto-prompting once
+  useEffect(() => {
+    if (
+      hasInstallPrompt &&
+      !autoPromptShownRef.current &&
+      deviceInfo.isAndroid &&
+      !deviceInfo.isStandalone
+    ) {
+      autoPromptShownRef.current = true;
+      triggerInstall()
+        .then((accepted) => {
+          if (accepted) {
+            toast.success("Installing GenFit AI...", { autoClose: 2000 });
+          }
+        })
+        .catch(() => {
+          showManualInstallInstructions();
+        });
+    }
+  }, [hasInstallPrompt, deviceInfo]);
 
   const handleAndroidInstall = async (e) => {
     e.preventDefault();
