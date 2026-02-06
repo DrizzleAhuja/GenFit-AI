@@ -1,9 +1,9 @@
 const express = require("express");
-const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const session = require("express-session");
 require("dotenv").config();
+const { connectDB } = require("./db");
 
 const authRoutes = require("./routes/authRoutes");
 const reportRoutes = require("./routes/reportRoutes");
@@ -14,6 +14,20 @@ const postureRoutes = require("./routes/postureRoutes");
 // const messageRoutes = require("./routes/messageRoutes");
 
 const app = express();
+
+// For Vercel serverless: ensure DB is connected before hitting routes.
+// This uses a cached connection so it won't reconnect every request after warm-up.
+app.use(async (req, res, next) => {
+  // Avoid doing DB work for basic preflight if you want faster OPTIONS.
+  if (req.method === "OPTIONS") return next();
+  try {
+    await connectDB();
+    return next();
+  } catch (err) {
+    console.error("MongoDB connect error:", err);
+    return res.status(500).json({ error: "Database connection failed" });
+  }
+});
 
 // ✅ CORS config - MUST BE FIRST before any other middleware
 const allowedOrigins = [
@@ -152,15 +166,6 @@ app.use(
   })
 );
 
-// ✅ MongoDB connect
-const mongoUrl = process.env.MONGODB_URL;
-const mongoDbName = process.env.MONGODB_DB;
-
-mongoose
-  .connect(mongoUrl, mongoDbName ? { dbName: mongoDbName } : undefined)
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error("MongoDB connection error:", err));
-
 // ✅ Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/reports", reportRoutes);
@@ -200,6 +205,11 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ✅ Start server
-const PORT = process.env.PORT || 8000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// ✅ Start server locally, but export handler on Vercel
+const isVercel = !!process.env.VERCEL;
+if (!isVercel) {
+  const PORT = process.env.PORT || 8000;
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
+
+module.exports = app;
