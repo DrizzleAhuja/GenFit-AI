@@ -25,6 +25,7 @@ import MyWorkoutPlan from "./pages/WorkoutPlanGenerator/MyWorkoutPlan.jsx";
 import DietChartGenerator from "./pages/DietChartGenerator/DietChartGenerator.jsx";
 import Leaderboard from "./pages/Leaderboard/Leaderboard.jsx";
 import Dashboard from "./pages/Dashboard/Dashboard.jsx";
+import PWAInstallBanner from "./Components/PWAInstallBanner.jsx";
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     const savedLoginStatus = localStorage.getItem("isLoggedIn");
@@ -40,6 +41,7 @@ function App() {
       {" "}
       {/* Wrap the entire application with ThemeProvider */}
       <div className="w-screen min-h-screen">
+        <PWAInstallBanner />
         {" "}
         {/* Removed bg-white and text-black */}
         <Routes>

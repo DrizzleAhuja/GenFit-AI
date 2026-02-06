@@ -7,6 +7,17 @@ import { Provider } from 'react-redux';
 import { store } from './src/store.js';
 import { ToastContainer } from 'react-toastify'; // Import ToastContainer
 import 'react-toastify/dist/ReactToastify.css'; // Import Toastify CSS
+import { registerSW } from 'virtual:pwa-register';
+
+// Register service worker (required for install prompt to appear reliably)
+registerSW({
+	onNeedRefresh() {
+		// Optional: you can toast "New version available" here
+	},
+	onOfflineReady() {
+		// Optional: you can toast "App ready to work offline" here
+	}
+});
 
 ReactDOM.createRoot(document.getElementById('root')).render(
 	<React.StrictMode>
