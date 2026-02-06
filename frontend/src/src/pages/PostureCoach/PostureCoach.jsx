@@ -6,6 +6,7 @@ import "@tensorflow/tfjs-backend-webgl";
 import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
 import { analyzePosture } from "../../utils/postureService";
+import { RepCounter, calculateCaloriesBurned } from "../../utils/repCounter";
 
 const EXERCISES = [
   { id: "posture", label: "Posture" },
@@ -20,10 +21,75 @@ export default function PostureCoach() {
   const webcamRef = useRef(null);
   const canvasRef = useRef(null);
   const detectorRef = useRef(null);
+  const repCounterRef = useRef(null);
+  const sessionStartTimeRef = useRef(null);
   const [exercise, setExercise] = useState("squat");
   const [isRunning, setIsRunning] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [lastError, setLastError] = useState(null);
+  const [reps, setReps] = useState(0);
+  const [calories, setCalories] = useState(0);
+  const [sessionDuration, setSessionDuration] = useState(0);
+  const [newRepAnimation, setNewRepAnimation] = useState(false);
+
+  // Initialize rep counter and reset when exercise changes
+  useEffect(() => {
+    if (!repCounterRef.current) {
+      repCounterRef.current = new RepCounter(exercise);
+    } else {
+      repCounterRef.current.setExerciseType(exercise);
+    }
+    // Reset reps when exercise changes
+    setReps(0);
+    setCalories(0);
+  }, [exercise]);
+
+  // Track session duration and update calories
+  useEffect(() => {
+    let intervalId = null;
+    
+    if (isRunning) {
+      sessionStartTimeRef.current = Date.now();
+      intervalId = setInterval(() => {
+        const duration = Math.floor((Date.now() - sessionStartTimeRef.current) / 1000);
+        setSessionDuration(duration);
+        
+        // Only calculate calories if we have reps OR if it's a time-based exercise
+        if (exercise === 'plank' || exercise === 'posture') {
+          // For time-based exercises, use duration
+          const caloriesBurned = calculateCaloriesBurned(
+            exercise,
+            0,
+            duration
+          );
+          setCalories(caloriesBurned);
+        } else {
+          // For rep-based exercises, only count calories when reps are done
+          // Use reps to estimate calories (more accurate than time alone)
+          if (reps > 0) {
+            const caloriesBurned = calculateCaloriesBurned(
+              exercise,
+              reps,
+              0 // Let it calculate from reps
+            );
+            setCalories(caloriesBurned);
+          } else {
+            // No reps yet, don't count calories
+            setCalories(0);
+          }
+        }
+      }, 1000); // Update every second
+    } else {
+      // Reset when stopped
+      if (sessionStartTimeRef.current) {
+        sessionStartTimeRef.current = null;
+      }
+    }
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isRunning, exercise, reps]);
 
   // Load pose detector once, ensuring TF backend is ready
   useEffect(() => {
@@ -52,34 +118,134 @@ export default function PostureCoach() {
     };
   }, []);
 
-  const drawSkeleton = useCallback((pose, ctx, width, height) => {
+  const drawSkeleton = useCallback((pose, ctx, width, height, exerciseType, repCounter) => {
     if (!pose || !pose.keypoints) return;
-    const keypoints = pose.keypoints.filter((k) => k.score > 0.4);
-
+    
     ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = "#22c55e";
+    
+    // Draw skeleton connections
     ctx.strokeStyle = "#38bdf8";
     ctx.lineWidth = 3;
-
-    keypoints.forEach((kp) => {
-      ctx.beginPath();
-      ctx.arc(kp.x, kp.y, 4, 0, 2 * Math.PI);
-      ctx.fill();
-    });
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
 
     const adjacentPairs = poseDetection.util.getAdjacentPairs(
       poseDetection.SupportedModels.MoveNet
     );
+    
     adjacentPairs.forEach(([i, j]) => {
       const kp1 = pose.keypoints[i];
       const kp2 = pose.keypoints[j];
-      if (kp1.score > 0.4 && kp2.score > 0.4) {
+      if (kp1 && kp2 && kp1.score > 0.3 && kp2.score > 0.3) {
         ctx.beginPath();
         ctx.moveTo(kp1.x, kp1.y);
         ctx.lineTo(kp2.x, kp2.y);
         ctx.stroke();
       }
     });
+
+    // Draw keypoints
+    ctx.fillStyle = "#22c55e";
+    pose.keypoints.forEach((kp) => {
+      if (kp && kp.score > 0.3) {
+        ctx.beginPath();
+        ctx.arc(kp.x, kp.y, 5, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+    });
+
+    // Draw exercise-specific angle lines and measurements
+    if (repCounter && exerciseType !== 'posture' && exerciseType !== 'plank') {
+      const keypoints = pose.keypoints.map((kp) => ({
+        name: kp.name || kp.part || kp.id,
+        x: kp.x,
+        y: kp.y,
+        score: kp.score,
+      }));
+
+      ctx.strokeStyle = "#fbbf24"; // Yellow for angle lines
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+
+      // Draw angle lines based on exercise type
+      const getKp = (name) => {
+        return keypoints.find(kp => {
+          const kpName = (kp.name || kp.part || kp.id || '').toLowerCase();
+          return kpName.includes(name.toLowerCase());
+        });
+      };
+
+      if (exerciseType === 'squat') {
+        const leftHip = getKp('left_hip');
+        const leftKnee = getKp('left_knee');
+        const leftAnkle = getKp('left_ankle');
+        const rightHip = getKp('right_hip');
+        const rightKnee = getKp('right_knee');
+        const rightAnkle = getKp('right_ankle');
+
+        // Draw left leg angle
+        if (leftHip && leftKnee && leftAnkle && 
+            leftHip.score > 0.3 && leftKnee.score > 0.3 && leftAnkle.score > 0.3) {
+          ctx.beginPath();
+          ctx.moveTo(leftHip.x, leftHip.y);
+          ctx.lineTo(leftKnee.x, leftKnee.y);
+          ctx.lineTo(leftAnkle.x, leftAnkle.y);
+          ctx.stroke();
+        }
+
+        // Draw right leg angle
+        if (rightHip && rightKnee && rightAnkle &&
+            rightHip.score > 0.3 && rightKnee.score > 0.3 && rightAnkle.score > 0.3) {
+          ctx.beginPath();
+          ctx.moveTo(rightHip.x, rightHip.y);
+          ctx.lineTo(rightKnee.x, rightKnee.y);
+          ctx.lineTo(rightAnkle.x, rightAnkle.y);
+          ctx.stroke();
+        }
+      } else if (exerciseType === 'pushup' || exerciseType === 'bicep_curl') {
+        const leftShoulder = getKp('left_shoulder');
+        const leftElbow = getKp('left_elbow');
+        const leftWrist = getKp('left_wrist');
+        const rightShoulder = getKp('right_shoulder');
+        const rightElbow = getKp('right_elbow');
+        const rightWrist = getKp('right_wrist');
+
+        // Draw left arm angle
+        if (leftShoulder && leftElbow && leftWrist &&
+            leftShoulder.score > 0.3 && leftElbow.score > 0.3 && leftWrist.score > 0.3) {
+          ctx.beginPath();
+          ctx.moveTo(leftShoulder.x, leftShoulder.y);
+          ctx.lineTo(leftElbow.x, leftElbow.y);
+          ctx.lineTo(leftWrist.x, leftWrist.y);
+          ctx.stroke();
+        }
+
+        // Draw right arm angle
+        if (rightShoulder && rightElbow && rightWrist &&
+            rightShoulder.score > 0.3 && rightElbow.score > 0.3 && rightWrist.score > 0.3) {
+          ctx.beginPath();
+          ctx.moveTo(rightShoulder.x, rightShoulder.y);
+          ctx.lineTo(rightElbow.x, rightElbow.y);
+          ctx.lineTo(rightWrist.x, rightWrist.y);
+          ctx.stroke();
+        }
+      } else if (exerciseType === 'lunge') {
+        const leftHip = getKp('left_hip');
+        const leftKnee = getKp('left_knee');
+        const leftAnkle = getKp('left_ankle');
+
+        if (leftHip && leftKnee && leftAnkle &&
+            leftHip.score > 0.3 && leftKnee.score > 0.3 && leftAnkle.score > 0.3) {
+          ctx.beginPath();
+          ctx.moveTo(leftHip.x, leftHip.y);
+          ctx.lineTo(leftKnee.x, leftKnee.y);
+          ctx.lineTo(leftAnkle.x, leftAnkle.y);
+          ctx.stroke();
+        }
+      }
+
+      ctx.setLineDash([]); // Reset line dash
+    }
   }, []);
 
   const loopRef = useRef(null);
@@ -110,7 +276,25 @@ export default function PostureCoach() {
       const pose = poses[0];
       if (pose) {
         const ctx = canvas.getContext("2d");
-        drawSkeleton(pose, ctx, videoWidth, videoHeight);
+        drawSkeleton(pose, ctx, videoWidth, videoHeight, exercise, repCounterRef.current);
+
+        // Update rep counter
+        if (repCounterRef.current && isRunning) {
+          const keypoints = pose.keypoints.map((kp) => ({
+            name: kp.name || kp.part || kp.id,
+            x: kp.x,
+            y: kp.y,
+            score: kp.score,
+          }));
+          
+          const repResult = repCounterRef.current.update(keypoints);
+          if (repResult.newRep) {
+            setReps(repResult.reps);
+            // Trigger animation
+            setNewRepAnimation(true);
+            setTimeout(() => setNewRepAnimation(false), 500);
+          }
+        }
 
         const now = Date.now();
         if (now - lastSentRef.current > 500) {
@@ -149,7 +333,25 @@ export default function PostureCoach() {
   }, [isRunning, captureLoop]);
 
   const toggleRunning = () => {
-    setIsRunning((prev) => !prev);
+    setIsRunning((prev) => {
+      const newState = !prev;
+      if (!newState) {
+        // Reset counters when stopping
+        if (repCounterRef.current) {
+          repCounterRef.current.reset();
+        }
+        setReps(0);
+        setCalories(0);
+        setSessionDuration(0);
+      }
+      return newState;
+    });
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -224,6 +426,38 @@ export default function PostureCoach() {
           </div>
 
           <aside className="space-y-4">
+            {/* Stats Card */}
+            <div className="bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 rounded-xl p-4">
+              <h2 className="text-sm font-semibold text-gray-100 mb-3">
+                Workout Stats
+              </h2>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="text-center">
+                  <div 
+                    className={`text-2xl font-bold text-emerald-400 transition-all duration-300 ${
+                      newRepAnimation ? 'scale-150 text-emerald-300' : ''
+                    }`}
+                  >
+                    {reps}
+                  </div>
+                  <div className="text-[10px] text-gray-400 uppercase tracking-wide mt-1">Reps</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-cyan-400">{calories.toFixed(1)}</div>
+                  <div className="text-[10px] text-gray-400 uppercase tracking-wide mt-1">Calories</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-400">{formatTime(sessionDuration)}</div>
+                  <div className="text-[10px] text-gray-400 uppercase tracking-wide mt-1">Time</div>
+                </div>
+              </div>
+              {exercise === 'plank' || exercise === 'posture' ? (
+                <div className="mt-2 text-xs text-gray-400 text-center">
+                  {exercise === 'plank' ? 'Time-based exercise' : 'Posture monitoring'}
+                </div>
+              ) : null}
+            </div>
+
             <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
               <h2 className="text-sm font-semibold text-gray-100 mb-2">
                 Live Feedback
