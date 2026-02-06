@@ -25,6 +25,7 @@ import MyWorkoutPlan from "./pages/WorkoutPlanGenerator/MyWorkoutPlan.jsx";
 import DietChartGenerator from "./pages/DietChartGenerator/DietChartGenerator.jsx";
 import Leaderboard from "./pages/Leaderboard/Leaderboard.jsx";
 import Dashboard from "./pages/Dashboard/Dashboard.jsx";
+import PostureCoach from "./pages/PostureCoach/PostureCoach.jsx";
 import PWAInstallBanner from "./Components/PWAInstallBanner.jsx";
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
@@ -51,7 +52,7 @@ function App() {
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/CurrentBMI" element={<EnhancedBMICalculator />} />
           <Route path="/AiCoach" element={<LostItems />} />
-          <Route path="/VirtualTA" element={<FoundItems />} />
+          <Route path="/VirtualTA" element={<PostureCoach />} />
           <Route path="/EditProfile" element={<EditProfile />} />
           <Route path="/Workout" element={<MyListings />} />
           <Route path="/VerificationPage" element={<VerificationPage />} />
@@ -64,6 +65,8 @@ function App() {
           <Route path="/diet-chart" element={<DietChartGenerator />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          {/* Optional alias route for direct access */}
+          <Route path="/posture-coach" element={<PostureCoach />} />
           {/* <Route path="/admin-calorie-tracker" element={<CalorieTracker />} />
           <Route path="/admin-calorie-tracker" element={<CalorieTracker />} />
           <Route path="/admin-calorie-tracker" element={<CalorieTracker />} />

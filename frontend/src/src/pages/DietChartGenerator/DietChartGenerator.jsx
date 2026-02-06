@@ -427,7 +427,7 @@ export default function DietChartGenerator() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 pb-12 pt-4 px-3 sm:px-4 lg:px-8 text-gray-100">
+    <div className="dark min-h-screen bg-gray-900 pb-12 pt-4 px-3 sm:px-4 lg:px-8 text-gray-100">
       <NavBar />
 
       <div className="max-w-7xl mx-auto">
