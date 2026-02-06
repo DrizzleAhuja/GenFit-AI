@@ -60,9 +60,16 @@ export default function Footer() {
       // 1. Not installed AND (has prompt OR should show based on dismissal state)
       if (!isStandalone) {
         const prompt = getInstallPrompt();
+        const shouldShow = shouldShowInstallPrompt();
+        console.log('🔄 Updating install state:', { 
+          hasPrompt: !!prompt, 
+          shouldShow, 
+          isStandalone 
+        });
         setHasInstallPrompt(!!prompt);
-        setShouldShowInstall(shouldShowInstallPrompt());
+        setShouldShowInstall(shouldShow);
       } else {
+        console.log('🚫 App is installed, hiding install options');
         setHasInstallPrompt(false);
         setShouldShowInstall(false);
       }
@@ -77,7 +84,8 @@ export default function Footer() {
     }
 
     // Listen for when install prompt becomes available
-    const cleanupPrompt = onInstallPromptAvailable(() => {
+    const cleanupPrompt = onInstallPromptAvailable((prompt) => {
+      console.log('🎉 Install prompt became available in Footer!', prompt);
       setHasInstallPrompt(true);
       setShouldShowInstall(true);
     });
@@ -112,6 +120,7 @@ export default function Footer() {
 
   const handleAndroidInstall = async (e) => {
     e.preventDefault();
+    console.log('🔘 Install button clicked');
     
     if (deviceInfo.isStandalone) {
       toast.info('App is already installed!', { autoClose: 2000 });
@@ -120,9 +129,11 @@ export default function Footer() {
 
     // Try to get the install prompt
     const prompt = getInstallPrompt();
+    console.log('📦 Current prompt state:', prompt ? 'Available' : 'Not available');
     
     if (prompt) {
       try {
+        console.log('✅ Prompt available, triggering install...');
         // Trigger the install prompt immediately
         const accepted = await triggerInstall();
         
@@ -134,15 +145,17 @@ export default function Footer() {
         // Update state after prompt is used
         setTimeout(() => {
           const newPrompt = getInstallPrompt();
+          console.log('🔄 Checking for new prompt after use:', newPrompt ? 'Available' : 'Not available');
           setHasInstallPrompt(!!newPrompt);
           setShouldShowInstall(shouldShowInstallPrompt());
-        }, 500);
+        }, 1000);
       } catch (error) {
-        console.error('Error showing install prompt:', error);
+        console.error('❌ Error showing install prompt:', error);
         // Even if prompt fails, show manual instructions
         showManualInstallInstructions();
       }
     } else {
+      console.log('⚠️ No prompt available, showing manual instructions');
       // If no prompt available, show manual instructions immediately
       // This handles the case where user uninstalled and prompt isn't available yet
       showManualInstallInstructions();
@@ -152,13 +165,16 @@ export default function Footer() {
       const checkPrompt = setInterval(() => {
         attempts++;
         const newPrompt = getInstallPrompt();
+        console.log(`🔍 Checking for prompt (attempt ${attempts}):`, newPrompt ? 'Found!' : 'Not yet');
         
         if (newPrompt) {
           clearInterval(checkPrompt);
+          console.log('✅ Prompt became available, retrying install...');
           // Prompt became available, try again
           handleAndroidInstall(e);
         } else if (attempts >= 10) { // 5 seconds (10 * 500ms)
           clearInterval(checkPrompt);
+          console.log('⏱️ Stopped checking for prompt after 5 seconds');
         }
       }, 500);
     }
