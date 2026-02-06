@@ -10,7 +10,17 @@ if (typeof window !== 'undefined') {
   // Listen for install prompt (fires when app can be installed)
   const handleBeforeInstallPrompt = (e) => {
     console.log('🔔 beforeinstallprompt event fired!', e);
+    console.log('🔔 Event details:', {
+      platforms: e.platforms,
+      userChoice: e.userChoice,
+      prompt: typeof e.prompt
+    });
+    
+    // CRITICAL: preventDefault() stops the browser's default install prompt
+    // and allows us to show it programmatically later
     e.preventDefault();
+    
+    // Store the event so we can use it later
     deferredPrompt = e;
     console.log('✅ PWA install prompt captured globally!', deferredPrompt);
     
@@ -30,8 +40,13 @@ if (typeof window !== 'undefined') {
     });
   };
 
+  // Add event listener - use capture phase to catch it early
+  window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt, { capture: true });
+  console.log('👂 Listening for beforeinstallprompt event (capture phase)');
+  
+  // Also try without capture as fallback
   window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-  console.log('👂 Listening for beforeinstallprompt event');
+  console.log('👂 Listening for beforeinstallprompt event (bubble phase)');
 
   // Listen for when app is installed
   window.addEventListener('appinstalled', () => {
@@ -70,20 +85,35 @@ export const onInstallPromptAvailable = (callback) => {
 };
 
 export const triggerInstall = async () => {
-  console.log('🚀 triggerInstall called, deferredPrompt:', deferredPrompt);
+  console.log('🚀 triggerInstall called');
+  console.log('📦 deferredPrompt type:', typeof deferredPrompt);
+  console.log('📦 deferredPrompt:', deferredPrompt);
   
   if (!deferredPrompt) {
     console.warn('⚠️ No install prompt available');
     throw new Error('Install prompt not available');
   }
   
+  // Verify the prompt has the required methods
+  if (typeof deferredPrompt.prompt !== 'function') {
+    console.error('❌ deferredPrompt.prompt is not a function!', deferredPrompt);
+    throw new Error('Install prompt is invalid');
+  }
+  
   try {
     console.log('📱 Calling deferredPrompt.prompt()...');
-    await deferredPrompt.prompt();
-    console.log('✅ Prompt shown, waiting for user choice...');
+    // Call prompt() - this shows the browser's install dialog
+    // Note: prompt() is synchronous and shows the dialog immediately
+    deferredPrompt.prompt();
+    console.log('✅ Prompt() called, waiting for user choice...');
     
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log('👤 User choice:', outcome);
+    // Wait for user to make a choice
+    // userChoice is a Promise that resolves when user interacts with the prompt
+    const choiceResult = await deferredPrompt.userChoice;
+    console.log('👤 User choice result:', choiceResult);
+    
+    const outcome = choiceResult.outcome;
+    console.log('👤 User choice outcome:', outcome);
     
     // Store dismissal state only if user dismissed (not if they installed)
     if (outcome === 'dismissed' && typeof localStorage !== 'undefined') {
@@ -104,6 +134,9 @@ export const triggerInstall = async () => {
     return outcome === 'accepted';
   } catch (error) {
     console.error('❌ Error triggering install:', error);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     // Don't clear prompt on error - it might still be usable
     // deferredPrompt = null;
     throw error;

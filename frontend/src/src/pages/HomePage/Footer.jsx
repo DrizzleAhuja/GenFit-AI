@@ -120,6 +120,7 @@ export default function Footer() {
 
   const handleAndroidInstall = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
     console.log('🔘 Install button clicked');
     
     if (deviceInfo.isStandalone) {
@@ -127,9 +128,22 @@ export default function Footer() {
       return;
     }
 
-    // Try to get the install prompt
-    const prompt = getInstallPrompt();
-    console.log('📦 Current prompt state:', prompt ? 'Available' : 'Not available');
+    // Try to get the install prompt - check multiple times as it might not be immediately available
+    let prompt = getInstallPrompt();
+    console.log('📦 Initial prompt check:', prompt ? 'Available' : 'Not available');
+    
+    // If no prompt, wait a bit and check again (sometimes it takes a moment)
+    if (!prompt) {
+      console.log('⏳ Waiting for prompt...');
+      for (let i = 0; i < 5; i++) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        prompt = getInstallPrompt();
+        if (prompt) {
+          console.log(`✅ Prompt found after ${(i + 1) * 200}ms`);
+          break;
+        }
+      }
+    }
     
     if (prompt) {
       try {
@@ -151,32 +165,14 @@ export default function Footer() {
         }, 1000);
       } catch (error) {
         console.error('❌ Error showing install prompt:', error);
-        // Even if prompt fails, show manual instructions
+        console.error('Error details:', error.message, error.stack);
+        // Show manual instructions as fallback
         showManualInstallInstructions();
       }
     } else {
-      console.log('⚠️ No prompt available, showing manual instructions');
-      // If no prompt available, show manual instructions immediately
-      // This handles the case where user uninstalled and prompt isn't available yet
+      console.log('⚠️ No prompt available after waiting, showing manual instructions');
+      // If no prompt available, show manual instructions
       showManualInstallInstructions();
-      
-      // Also check periodically if prompt becomes available
-      let attempts = 0;
-      const checkPrompt = setInterval(() => {
-        attempts++;
-        const newPrompt = getInstallPrompt();
-        console.log(`🔍 Checking for prompt (attempt ${attempts}):`, newPrompt ? 'Found!' : 'Not yet');
-        
-        if (newPrompt) {
-          clearInterval(checkPrompt);
-          console.log('✅ Prompt became available, retrying install...');
-          // Prompt became available, try again
-          handleAndroidInstall(e);
-        } else if (attempts >= 10) { // 5 seconds (10 * 500ms)
-          clearInterval(checkPrompt);
-          console.log('⏱️ Stopped checking for prompt after 5 seconds');
-        }
-      }, 500);
     }
   };
 
