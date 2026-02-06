@@ -28,12 +28,14 @@ import {
   isPWAInstalled, 
   isAndroid, 
   isIOS, 
-  isMobile 
+  isMobile,
+  shouldShowInstallPrompt
 } from '../../utils/pwaInstall';
 
 export default function Footer() {
   const { darkMode } = useTheme();
   const [hasInstallPrompt, setHasInstallPrompt] = useState(false);
+  const [shouldShowInstall, setShouldShowInstall] = useState(false);
   const [deviceInfo, setDeviceInfo] = useState({
     isIOS: false,
     isAndroid: false,
@@ -42,13 +44,32 @@ export default function Footer() {
   });
 
   useEffect(() => {
-    // Check device info
-    setDeviceInfo({
-      isIOS: isIOS(),
-      isAndroid: isAndroid(),
-      isMobile: isMobile(),
-      isStandalone: isPWAInstalled()
-    });
+    // Function to update device info and install prompt state
+    const updateInstallState = () => {
+      const isStandalone = isPWAInstalled();
+      const deviceInfoUpdate = {
+        isIOS: isIOS(),
+        isAndroid: isAndroid(),
+        isMobile: isMobile(),
+        isStandalone: isStandalone
+      };
+      
+      setDeviceInfo(deviceInfoUpdate);
+      
+      // Show install options if:
+      // 1. Not installed AND (has prompt OR should show based on dismissal state)
+      if (!isStandalone) {
+        const prompt = getInstallPrompt();
+        setHasInstallPrompt(!!prompt);
+        setShouldShowInstall(shouldShowInstallPrompt());
+      } else {
+        setHasInstallPrompt(false);
+        setShouldShowInstall(false);
+      }
+    };
+
+    // Initial check
+    updateInstallState();
 
     // Check if install prompt is already available
     if (getInstallPrompt()) {
@@ -56,11 +77,37 @@ export default function Footer() {
     }
 
     // Listen for when install prompt becomes available
-    const cleanup = onInstallPromptAvailable(() => {
+    const cleanupPrompt = onInstallPromptAvailable(() => {
       setHasInstallPrompt(true);
+      setShouldShowInstall(true);
     });
 
-    return cleanup;
+    // Listen for app installation
+    const cleanupInstalled = window.addEventListener('appinstalled', () => {
+      updateInstallState();
+    });
+
+    // Periodically check install state (in case app was uninstalled)
+    const checkInterval = setInterval(() => {
+      updateInstallState();
+    }, 2000); // Check every 2 seconds
+
+    // Also check on visibility change (when user returns to tab)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        updateInstallState();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      cleanupPrompt();
+      clearInterval(checkInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (cleanupInstalled) {
+        window.removeEventListener('appinstalled', cleanupInstalled);
+      }
+    };
   }, []);
 
   const handleAndroidInstall = async (e) => {
@@ -84,27 +131,34 @@ export default function Footer() {
         } else {
           toast.info('Installation cancelled', { autoClose: 2000 });
         }
-        setHasInstallPrompt(false);
+        // Update state after prompt is used
+        setTimeout(() => {
+          const newPrompt = getInstallPrompt();
+          setHasInstallPrompt(!!newPrompt);
+          setShouldShowInstall(shouldShowInstallPrompt());
+        }, 500);
       } catch (error) {
         console.error('Error showing install prompt:', error);
+        // Even if prompt fails, show manual instructions
         showManualInstallInstructions();
       }
     } else {
-      // Wait a bit for the prompt to become available (sometimes it takes a moment)
-      toast.info('Preparing installation...', { autoClose: 2000 });
+      // If no prompt available, show manual instructions immediately
+      // This handles the case where user uninstalled and prompt isn't available yet
+      showManualInstallInstructions();
       
-      // Wait up to 3 seconds for prompt to become available
+      // Also check periodically if prompt becomes available
       let attempts = 0;
       const checkPrompt = setInterval(() => {
         attempts++;
-        const prompt = getInstallPrompt();
+        const newPrompt = getInstallPrompt();
         
-        if (prompt) {
+        if (newPrompt) {
           clearInterval(checkPrompt);
-          handleAndroidInstall(e); // Retry with prompt
-        } else if (attempts >= 6) { // 3 seconds (6 * 500ms)
+          // Prompt became available, try again
+          handleAndroidInstall(e);
+        } else if (attempts >= 10) { // 5 seconds (10 * 500ms)
           clearInterval(checkPrompt);
-          showManualInstallInstructions();
         }
       }, 500);
     }
@@ -158,21 +212,21 @@ export default function Footer() {
         label: "Android App", 
         href: "#",
         onClick: handleAndroidInstall,
-        show: !deviceInfo.isStandalone
+        show: !deviceInfo.isStandalone && (deviceInfo.isAndroid || deviceInfo.isMobile)
       },
       { 
         icon: <FaApple className="mr-2" />, 
         label: "iOS App", 
         href: "#",
         onClick: handleIOSInstall,
-        show: !deviceInfo.isStandalone
+        show: !deviceInfo.isStandalone && deviceInfo.isIOS
       },
       { 
         icon: <FaDesktop className="mr-2" />, 
         label: "Desktop", 
         href: "#",
         onClick: handleDesktopInstall,
-        show: !deviceInfo.isStandalone
+        show: !deviceInfo.isStandalone && !deviceInfo.isMobile
       },
       { icon: <FaProjectDiagram className="mr-2" />, label: "Projects", href: "#" },
       { icon: <FaTasks className="mr-2" />, label: "My Tasks", href: "#" }

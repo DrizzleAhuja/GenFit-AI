@@ -3,16 +3,39 @@
 
 let deferredPrompt = null;
 let installPromptListeners = [];
+let appInstalledListener = null;
 
 // Listen for the beforeinstallprompt event globally
 if (typeof window !== 'undefined') {
+  // Listen for install prompt (fires when app can be installed)
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
     console.log('PWA install prompt captured globally!');
     
+    // Clear any stored "dismissed" state since prompt is available again
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('pwa-install-dismissed');
+    }
+    
     // Notify all listeners that prompt is available
     installPromptListeners.forEach(listener => listener(e));
+  });
+
+  // Listen for when app is installed
+  window.addEventListener('appinstalled', () => {
+    console.log('PWA installed successfully!');
+    deferredPrompt = null;
+    
+    // Clear dismissed state
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('pwa-install-dismissed');
+    }
+    
+    // Notify listeners
+    if (appInstalledListener) {
+      appInstalledListener();
+    }
   });
 }
 
@@ -43,6 +66,17 @@ export const triggerInstall = async () => {
   try {
     await deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
+    
+    // Store dismissal state only if user dismissed (not if they installed)
+    if (outcome === 'dismissed' && typeof localStorage !== 'undefined') {
+      localStorage.setItem('pwa-install-dismissed', Date.now().toString());
+    } else {
+      // Clear dismissed state if user accepted or if prompt was used
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('pwa-install-dismissed');
+      }
+    }
+    
     deferredPrompt = null;
     return outcome === 'accepted';
   } catch (error) {
@@ -50,6 +84,36 @@ export const triggerInstall = async () => {
     deferredPrompt = null;
     throw error;
   }
+};
+
+export const onAppInstalled = (callback) => {
+  appInstalledListener = callback;
+  return () => {
+    appInstalledListener = null;
+  };
+};
+
+export const shouldShowInstallPrompt = () => {
+  if (typeof window === 'undefined') return false;
+  
+  // Don't show if already installed
+  if (isPWAInstalled()) return false;
+  
+  // Show if prompt is available OR if it's been a while since dismissal
+  if (deferredPrompt) return true;
+  
+  // Check if user dismissed recently (within last 7 days)
+  if (typeof localStorage !== 'undefined') {
+    const dismissedTime = localStorage.getItem('pwa-install-dismissed');
+    if (dismissedTime) {
+      const daysSinceDismissal = (Date.now() - parseInt(dismissedTime)) / (1000 * 60 * 60 * 24);
+      // Show again after 7 days
+      return daysSinceDismissal >= 7;
+    }
+  }
+  
+  // Show if on mobile/Android (they can always install manually)
+  return isMobile() || isAndroid();
 };
 
 export const isPWAInstalled = () => {
