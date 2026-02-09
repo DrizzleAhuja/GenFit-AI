@@ -9,6 +9,15 @@ const EXERCISE_MET_VALUES = {
   plank: 3.0,
   bicep_curl: 3.0,
   posture: 1.0, // Standing posture is minimal
+  shoulder_press: 6.0,
+  lateral_raise: 4.0,
+  deadlift: 6.0,
+  bent_over_row: 5.5,
+  tricep_extension: 3.5,
+  side_plank: 3.5,
+  high_knees: 7.0,
+  jumping_jack: 8.0,
+  mountain_climber: 8.0,
 };
 
 // Average person weight in kg (can be customized)
@@ -36,6 +45,15 @@ export function calculateCaloriesBurned(exerciseType, reps, durationSeconds = 0,
     plank: 30, // plank is time-based, not rep-based
     bicep_curl: 2,
     posture: 1,
+    shoulder_press: 3,
+    lateral_raise: 3,
+    deadlift: 4,
+    bent_over_row: 3,
+    tricep_extension: 2.5,
+    side_plank: 30, // time-based
+    high_knees: 1.5,
+    jumping_jack: 2,
+    mountain_climber: 1.5,
   };
   
   const secondsPerRep = avgSecondsPerRep[exerciseType] || 2;
@@ -87,6 +105,43 @@ export class RepCounter {
         // Posture doesn't have reps
         down: 0.5,
         up: 0.5,
+      },
+      shoulder_press: {
+        down: 0.4, // Bar lowered
+        up: 0.8,   // Bar overhead
+      },
+      lateral_raise: {
+        down: 0.3, // Arms down
+        up: 0.8,   // Arms at shoulder height
+      },
+      deadlift: {
+        down: 0.4, // Hips back, torso hinged
+        up: 0.8,   // Standing tall
+      },
+      bent_over_row: {
+        down: 0.4, // Arms extended
+        up: 0.8,   // Elbows pulled back
+      },
+      tricep_extension: {
+        down: 0.4, // Elbows more flexed
+        up: 0.85,  // Elbows extended
+      },
+      side_plank: {
+        // Time-based, no reps
+        down: 0.5,
+        up: 0.5,
+      },
+      high_knees: {
+        down: 0.4, // Knee lower
+        up: 0.8,   // Knee higher toward hip
+      },
+      jumping_jack: {
+        down: 0.4, // Arms and legs closer
+        up: 0.8,   // Arms and legs wider
+      },
+      mountain_climber: {
+        down: 0.4, // Knee toward chest
+        up: 0.8,   // Leg extended back
       },
     };
     
@@ -257,6 +312,170 @@ export class RepCounter {
         return null;
       }
       
+      case 'shoulder_press': {
+        // Use shoulder-elbow-wrist angle to detect press from bottom to top
+        const leftShoulder = getKp('left_shoulder');
+        const leftElbow = getKp('left_elbow');
+        const leftWrist = getKp('left_wrist');
+        const rightShoulder = getKp('right_shoulder');
+        const rightElbow = getKp('right_elbow');
+        const rightWrist = getKp('right_wrist');
+
+        if (leftShoulder && leftElbow && leftWrist &&
+            leftShoulder.score > 0.3 && leftElbow.score > 0.3 && leftWrist.score > 0.3) {
+          return this.calculateAngle(leftShoulder, leftElbow, leftWrist);
+        }
+
+        if (rightShoulder && rightElbow && rightWrist &&
+            rightShoulder.score > 0.3 && rightElbow.score > 0.3 && rightWrist.score > 0.3) {
+          return this.calculateAngle(rightShoulder, rightElbow, rightWrist);
+        }
+        return null;
+      }
+
+      case 'lateral_raise': {
+        // Use torso‑shoulder‑wrist angle to estimate arm elevation
+        const leftHip = getKp('left_hip');
+        const leftShoulder = getKp('left_shoulder');
+        const leftWrist = getKp('left_wrist');
+        const rightHip = getKp('right_hip');
+        const rightShoulder = getKp('right_shoulder');
+        const rightWrist = getKp('right_wrist');
+
+        if (leftHip && leftShoulder && leftWrist &&
+            leftHip.score > 0.3 && leftShoulder.score > 0.3 && leftWrist.score > 0.3) {
+          return this.calculateAngle(leftHip, leftShoulder, leftWrist);
+        }
+
+        if (rightHip && rightShoulder && rightWrist &&
+            rightHip.score > 0.3 && rightShoulder.score > 0.3 && rightWrist.score > 0.3) {
+          return this.calculateAngle(rightHip, rightShoulder, rightWrist);
+        }
+        return null;
+      }
+
+      case 'deadlift': {
+        // Use shoulder‑hip‑knee angle as hinge metric
+        const leftShoulder = getKp('left_shoulder');
+        const leftHip = getKp('left_hip');
+        const leftKnee = getKp('left_knee');
+        const rightShoulder = getKp('right_shoulder');
+        const rightHip = getKp('right_hip');
+        const rightKnee = getKp('right_knee');
+
+        if (leftShoulder && leftHip && leftKnee &&
+            leftShoulder.score > 0.3 && leftHip.score > 0.3 && leftKnee.score > 0.3) {
+          return this.calculateAngle(leftShoulder, leftHip, leftKnee);
+        }
+
+        if (rightShoulder && rightHip && rightKnee &&
+            rightShoulder.score > 0.3 && rightHip.score > 0.3 && rightKnee.score > 0.3) {
+          return this.calculateAngle(rightShoulder, rightHip, rightKnee);
+        }
+        return null;
+      }
+
+      case 'bent_over_row': {
+        // Use shoulder‑elbow‑wrist for pull distance
+        const leftShoulder = getKp('left_shoulder');
+        const leftElbow = getKp('left_elbow');
+        const leftWrist = getKp('left_wrist');
+        const rightShoulder = getKp('right_shoulder');
+        const rightElbow = getKp('right_elbow');
+        const rightWrist = getKp('right_wrist');
+
+        if (leftShoulder && leftElbow && leftWrist &&
+            leftShoulder.score > 0.3 && leftElbow.score > 0.3 && leftWrist.score > 0.3) {
+          return this.calculateAngle(leftShoulder, leftElbow, leftWrist);
+        }
+
+        if (rightShoulder && rightElbow && rightWrist &&
+            rightShoulder.score > 0.3 && rightElbow.score > 0.3 && rightWrist.score > 0.3) {
+          return this.calculateAngle(rightShoulder, rightElbow, rightWrist);
+        }
+        return null;
+      }
+
+      case 'tricep_extension': {
+        // Shoulder‑elbow‑wrist angle again but different thresholds
+        const leftShoulder = getKp('left_shoulder');
+        const leftElbow = getKp('left_elbow');
+        const leftWrist = getKp('left_wrist');
+        const rightShoulder = getKp('right_shoulder');
+        const rightElbow = getKp('right_elbow');
+        const rightWrist = getKp('right_wrist');
+
+        if (leftShoulder && leftElbow && leftWrist &&
+            leftShoulder.score > 0.3 && leftElbow.score > 0.3 && leftWrist.score > 0.3) {
+          return this.calculateAngle(leftShoulder, leftElbow, leftWrist);
+        }
+
+        if (rightShoulder && rightElbow && rightWrist &&
+            rightShoulder.score > 0.3 && rightElbow.score > 0.3 && rightWrist.score > 0.3) {
+          return this.calculateAngle(rightShoulder, rightElbow, rightWrist);
+        }
+        return null;
+      }
+
+      case 'high_knees': {
+        // Hip‑knee‑ankle angle: more bent when knee is high
+        const leftHip = getKp('left_hip');
+        const leftKnee = getKp('left_knee');
+        const leftAnkle = getKp('left_ankle');
+        const rightHip = getKp('right_hip');
+        const rightKnee = getKp('right_knee');
+        const rightAnkle = getKp('right_ankle');
+
+        if (leftHip && leftKnee && leftAnkle &&
+            leftHip.score > 0.3 && leftKnee.score > 0.3 && leftAnkle.score > 0.3) {
+          return this.calculateAngle(leftHip, leftKnee, leftAnkle);
+        }
+
+        if (rightHip && rightKnee && rightAnkle &&
+            rightHip.score > 0.3 && rightKnee.score > 0.3 && rightAnkle.score > 0.3) {
+          return this.calculateAngle(rightHip, rightKnee, rightAnkle);
+        }
+        return null;
+      }
+
+      case 'jumping_jack': {
+        // Use distance between ankles as proxy for spread (normalized)
+        const leftAnkle = getKp('left_ankle');
+        const rightAnkle = getKp('right_ankle');
+        const leftHip = getKp('left_hip');
+        const rightHip = getKp('right_hip');
+
+        if (leftAnkle && rightAnkle && leftHip && rightHip &&
+            leftAnkle.score > 0.3 && rightAnkle.score > 0.3 &&
+            leftHip.score > 0.3 && rightHip.score > 0.3) {
+          const ankleDist = this.calculateDistance(leftAnkle, rightAnkle);
+          const hipDist = this.calculateDistance(leftHip, rightHip) || 1;
+          const ratio = ankleDist / hipDist;
+          // Map reasonable range [1, 2] to [0.4, 0.9]
+          return Math.max(0, Math.min(1, 0.2 + (ratio - 1) * 0.5));
+        }
+        return null;
+      }
+
+      case 'mountain_climber': {
+        // Knee drive distance toward chest vs extended plank
+        const shoulder = getKp('left_shoulder') || getKp('right_shoulder');
+        const hip = getKp('left_hip') || getKp('right_hip');
+        const knee = getKp('left_knee') || getKp('right_knee');
+        const ankle = getKp('left_ankle') || getKp('right_ankle');
+
+        if (shoulder && hip && knee && ankle &&
+            shoulder.score > 0.3 && hip.score > 0.3 &&
+            knee.score > 0.3 && ankle.score > 0.3) {
+          const kneeToChest = this.calculateDistance(knee, shoulder);
+          const hipToAnkle = this.calculateDistance(hip, ankle) || 1;
+          const ratio = kneeToChest / hipToAnkle;
+          // Higher ratio = knee closer to chest (down phase)
+          return Math.max(0, Math.min(1, 0.2 + ratio * 0.4));
+        }
+        return null;
+      }
+
       default:
         return null;
     }
@@ -267,7 +486,7 @@ export class RepCounter {
    */
   update(keypoints) {
     // Skip rep counting for exercises that don't have reps
-    if (this.exerciseType === 'plank' || this.exerciseType === 'posture') {
+    if (this.exerciseType === 'plank' || this.exerciseType === 'posture' || this.exerciseType === 'side_plank') {
       return { reps: this.reps, newRep: false };
     }
 

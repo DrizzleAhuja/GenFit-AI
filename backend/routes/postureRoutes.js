@@ -25,6 +25,28 @@ function getPoint(landmarks, name) {
   return landmarks.find((p) => p.name === name || p.part === name) || null;
 }
 
+/**
+ * Helper: try left/right side and average angles when both are available.
+ */
+function averageSideAngle(landmarks, namesPerSide) {
+  const left = {};
+  const right = {};
+
+  Object.keys(namesPerSide).forEach((key) => {
+    const base = namesPerSide[key];
+    left[key] = getPoint(landmarks, `left_${base}`);
+    right[key] = getPoint(landmarks, `right_${base}`);
+  });
+
+  const leftAngle =
+    left.a && left.b && left.c ? angleBetween(left.a, left.b, left.c) : null;
+  const rightAngle =
+    right.a && right.b && right.c ? angleBetween(right.a, right.b, right.c) : null;
+
+  if (leftAngle && rightAngle) return (leftAngle + rightAngle) / 2;
+  return leftAngle || rightAngle || null;
+}
+
 function analyzeSquat(landmarks) {
   const leftHip = getPoint(landmarks, "left_hip");
   const rightHip = getPoint(landmarks, "right_hip");
@@ -289,6 +311,467 @@ function analyzePlank(landmarks) {
   };
 }
 
+/**
+ * Shoulder press – focus on vertical pressing path and elbow extension.
+ */
+function analyzeShoulderPress(landmarks) {
+  const shoulderElbowWristAngle = averageSideAngle(landmarks, {
+    a: "shoulder",
+    b: "elbow",
+    c: "wrist",
+  });
+
+  const issues = [];
+  let isCorrect = true;
+
+  if (shoulderElbowWristAngle == null) {
+    issues.push(
+      "Make sure at least one full arm (shoulder–elbow–wrist) is clearly visible while pressing overhead."
+    );
+    isCorrect = false;
+  } else {
+    if (shoulderElbowWristAngle < 70) {
+      issues.push("Press the weight higher – fully extend your elbows at the top.");
+      isCorrect = false;
+    }
+    if (shoulderElbowWristAngle > 150) {
+      issues.push("Lower the weight under control – don't lock out aggressively.");
+      isCorrect = false;
+    }
+  }
+
+  return {
+    exerciseType: "shoulder_press",
+    isCorrect,
+    score:
+      shoulderElbowWristAngle == null
+        ? 0
+        : Math.max(0, Math.min(100, 120 - Math.abs(100 - shoulderElbowWristAngle) * 1.2)),
+    metrics: { shoulderElbowWristAngle },
+    issues,
+    tips: [
+      "Keep your core braced and avoid leaning back.",
+      "Press the weight in a slight arc so it finishes above mid‑foot.",
+      "Keep wrists stacked over elbows throughout the press.",
+    ],
+  };
+}
+
+/**
+ * Lateral raise – arm should move roughly out to the side to shoulder height.
+ */
+function analyzeLateralRaise(landmarks) {
+  const shoulder = getPoint(landmarks, "left_shoulder") || getPoint(landmarks, "right_shoulder");
+  const elbow = getPoint(landmarks, "left_elbow") || getPoint(landmarks, "right_elbow");
+  const wrist = getPoint(landmarks, "left_wrist") || getPoint(landmarks, "right_wrist");
+  const hip = getPoint(landmarks, "left_hip") || getPoint(landmarks, "right_hip");
+
+  const armAngle = shoulder && elbow && wrist ? angleBetween(shoulder, elbow, wrist) : null;
+  const torsoArmAngle = shoulder && hip && wrist ? angleBetween(hip, shoulder, wrist) : null;
+
+  const issues = [];
+  let isCorrect = true;
+
+  if (armAngle == null || torsoArmAngle == null) {
+    issues.push(
+      "Stand side‑on with one full arm and your torso clearly visible for lateral raise analysis."
+    );
+    isCorrect = false;
+  } else {
+    if (torsoArmAngle < 60) {
+      issues.push("Raise your arms higher – aim for shoulder height.");
+      isCorrect = false;
+    }
+    if (torsoArmAngle > 120) {
+      issues.push("Avoid swinging the arms too high; stop around shoulder height.");
+      isCorrect = false;
+    }
+  }
+
+  return {
+    exerciseType: "lateral_raise",
+    isCorrect,
+    score:
+      torsoArmAngle == null
+        ? 0
+        : Math.max(0, Math.min(100, 120 - Math.abs(90 - torsoArmAngle) * 2)),
+    metrics: { armAngle, torsoArmAngle },
+    issues,
+    tips: [
+      "Keep a slight bend in the elbows; don't lock them.",
+      "Lift out to the side, not forward.",
+      "Lead with the elbows and keep shoulders away from your ears.",
+    ],
+  };
+}
+
+/**
+ * Deadlift – hip hinge with neutral back.
+ */
+function analyzeDeadlift(landmarks) {
+  const leftShoulder = getPoint(landmarks, "left_shoulder");
+  const rightShoulder = getPoint(landmarks, "right_shoulder");
+  const leftHip = getPoint(landmarks, "left_hip");
+  const rightHip = getPoint(landmarks, "right_hip");
+  const leftKnee = getPoint(landmarks, "left_knee");
+  const rightKnee = getPoint(landmarks, "right_knee");
+
+  const shoulder = leftShoulder || rightShoulder;
+  const hip = leftHip || rightHip;
+  const knee = leftKnee || rightKnee;
+
+  const hipAngle = shoulder && hip && knee ? angleBetween(shoulder, hip, knee) : null;
+
+  const issues = [];
+  let isCorrect = true;
+
+  if (hipAngle == null) {
+    issues.push(
+      "Make sure your full side profile from shoulders to knees is visible for deadlift analysis."
+    );
+    isCorrect = false;
+  } else {
+    if (hipAngle < 60) {
+      issues.push("Don't collapse into the bottom – keep some bend at the hips, not just the knees.");
+      isCorrect = false;
+    }
+    if (hipAngle > 150) {
+      issues.push("Push your hips back more to initiate the deadlift with a hinge, not just a squat.");
+      isCorrect = false;
+    }
+  }
+
+  return {
+    exerciseType: "deadlift",
+    isCorrect,
+    score:
+      hipAngle == null
+        ? 0
+        : Math.max(0, Math.min(100, 120 - Math.abs(120 - hipAngle) * 1.5)),
+    metrics: { hipAngle },
+    issues,
+    tips: [
+      "Keep the bar (or hands) close to your legs as you hinge.",
+      "Maintain a flat back with chest proud.",
+      "Drive through your heels and squeeze glutes at the top.",
+    ],
+  };
+}
+
+/**
+ * Bent‑over row – hinge plus arm pull.
+ */
+function analyzeBentOverRow(landmarks) {
+  const shoulder = getPoint(landmarks, "left_shoulder") || getPoint(landmarks, "right_shoulder");
+  const hip = getPoint(landmarks, "left_hip") || getPoint(landmarks, "right_hip");
+  const knee = getPoint(landmarks, "left_knee") || getPoint(landmarks, "right_knee");
+  const elbow = getPoint(landmarks, "left_elbow") || getPoint(landmarks, "right_elbow");
+  const wrist = getPoint(landmarks, "left_wrist") || getPoint(landmarks, "right_wrist");
+
+  const torsoAngle = shoulder && hip && knee ? angleBetween(shoulder, hip, knee) : null;
+  const rowAngle = shoulder && elbow && wrist ? angleBetween(shoulder, elbow, wrist) : null;
+
+  const issues = [];
+  let isCorrect = true;
+
+  if (torsoAngle == null || rowAngle == null) {
+    issues.push(
+      "Stand side‑on so your torso and working arm are visible from shoulder to wrist."
+    );
+    isCorrect = false;
+  } else {
+    if (torsoAngle > 140) {
+      issues.push("Hinge more at the hips – your torso should lean forward for a good row position.");
+      isCorrect = false;
+    }
+    if (rowAngle > 160) {
+      issues.push("Pull your elbow back further to fully engage the upper back.");
+      isCorrect = false;
+    }
+  }
+
+  return {
+    exerciseType: "bent_over_row",
+    isCorrect,
+    score:
+      torsoAngle == null || rowAngle == null
+        ? 0
+        : Math.max(
+            0,
+            Math.min(
+              100,
+              60 -
+                Math.abs(110 - torsoAngle) / 2 -
+                Math.abs(100 - (rowAngle + 20)) / 2
+            )
+          ),
+    metrics: { torsoAngle, rowAngle },
+    issues,
+    tips: [
+      "Keep your back flat and core tight during the hinge.",
+      "Row by driving the elbow back, keeping it close to your side.",
+      "Avoid shrugging shoulders up toward your ears.",
+    ],
+  };
+}
+
+/**
+ * Tricep extension – elbow as the pivot, upper arm stable.
+ */
+function analyzeTricepExtension(landmarks) {
+  const shoulder = getPoint(landmarks, "left_shoulder") || getPoint(landmarks, "right_shoulder");
+  const elbow = getPoint(landmarks, "left_elbow") || getPoint(landmarks, "right_elbow");
+  const wrist = getPoint(landmarks, "left_wrist") || getPoint(landmarks, "right_wrist");
+
+  const elbowAngle = shoulder && elbow && wrist ? angleBetween(shoulder, elbow, wrist) : null;
+
+  const issues = [];
+  let isCorrect = true;
+
+  if (elbowAngle == null) {
+    issues.push("Make sure your upper arm and forearm are visible for tricep extension.");
+    isCorrect = false;
+  } else {
+    if (elbowAngle > 170) {
+      issues.push("Avoid hyper‑extending the elbows; stop just short of full lockout.");
+      isCorrect = false;
+    }
+    if (elbowAngle < 40) {
+      issues.push("Don't let the elbows collapse too much; keep control at the bottom.");
+      isCorrect = false;
+    }
+  }
+
+  return {
+    exerciseType: "tricep_extension",
+    isCorrect,
+    score:
+      elbowAngle == null
+        ? 0
+        : Math.max(0, Math.min(100, 120 - Math.abs(80 - elbowAngle) * 1.5)),
+    metrics: { elbowAngle },
+    issues,
+    tips: [
+      "Keep upper arms fixed; move only at the elbow.",
+      "Brace your core to avoid swinging your torso.",
+      "Use a full but controlled range of motion.",
+    ],
+  };
+}
+
+/**
+ * Side plank – body in a straight line sideways.
+ */
+function analyzeSidePlank(landmarks) {
+  const shoulder = getPoint(landmarks, "left_shoulder") || getPoint(landmarks, "right_shoulder");
+  const hip = getPoint(landmarks, "left_hip") || getPoint(landmarks, "right_hip");
+  const ankle =
+    getPoint(landmarks, "left_ankle") ||
+    getPoint(landmarks, "right_ankle") ||
+    getPoint(landmarks, "left_knee") ||
+    getPoint(landmarks, "right_knee");
+
+  const bodyAngle = shoulder && hip && ankle ? angleBetween(shoulder, hip, ankle) : null;
+
+  const issues = [];
+  let isCorrect = true;
+
+  if (bodyAngle == null) {
+    issues.push(
+      "For side plank, keep your entire side body visible from shoulder to feet or knees."
+    );
+    isCorrect = false;
+  } else {
+    if (bodyAngle < 165) {
+      issues.push("Lift your hips so your body forms a straight line from shoulder to ankle.");
+      isCorrect = false;
+    }
+    if (bodyAngle > 195) {
+      issues.push("Avoid piking hips up too high; stay in a straight line.");
+      isCorrect = false;
+    }
+  }
+
+  return {
+    exerciseType: "side_plank",
+    isCorrect,
+    score:
+      bodyAngle == null
+        ? 0
+        : Math.max(0, Math.min(100, 120 - Math.abs(180 - bodyAngle) * 2)),
+    metrics: { bodyAngle },
+    issues,
+    tips: [
+      "Stack your shoulders and hips vertically.",
+      "Keep your neck neutral; look straight ahead.",
+      "Squeeze glutes and brace your obliques.",
+    ],
+  };
+}
+
+/**
+ * High knees – focus on knee lift.
+ */
+function analyzeHighKnees(landmarks) {
+  const hip = getPoint(landmarks, "left_hip") || getPoint(landmarks, "right_hip");
+  const knee = getPoint(landmarks, "left_knee") || getPoint(landmarks, "right_knee");
+  const ankle = getPoint(landmarks, "left_ankle") || getPoint(landmarks, "right_ankle");
+
+  const kneeAngle = hip && knee && ankle ? angleBetween(hip, knee, ankle) : null;
+
+  const issues = [];
+  let isCorrect = true;
+
+  if (kneeAngle == null) {
+    issues.push("Move back so at least one full leg is visible from hip to ankle.");
+    isCorrect = false;
+  } else {
+    if (kneeAngle > 140) {
+      issues.push("Drive your knee higher toward hip level.");
+      isCorrect = false;
+    }
+  }
+
+  return {
+    exerciseType: "high_knees",
+    isCorrect,
+    score:
+      kneeAngle == null
+        ? 0
+        : Math.max(0, Math.min(100, 120 - Math.abs(90 - kneeAngle) * 2)),
+    metrics: { kneeAngle },
+    issues,
+    tips: [
+      "Stay tall; avoid leaning back excessively.",
+      "Pump your arms in rhythm with your legs.",
+      "Land softly on the balls of your feet.",
+    ],
+  };
+}
+
+/**
+ * Jumping jack – arm and leg spread together.
+ */
+function analyzeJumpingJack(landmarks) {
+  const leftAnkle = getPoint(landmarks, "left_ankle");
+  const rightAnkle = getPoint(landmarks, "right_ankle");
+  const leftWrist = getPoint(landmarks, "left_wrist");
+  const rightWrist = getPoint(landmarks, "right_wrist");
+  const leftHip = getPoint(landmarks, "left_hip");
+  const rightHip = getPoint(landmarks, "right_hip");
+
+  const legSpread =
+    leftAnkle && rightAnkle ? Math.abs(leftAnkle.x - rightAnkle.x) : null;
+  const armSpread =
+    leftWrist && rightWrist ? Math.abs(leftWrist.x - rightWrist.x) : null;
+  const hipWidth =
+    leftHip && rightHip ? Math.abs(leftHip.x - rightHip.x) : null;
+
+  const issues = [];
+  let isCorrect = true;
+
+  if (legSpread == null || armSpread == null || hipWidth == null) {
+    issues.push(
+      "Stand far enough from the camera so your full body is visible for jumping jacks."
+    );
+    isCorrect = false;
+  } else {
+    const legRatio = legSpread / hipWidth;
+    const armRatio = armSpread / hipWidth;
+
+    if (legRatio < 1.2) {
+      issues.push("Jump your feet wider apart to increase leg range.");
+      isCorrect = false;
+    }
+    if (armRatio < 1.2) {
+      issues.push("Raise your arms higher overhead during each jack.");
+      isCorrect = false;
+    }
+  }
+
+  const scoreBase =
+    legSpread == null || armSpread == null || hipWidth == null
+      ? 0
+      : Math.max(
+          0,
+          Math.min(
+            100,
+            60 -
+              Math.abs(1.5 - legSpread / hipWidth) * 30 -
+              Math.abs(1.5 - armSpread / hipWidth) * 30
+          )
+        );
+
+  return {
+    exerciseType: "jumping_jack",
+    isCorrect,
+    score: scoreBase,
+    metrics: { legSpread, armSpread, hipWidth },
+    issues,
+    tips: [
+      "Land softly and keep knees slightly bent.",
+      "Maintain an upright torso instead of leaning forward.",
+      "Coordinate arm and leg movements for smooth rhythm.",
+    ],
+  };
+}
+
+/**
+ * Mountain climber – knee drive toward chest in plank.
+ */
+function analyzeMountainClimber(landmarks) {
+  const shoulder = getPoint(landmarks, "left_shoulder") || getPoint(landmarks, "right_shoulder");
+  const hip = getPoint(landmarks, "left_hip") || getPoint(landmarks, "right_hip");
+  const knee = getPoint(landmarks, "left_knee") || getPoint(landmarks, "right_knee");
+  const ankle = getPoint(landmarks, "left_ankle") || getPoint(landmarks, "right_ankle");
+
+  const bodyAngle = shoulder && hip && ankle ? angleBetween(shoulder, hip, ankle) : null;
+  const kneeAngle = hip && knee && ankle ? angleBetween(hip, knee, ankle) : null;
+
+  const issues = [];
+  let isCorrect = true;
+
+  if (bodyAngle == null || kneeAngle == null) {
+    issues.push(
+      "Start in a visible plank position so your shoulders, hips and at least one leg are clearly tracked."
+    );
+    isCorrect = false;
+  } else {
+    if (bodyAngle < 150) {
+      issues.push("Keep your body straighter – avoid letting hips sag.");
+      isCorrect = false;
+    }
+    if (kneeAngle > 140) {
+      issues.push("Drive your knee closer to your chest on each rep.");
+      isCorrect = false;
+    }
+  }
+
+  return {
+    exerciseType: "mountain_climber",
+    isCorrect,
+    score:
+      bodyAngle == null || kneeAngle == null
+        ? 0
+        : Math.max(
+            0,
+            Math.min(
+              100,
+              60 -
+                Math.abs(170 - bodyAngle) / 2 -
+                Math.abs(90 - kneeAngle) / 2
+            )
+          ),
+    metrics: { bodyAngle, kneeAngle },
+    issues,
+    tips: [
+      "Keep shoulders stacked over wrists.",
+      "Maintain a steady breathing pattern instead of holding your breath.",
+      "Move quickly but under control to protect your lower back.",
+    ],
+  };
+}
+
 function analyzeGeneralPosture(landmarks) {
   const leftShoulder = getPoint(landmarks, "left_shoulder");
   const rightShoulder = getPoint(landmarks, "right_shoulder");
@@ -296,6 +779,11 @@ function analyzeGeneralPosture(landmarks) {
   const rightHip = getPoint(landmarks, "right_hip");
   const leftAnkle = getPoint(landmarks, "left_ankle");
   const rightAnkle = getPoint(landmarks, "right_ankle");
+  const nose = getPoint(landmarks, "nose");
+  const leftEar = getPoint(landmarks, "left_ear");
+  const rightEar = getPoint(landmarks, "right_ear");
+  const leftKnee = getPoint(landmarks, "left_knee");
+  const rightKnee = getPoint(landmarks, "right_knee");
 
   const midShoulder =
     leftShoulder && rightShoulder
@@ -315,7 +803,22 @@ function analyzeGeneralPosture(landmarks) {
     midAnkle,
     midHip,
     midShoulder
-  ); // hip is middle point for angle at torso
+  ); // hip is middle point for overall body line
+
+  // Head/neck posture: angle between hip‑shoulder‑head (nose or ear)
+  const headPoint = nose || leftEar || rightEar || midShoulder;
+  const neckAngle =
+    midHip && midShoulder && headPoint
+      ? angleBetween(midHip, midShoulder, headPoint)
+      : null;
+
+  // Knee alignment: how much knees drift relative to ankles/hips (frontal plane proxy)
+  const knee =
+    leftKnee && rightKnee
+      ? { x: (leftKnee.x + rightKnee.x) / 2, y: (leftKnee.y + rightKnee.y) / 2 }
+      : leftKnee || rightKnee;
+  const kneeOverAnkleAngle =
+    knee && midAnkle && midHip ? angleBetween(midHip, knee, midAnkle) : null;
 
   const issues = [];
   let isCorrect = true;
@@ -340,6 +843,14 @@ function analyzeGeneralPosture(landmarks) {
     }
   }
 
+  // Head/neck forward posture
+  if (neckAngle != null && (neckAngle < 150 || neckAngle > 210)) {
+    issues.push(
+      "Bring your head back in line with your shoulders – avoid craning your neck forward."
+    );
+    isCorrect = false;
+  }
+
   // Shoulder height symmetry (side tilt)
   if (leftShoulder && rightShoulder) {
     const shoulderDelta = Math.abs(leftShoulder.y - rightShoulder.y);
@@ -349,19 +860,36 @@ function analyzeGeneralPosture(landmarks) {
     }
   }
 
+  // Knee‑over‑ankle alignment
+  if (kneeOverAnkleAngle != null && (kneeOverAnkleAngle < 160 || kneeOverAnkleAngle > 200)) {
+    issues.push(
+      "Distribute your weight evenly so knees track roughly above the ankles, not collapsing inward or pushing too far forward."
+    );
+    isCorrect = false;
+  }
+
   return {
     exerciseType: "posture",
     isCorrect,
     score:
       bodyAngle == null
         ? 0
-        : Math.max(0, Math.min(100, 120 - Math.abs(180 - bodyAngle) * 2)),
-    metrics: { bodyAngle },
+        : Math.max(
+            0,
+            Math.min(
+              100,
+              80 -
+                Math.abs(180 - bodyAngle) * 1.2 -
+                (neckAngle != null ? Math.abs(180 - neckAngle) * 0.6 : 0) -
+                (kneeOverAnkleAngle != null ? Math.abs(180 - kneeOverAnkleAngle) * 0.4 : 0)
+            )
+          ),
+    metrics: { bodyAngle, neckAngle, kneeOverAnkleAngle },
     issues,
     tips: [
       "Imagine a string pulling the top of your head up toward the ceiling.",
-      "Keep ears roughly over shoulders, shoulders over hips, and hips over ankles.",
-      "Gently brace your core and avoid locking your knees.",
+      "Keep ears roughly over shoulders, shoulders over hips, hips over knees, and knees over ankles.",
+      "Gently brace your core, soften the knees, and avoid locking joints.",
     ],
   };
 }
@@ -396,6 +924,33 @@ router.post("/analyze", (req, res) => {
         break;
       case "posture":
         result = analyzeGeneralPosture(landmarks);
+        break;
+      case "shoulder_press":
+        result = analyzeShoulderPress(landmarks);
+        break;
+      case "lateral_raise":
+        result = analyzeLateralRaise(landmarks);
+        break;
+      case "deadlift":
+        result = analyzeDeadlift(landmarks);
+        break;
+      case "bent_over_row":
+        result = analyzeBentOverRow(landmarks);
+        break;
+      case "tricep_extension":
+        result = analyzeTricepExtension(landmarks);
+        break;
+      case "side_plank":
+        result = analyzeSidePlank(landmarks);
+        break;
+      case "high_knees":
+        result = analyzeHighKnees(landmarks);
+        break;
+      case "jumping_jack":
+        result = analyzeJumpingJack(landmarks);
+        break;
+      case "mountain_climber":
+        result = analyzeMountainClimber(landmarks);
         break;
       default:
         return res.status(400).json({

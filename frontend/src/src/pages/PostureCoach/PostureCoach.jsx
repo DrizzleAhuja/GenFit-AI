@@ -15,6 +15,15 @@ const EXERCISES = [
   { id: "pushup", label: "Push-up" },
   { id: "plank", label: "Plank" },
   { id: "bicep_curl", label: "Bicep Curl" },
+  { id: "shoulder_press", label: "Shoulder Press" },
+  { id: "lateral_raise", label: "Lateral Raise" },
+  { id: "deadlift", label: "Deadlift" },
+  { id: "bent_over_row", label: "Bent-over Row" },
+  { id: "tricep_extension", label: "Tricep Extension" },
+  { id: "side_plank", label: "Side Plank" },
+  { id: "high_knees", label: "High Knees" },
+  { id: "jumping_jack", label: "Jumping Jack" },
+  { id: "mountain_climber", label: "Mountain Climber" },
 ];
 
 export default function PostureCoach() {
@@ -23,8 +32,10 @@ export default function PostureCoach() {
   const detectorRef = useRef(null);
   const repCounterRef = useRef(null);
   const sessionStartTimeRef = useRef(null);
+  const lastGoodScoreRef = useRef(false);
   const [exercise, setExercise] = useState("squat");
   const [isRunning, setIsRunning] = useState(false);
+  const [isModelLoading, setIsModelLoading] = useState(true);
   const [analysis, setAnalysis] = useState(null);
   const [lastError, setLastError] = useState(null);
   const [reps, setReps] = useState(0);
@@ -42,6 +53,7 @@ export default function PostureCoach() {
     // Reset reps when exercise changes
     setReps(0);
     setCalories(0);
+    lastGoodScoreRef.current = false;
   }, [exercise]);
 
   // Track session duration and update calories
@@ -55,7 +67,7 @@ export default function PostureCoach() {
         setSessionDuration(duration);
         
         // Only calculate calories if we have reps OR if it's a time-based exercise
-        if (exercise === 'plank' || exercise === 'posture') {
+        if (exercise === 'plank' || exercise === 'posture' || exercise === 'side_plank') {
           // For time-based exercises, use duration
           const caloriesBurned = calculateCaloriesBurned(
             exercise,
@@ -97,6 +109,7 @@ export default function PostureCoach() {
     (async () => {
       try {
         // Force a known backend to avoid webgpu init issues
+        setIsModelLoading(true);
         await tf.setBackend("webgl");
         await tf.ready();
 
@@ -105,12 +118,16 @@ export default function PostureCoach() {
           { modelType: "SinglePose.Lightning" }
         );
 
-        if (!cancelled) detectorRef.current = detector;
+        if (!cancelled) {
+          detectorRef.current = detector;
+          setIsModelLoading(false);
+        }
       } catch (e) {
         console.error("Failed to load pose detector", e);
         setLastError(
           "Failed to load pose detector. Check browser support or try refreshing the page."
         );
+        setIsModelLoading(false);
       }
     })();
     return () => {
@@ -155,7 +172,7 @@ export default function PostureCoach() {
     });
 
     // Draw exercise-specific angle lines and measurements
-    if (repCounter && exerciseType !== 'posture' && exerciseType !== 'plank') {
+    if (repCounter && exerciseType !== 'posture' && exerciseType !== 'plank' && exerciseType !== 'side_plank') {
       const keypoints = pose.keypoints.map((kp) => ({
         name: kp.name || kp.part || kp.id,
         x: kp.x,
@@ -175,7 +192,7 @@ export default function PostureCoach() {
         });
       };
 
-      if (exerciseType === 'squat') {
+      if (exerciseType === 'squat' || exerciseType === 'deadlift' || exerciseType === 'high_knees' || exerciseType === 'jumping_jack' || exerciseType === 'mountain_climber') {
         const leftHip = getKp('left_hip');
         const leftKnee = getKp('left_knee');
         const leftAnkle = getKp('left_ankle');
@@ -202,7 +219,14 @@ export default function PostureCoach() {
           ctx.lineTo(rightAnkle.x, rightAnkle.y);
           ctx.stroke();
         }
-      } else if (exerciseType === 'pushup' || exerciseType === 'bicep_curl') {
+      } else if (
+        exerciseType === 'pushup' ||
+        exerciseType === 'bicep_curl' ||
+        exerciseType === 'shoulder_press' ||
+        exerciseType === 'lateral_raise' ||
+        exerciseType === 'bent_over_row' ||
+        exerciseType === 'tricep_extension'
+      ) {
         const leftShoulder = getKp('left_shoulder');
         const leftElbow = getKp('left_elbow');
         const leftWrist = getKp('left_wrist');
@@ -307,7 +331,30 @@ export default function PostureCoach() {
           }));
           analyzePosture(exercise, landmarks)
             .then((res) => {
-              if (res?.success) setAnalysis(res.analysis);
+              if (res?.success && res.analysis) {
+                setAnalysis(res.analysis);
+
+                // Score-based rep counting: if score > 60 and it just crossed that threshold,
+                // treat it as a "good rep" for rep-based exercises.
+                const score = res.analysis.score || 0;
+                const isTimeBased =
+                  exercise === "plank" ||
+                  exercise === "posture" ||
+                  exercise === "side_plank";
+
+                if (!isTimeBased) {
+                  const isGoodNow = score > 60;
+                  if (isGoodNow && !lastGoodScoreRef.current) {
+                    setReps((prev) => prev + 1);
+                    // Trigger animation
+                    setNewRepAnimation(true);
+                    setTimeout(() => setNewRepAnimation(false), 500);
+                  }
+                  lastGoodScoreRef.current = isGoodNow;
+                } else {
+                  lastGoodScoreRef.current = false;
+                }
+              }
             })
             .catch((err) => {
               console.error("Posture analysis error", err);
@@ -343,6 +390,7 @@ export default function PostureCoach() {
         setReps(0);
         setCalories(0);
         setSessionDuration(0);
+        lastGoodScoreRef.current = false;
       }
       return newState;
     });
@@ -387,13 +435,18 @@ export default function PostureCoach() {
               </div>
               <button
                 onClick={toggleRunning}
+                disabled={isModelLoading || !!lastError}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold ${
                   isRunning
                     ? "bg-red-500 text-white hover:bg-red-600"
                     : "bg-emerald-500 text-gray-900 hover:bg-emerald-400"
-                }`}
+                } ${isModelLoading || lastError ? "opacity-60 cursor-not-allowed" : ""}`}
               >
-                {isRunning ? "Stop Coaching" : "Start Coaching"}
+                {isModelLoading
+                  ? "Loading AI model..."
+                  : isRunning
+                  ? "Stop Coaching"
+                  : "Start Coaching"}
               </button>
             </div>
 
@@ -414,7 +467,13 @@ export default function PostureCoach() {
                 ref={canvasRef}
                 className="absolute inset-0 w-full h-full pointer-events-none"
               />
-              {!isRunning && (
+              {isModelLoading && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-sm text-gray-100">
+                  <div className="mb-2 h-6 w-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                  <p>AI model loading, please wait…</p>
+                </div>
+              )}
+              {!isModelLoading && !isRunning && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-sm text-gray-100">
                   Press <span className="mx-1 font-semibold">Start Coaching</span> to begin.
                 </div>
