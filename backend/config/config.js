@@ -4,7 +4,7 @@ const config = {
     NODE_ENV: "development",
     GEMINI_API_KEY: process.env.GEMINI_API_KEY || "your-gemini-api-key",
     GEMINI_API_URL:
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent",
   },
   production: {
     API_BASE_URL:
@@ -14,7 +14,7 @@ const config = {
     NODE_ENV: "production",
     GEMINI_API_KEY: process.env.GEMINI_API_KEY || "your-gemini-api-key",
     GEMINI_API_URL:
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent",
   },
 };
 
