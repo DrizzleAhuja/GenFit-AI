@@ -1202,6 +1202,170 @@ router.post("/chat", async (req, res) => {
   }
 });
 
+// Image-based calorie tracking using Gemini Vision
+router.post("/calorie-tracker/scan", async (req, res) => {
+  try {
+    const { imageBase64, userNote } = req.body || {};
+
+    if (!imageBase64) {
+      return res.status(400).json({
+        success: false,
+        error: "imageBase64 is required in the request body",
+      });
+    }
+
+    // Strip data URL prefix if present
+    const base64Data = imageBase64.replace(/^data:image\/[a-zA-Z]+;base64,/, "");
+
+    const prompt = `
+You are a nutrition assistant. A user has uploaded a food image.
+
+TASK:
+- Detect the main food items and estimate calories as realistically as you can.
+- You MUST work well for **Indian foods** (South Indian, North Indian, street food, thalis, curries, biryanis, dosas, parathas, sabzis, sweets, etc.), as well as any international food.
+- If multiple foods are present (e.g., rice + curry + salad), list them separately and also give a total.
+
+VERY IMPORTANT OUTPUT RULES:
+- Return ONLY valid JSON (no markdown, no code fences, no comments, no trailing commas).
+- Do NOT break strings across lines. Every string value must be on a single line.
+- Food "name" must be a short label without quotes inside it. Examples:
+  - "Masala Dosa"
+  - "Stuffed Paratha"
+  - "Dal Makhani"
+  - "Paneer Butter Masala"
+  - "Idli Sambar"
+  - "Rajma Chawal"
+- Use plain ASCII characters in the JSON output.
+- If you are unsure of the exact dish, choose the **closest reasonable Indian dish name** and give a best calorie estimate.
+
+OUTPUT FORMAT (STRICT JSON ONLY):
+{
+  "food_items": [
+    {
+      "name": "Masala Dosa",
+      "estimated_calories": 350,
+      "confidence": 0.82
+    }
+  ],
+  "total_estimated_calories": 350,
+  "notes": "short human readable note about assumptions/portion size"
+}
+
+${userNote ? `User note / context: ${userNote}` : ""}
+`.trim();
+
+    // Use the same Gemini model as the rest of the app (from config)
+    const response = await axios.post(
+      `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
+      {
+        contents: [
+          {
+            parts: [
+              { text: prompt },
+              {
+                inlineData: {
+                  mimeType: "image/jpeg",
+                  data: base64Data,
+                },
+              },
+            ],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.4,
+          maxOutputTokens: 512,
+          topP: 0.8,
+          topK: 20,
+        },
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        timeout: 25000,
+      }
+    );
+
+    let raw = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+    raw = raw.trim();
+
+    // Strip accidental code fences if Gemini adds them
+    if (raw.startsWith("```")) {
+      raw = raw.replace(/^```[a-zA-Z]*\n?/, "").replace(/```$/, "").trim();
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      console.error("Failed to parse Gemini calorie JSON:", e.message);
+      console.error("Raw response:", raw);
+
+      // Fallback: try to salvage something from the text response
+      try {
+        const items = [];
+
+        const nameMatches = [...raw.matchAll(/"name"\s*:\s*"([^"\n]+)/g)];
+        const calMatches = [...raw.matchAll(
+          /"estimated_calories"\s*:\s*([0-9]+(?:\.[0-9]+)?)/g
+        )];
+
+        const maxLen = Math.max(nameMatches.length, calMatches.length);
+        for (let i = 0; i < maxLen; i++) {
+          const name = nameMatches[i]?.[1]?.trim() || `Food ${i + 1}`;
+          const calories = calMatches[i]
+            ? Number(calMatches[i][1])
+            : 0;
+          items.push({
+            name,
+            estimated_calories: calories,
+            confidence: null,
+          });
+        }
+
+        const total = items.reduce(
+          (acc, it) => acc + (Number(it.estimated_calories) || 0),
+          0
+        );
+
+        parsed = {
+          food_items: items,
+          total_estimated_calories: total,
+          notes:
+            "Parsed in fallback mode because the AI response was not valid JSON. Values are approximate.",
+        };
+      } catch (fallbackErr) {
+        console.error(
+          "Fallback parse for Gemini calorie response also failed:",
+          fallbackErr.message
+        );
+        // Final ultra-safe fallback: return empty, not an error
+        parsed = {
+          food_items: [],
+          total_estimated_calories: 0,
+          notes:
+            "Could not parse AI response reliably. Please try again with a clearer photo or different lighting.",
+        };
+      }
+    }
+
+    return res.json({
+      success: true,
+      data: parsed,
+    });
+  } catch (error) {
+    console.error("Error in calorie-tracker/scan endpoint:", error);
+    if (error.response) {
+      console.error("Gemini API response error:", error.response.data);
+    }
+    return res.status(500).json({
+      success: false,
+      error: "Failed to analyze food image",
+      details: error.message,
+    });
+  }
+});
+
 // New endpoint to generate a diet chart
 router.post("/generate-diet-chart", async (req, res) => {
   try {
