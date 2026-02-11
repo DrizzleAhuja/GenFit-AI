@@ -42,6 +42,8 @@ export default function PostureCoach() {
   const [calories, setCalories] = useState(0);
   const [sessionDuration, setSessionDuration] = useState(0);
   const [newRepAnimation, setNewRepAnimation] = useState(false);
+  const [cameras, setCameras] = useState([]);
+  const [selectedCameraId, setSelectedCameraId] = useState(null);
 
   // Initialize rep counter and reset when exercise changes
   useEffect(() => {
@@ -134,6 +136,32 @@ export default function PostureCoach() {
       cancelled = true;
     };
   }, []);
+
+  // Enumerate available cameras and prefer back camera on phones
+  useEffect(() => {
+    async function loadCameras() {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+          return;
+        }
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoInputs = devices.filter((d) => d.kind === "videoinput");
+        setCameras(videoInputs);
+
+        if (!selectedCameraId && videoInputs.length > 0) {
+          const backCam =
+            videoInputs.find((d) =>
+              /back|rear|environment/i.test(d.label || "")
+            ) || videoInputs[0];
+          setSelectedCameraId(backCam.deviceId);
+        }
+      } catch (err) {
+        console.error("Failed to enumerate cameras", err);
+      }
+    }
+
+    loadCameras();
+  }, [selectedCameraId]);
 
   const drawSkeleton = useCallback((pose, ctx, width, height, exerciseType, repCounter) => {
     if (!pose || !pose.keypoints) return;
@@ -418,20 +446,42 @@ export default function PostureCoach() {
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap gap-2">
-                {EXERCISES.map((ex) => (
-                  <button
-                    key={ex.id}
-                    onClick={() => setExercise(ex.id)}
-                    className={`px-3 py-1.5 rounded-full text-xs md:text-sm border ${
-                      exercise === ex.id
-                        ? "bg-emerald-500 text-gray-900 border-emerald-400"
-                        : "border-gray-600 text-gray-200 hover:bg-gray-800"
-                    }`}
-                  >
-                    {ex.label}
-                  </button>
-                ))}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <div className="flex flex-wrap gap-2">
+                  {EXERCISES.map((ex) => (
+                    <button
+                      key={ex.id}
+                      onClick={() => setExercise(ex.id)}
+                      className={`px-3 py-1.5 rounded-full text-xs md:text-sm border ${
+                        exercise === ex.id
+                          ? "bg-emerald-500 text-gray-900 border-emerald-400"
+                          : "border-gray-600 text-gray-200 hover:bg-gray-800"
+                      }`}
+                    >
+                      {ex.label}
+                    </button>
+                  ))}
+                </div>
+                {cameras.length > 0 && (
+                  <div className="flex items-center gap-2 text-xs md:text-sm">
+                    <span className="text-gray-400 whitespace-nowrap">
+                      Camera:
+                    </span>
+                    <select
+                      className="bg-gray-900 border border-gray-700 rounded-lg px-2 py-1 text-gray-100"
+                      value={selectedCameraId || ""}
+                      onChange={(e) =>
+                        setSelectedCameraId(e.target.value || null)
+                      }
+                    >
+                      {cameras.map((cam, idx) => (
+                        <option key={cam.deviceId || idx} value={cam.deviceId}>
+                          {cam.label || `Camera ${idx + 1}`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
               <button
                 onClick={toggleRunning}
@@ -460,7 +510,8 @@ export default function PostureCoach() {
                   objectFit: "cover",
                 }}
                 videoConstraints={{
-                  facingMode: "user",
+                  deviceId: selectedCameraId || undefined,
+                  facingMode: selectedCameraId ? undefined : "user",
                 }}
               />
               <canvas
