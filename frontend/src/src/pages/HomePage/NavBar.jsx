@@ -268,7 +268,7 @@ export default function NavBar() {
               className="hover:opacity-90 transition-opacity"
             >
               <img 
-                src="./assets/logo.png" 
+                src={Logo}
                 alt="GenFit AI" 
                 className="w-12 h-12 object-contain"
               />
@@ -300,7 +300,7 @@ export default function NavBar() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <img 
-                  src="./" 
+                  src={Logo} 
                   alt="GenFit AI" 
                   className="w-12 h-12 object-contain"
                 />
