@@ -7,11 +7,11 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import { FiMenu, FiX, FiUser, FiEdit2, FiLogOut } from "react-icons/fi";
-import { useTheme } from "../../context/ThemeContext"; // Import useTheme
-import { Brain, Sparkles } from "lucide-react"; // Import Lucide icons for logo
+import { useTheme } from "../../context/ThemeContext";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
 import { isPWAInstalled } from "../../utils/pwaInstall";
 import { getOAuthErrorMessage, isPWAMode } from "../../utils/googleOAuthPWA";
+import Logo from "../../assets/logo.png";
 
 export default function NavBar() {
   const dispatch = useDispatch();
@@ -22,7 +22,7 @@ export default function NavBar() {
   const [role, setRole] = useState("user");
   const [isStandalone, setIsStandalone] = useState(false);
 
-  const { darkMode } = useTheme(); // Access dark mode state
+  const { darkMode } = useTheme();
 
   // Check if running as PWA
   useEffect(() => {
@@ -90,13 +90,10 @@ export default function NavBar() {
     } catch (error) {
       console.error("Error during login", error);
 
-      // Better error handling
       let errorMessage = "Login failed";
       if (error.response) {
-        // The request was made and the server responded with a status code
         errorMessage = error.response.data.message || errorMessage;
       } else if (error.request) {
-        // The request was made but no response was received
         errorMessage = "Network error. Please check your connection.";
       }
 
@@ -109,19 +106,16 @@ export default function NavBar() {
     
     const errorInfo = getOAuthErrorMessage(error);
     
-    // Show error message
     toast.error(`${errorInfo.title}: ${errorInfo.message}`, { 
       autoClose: 5000 
     });
     
-    // Show action tip after a delay
     setTimeout(() => {
       toast.info(errorInfo.action, { 
         autoClose: 6000 
       });
     }, 2500);
     
-    // Additional PWA-specific help
     if (isPWAMode() && error?.error !== "popup_closed_by_user") {
       setTimeout(() => {
         toast.info(
@@ -145,7 +139,7 @@ export default function NavBar() {
     ...(!user
       ? [
           { path: "/about", label: "ABOUT US" },
-          { path: "/features", label: "FEATURES" }, // New tab for non-signed-in users
+          { path: "/features", label: "FEATURES" },
           { path: "/Contactus", label: "CONTACT US" },
           { path: "/leaderboard", label: "LEADERBOARD" },
         ]
@@ -162,7 +156,6 @@ export default function NavBar() {
 
   return (
     <>
-      {/* Removed ToastContainer as it's now in App.jsx */}
       <GoogleOAuthProvider 
         clientId="702465560392-1mu8j4kqafadep516m62oa5vf5klt7pu.apps.googleusercontent.com"
         onScriptLoadError={() => {
@@ -175,44 +168,23 @@ export default function NavBar() {
           console.log("Google OAuth script loaded successfully");
         }}
       >
-        <nav className="sticky top-0 left-0 w-full z-50 bg-gray-900 shadow-lg text-white">
-          <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+        {/* Desktop Navbar */}
+        <nav className="hidden lg:block sticky top-0 left-0 w-full z-50 bg-gray-900 shadow-lg text-white">
+          <div className="container mx-auto px-6 py-3 flex justify-between items-center">
             {/* Logo */}
-            <div className="flex items-center">
-              <button
-                className="md:hidden mr-4 text-gray-300"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              >
-                {mobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
-              </button>
-              <NavLink
-                to="/"
-                className="text-2xl font-bold hover:opacity-90 transition-opacity flex items-center gap-2"
-              >
-                <Brain
-                  className={`w-8 h-8 ${
-                    darkMode ? "text-green-400" : "text-green-600"
-                  } mr-1`}
-                />
-                <Sparkles
-                  className={`w-5 h-5 ${
-                    darkMode ? "text-blue-400" : "text-blue-600"
-                  } mr-2`}
-                />
-                <span
-                  className={`bg-clip-text text-transparent ${
-                    darkMode
-                      ? "bg-gradient-to-r from-green-400 to-blue-500"
-                      : "bg-gradient-to-r from-green-600 to-blue-800"
-                  }`}
-                >
-                  GenFit AI
-                </span>
-              </NavLink>
-            </div>
+            <NavLink
+              to="/"
+              className="hover:opacity-90 transition-opacity"
+            >
+              <img 
+                src={Logo} 
+                alt="GenFit AI" 
+                className="w-16 h-16 object-contain"
+              />
+            </NavLink>
 
             {/* Desktop Navigation Links */}
-            <div className="hidden md:flex space-x-6">
+            <div className="flex space-x-6">
               {navLinks.map((link) => (
                 <NavLink
                   key={link.path}
@@ -230,7 +202,7 @@ export default function NavBar() {
               ))}
             </div>
 
-            {/* User Icons */}
+            {/* User Section */}
             <div className="flex items-center space-x-4">
               {user ? (
                 <div className="relative">
@@ -241,7 +213,7 @@ export default function NavBar() {
                     <div className="w-10 h-10 rounded-full flex items-center justify-center font-medium bg-blue-700 text-white">
                       {getUserInitials(user)}
                     </div>
-                    <span className="hidden md:inline text-gray-200">
+                    <span className="text-gray-200">
                       <b>
                         {user.firstName} {user.lastName ? user.lastName : ""}
                       </b>
@@ -279,31 +251,170 @@ export default function NavBar() {
               )}
             </div>
           </div>
+        </nav>
 
-          {/* Mobile Menu */}
-          {mobileMenuOpen && (
-            <div className="md:hidden bg-gray-800 shadow-xl">
-              <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                {navLinks.map((link) => (
+        {/* Mobile Header with Menu Button */}
+        <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-gray-900 shadow-lg text-white">
+          <div className="flex justify-between items-center px-4 py-3">
+            <button
+              className="text-gray-300 hover:text-white transition-colors"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <FiX size={28} /> : <FiMenu size={28} />}
+            </button>
+            
+            <NavLink
+              to="/"
+              className="hover:opacity-90 transition-opacity"
+            >
+              <img 
+                src="./assets/logo.png" 
+                alt="GenFit AI" 
+                className="w-12 h-12 object-contain"
+              />
+            </NavLink>
+
+            {user && (
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center font-medium bg-blue-700 text-white text-sm cursor-pointer"
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+              >
+                {getUserInitials(user)}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile Sidebar */}
+        <div
+          className={`lg:hidden fixed top-0 left-0 h-full w-72 bg-gray-900 shadow-2xl transform transition-transform duration-300 ease-in-out z-50 ${
+            mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          <div className="flex flex-col h-full">
+            {/* Sidebar Header */}
+            <div className="flex justify-between items-center p-4 border-b border-gray-700">
+              <NavLink
+                to="/"
+                className="hover:opacity-90 transition-opacity"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <img 
+                  src="./" 
+                  alt="GenFit AI" 
+                  className="w-12 h-12 object-contain"
+                />
+              </NavLink>
+              <button
+                className="text-gray-300 hover:text-white"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <FiX size={24} />
+              </button>
+            </div>
+
+            {/* User Info Section */}
+            {user && (
+              <div className="p-4 border-b border-gray-700">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center font-medium bg-blue-700 text-white">
+                    {getUserInitials(user)}
+                  </div>
+                  <div>
+                    <p className="text-white font-semibold">
+                      {user.firstName} {user.lastName ? user.lastName : ""}
+                    </p>
+                    <p className="text-gray-400 text-sm">{user.email}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Navigation Links */}
+            <div className="flex-1 overflow-y-auto py-4">
+              {navLinks.map((link) => (
+                <NavLink
+                  key={link.path}
+                  to={link.path}
+                  className={({ isActive }) =>
+                    `block px-6 py-3 text-base font-medium transition-colors ${
+                      isActive
+                        ? "bg-gray-700 text-white border-l-4 border-blue-500"
+                        : "text-gray-300 hover:bg-gray-800 hover:text-white"
+                    }`
+                  }
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {link.label}
+                </NavLink>
+              ))}
+            </div>
+
+            {/* Footer Section */}
+            <div className="border-t border-gray-700 p-4">
+              {user ? (
+                <div className="space-y-2">
                   <NavLink
-                    key={link.path}
-                    to={link.path}
-                    className={({ isActive }) =>
-                      `px-3 py-2 rounded-md text-base font-medium flex items-center ${
-                        isActive
-                          ? "bg-gray-700 text-white"
-                          : "text-gray-300 hover:bg-gray-700 hover:text-white"
-                      }`
-                    }
+                    to="/EditProfile"
+                    className="flex items-center px-4 py-2 text-gray-200 hover:bg-gray-800 rounded-md transition-colors"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    {link.label}
+                    <FiEdit2 className="mr-3" /> Edit Profile
                   </NavLink>
-                ))}
-              </div>
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center px-4 py-2 text-gray-200 hover:bg-gray-800 rounded-md transition-colors"
+                  >
+                    <FiLogOut className="mr-3" /> Logout
+                  </button>
+                </div>
+              ) : (
+                <div className="flex justify-center">
+                  <GoogleLogin
+                    onSuccess={handleLoginSuccess}
+                    onError={handleLoginError}
+                    theme="filled_blue"
+                    shape="pill"
+                    size="medium"
+                    text="signin_with"
+                    useOneTap={false}
+                    auto_select={false}
+                  />
+                </div>
+              )}
             </div>
-          )}
-        </nav>
+          </div>
+        </div>
+
+        {/* Overlay for mobile sidebar */}
+        {mobileMenuOpen && (
+          <div
+            className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
+
+        {/* User Dropdown for Mobile Top Bar */}
+        {user && dropdownOpen && (
+          <div className="lg:hidden fixed top-16 right-4 w-48 rounded-md shadow-lg py-1 z-50 bg-gray-800 border border-gray-700">
+            <NavLink
+              to="/EditProfile"
+              className="flex px-4 py-2 text-sm items-center text-gray-200 hover:bg-gray-700"
+              onClick={() => setDropdownOpen(false)}
+            >
+              <FiEdit2 className="mr-2" /> Edit Profile
+            </NavLink>
+            <button
+              onClick={handleLogout}
+              className="w-full text-left px-4 py-2 text-sm flex items-center text-gray-200 hover:bg-gray-700"
+            >
+              <FiLogOut className="mr-2" /> Logout
+            </button>
+          </div>
+        )}
       </GoogleOAuthProvider>
     </>
   );
