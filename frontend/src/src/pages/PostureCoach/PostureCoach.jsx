@@ -200,6 +200,73 @@ export default function PostureCoach() {
       }
     });
 
+    // ---- General joint angle annotations (for visual richness on all exercises) ----
+    const toNamed = {};
+    pose.keypoints.forEach((kp) => {
+      const rawName = kp?.name || kp?.part || kp?.id;
+      if (!rawName) return;
+      toNamed[String(rawName).toLowerCase()] = kp;
+    });
+
+    const getKp = (name) => toNamed[name.toLowerCase()];
+
+    const angleAt = (a, b, c) => {
+      if (!a || !b || !c) return null;
+      const v1 = { x: a.x - b.x, y: a.y - b.y };
+      const v2 = { x: c.x - b.x, y: c.y - b.y };
+      const dot = v1.x * v2.x + v1.y * v2.y;
+      const mag1 = Math.hypot(v1.x, v1.y);
+      const mag2 = Math.hypot(v2.x, v2.y);
+      if (!mag1 || !mag2) return null;
+      const cos = Math.max(-1, Math.min(1, dot / (mag1 * mag2)));
+      return (Math.acos(cos) * 180) / Math.PI;
+    };
+
+    const jointConfigs = [
+      { label: "L Knee", a: "left_hip", b: "left_knee", c: "left_ankle" },
+      { label: "R Knee", a: "right_hip", b: "right_knee", c: "right_ankle" },
+      { label: "L Elbow", a: "left_shoulder", b: "left_elbow", c: "left_wrist" },
+      { label: "R Elbow", a: "right_shoulder", b: "right_elbow", c: "right_wrist" },
+      { label: "L Hip", a: "left_shoulder", b: "left_hip", c: "left_knee" },
+      { label: "R Hip", a: "right_shoulder", b: "right_hip", c: "right_knee" },
+      { label: "Neck", a: "left_shoulder", b: "nose", c: "right_shoulder" },
+    ];
+
+    ctx.font = "10px system-ui";
+    ctx.fillStyle = "#e5e7eb"; // light gray text
+
+    jointConfigs.forEach((joint) => {
+      const a = getKp(joint.a);
+      const b = getKp(joint.b);
+      const c = getKp(joint.c);
+      if (!a || !b || !c) return;
+      if ((a.score || 0) < 0.3 || (b.score || 0) < 0.3 || (c.score || 0) < 0.3) return;
+
+      const angle = angleAt(a, b, c);
+      if (!angle) return;
+
+      // Small subtle marker at the joint plus angle value
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, 4, 0, 2 * Math.PI);
+      ctx.strokeStyle = "#a855f7"; // violet accent
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      const text = `${Math.round(angle)}°`;
+      const textX = b.x + 6;
+      const textY = b.y - 6;
+
+      ctx.fillStyle = "rgba(15, 23, 42, 0.85)"; // dark backdrop
+      const padding = 2;
+      const metrics = ctx.measureText(text);
+      const boxWidth = metrics.width + padding * 2;
+      const boxHeight = 10 + padding * 2;
+
+      ctx.fillRect(textX - padding, textY - boxHeight + padding, boxWidth, boxHeight);
+      ctx.fillStyle = "#e5e7eb";
+      ctx.fillText(text, textX, textY);
+    });
+
     // Draw exercise-specific angle lines and measurements
     if (repCounter && exerciseType !== 'posture' && exerciseType !== 'plank' && exerciseType !== 'side_plank') {
       const keypoints = pose.keypoints.map((kp) => ({
