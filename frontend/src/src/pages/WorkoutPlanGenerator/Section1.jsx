@@ -1374,7 +1374,7 @@ const WorkoutPlanGenerator = () => {
                   {bmiData ? (
                     <div className="bmi-display">
                       <h3 style={{ fontSize: '1rem', fontWeight: '700', color: 'white', marginBottom: '1rem' }}>
-                        📊 Your BMI Data
+                         Your BMI Data
                       </h3>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem', fontSize: '0.875rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -1432,7 +1432,7 @@ const WorkoutPlanGenerator = () => {
                     {/* Goal Selection */}
                     <div className="form-group">
                       <label className="form-label">
-                        🎯 What is your main fitness goal?
+                         What is your main fitness goal?
                       </label>
                       <div className="button-grid cols-1">
                         {[{
@@ -1498,7 +1498,7 @@ const WorkoutPlanGenerator = () => {
                     {/* Time Commitment */}
                     <div className="form-group">
                       <label className="form-label">
-                        ⏱️ How much time can you commit per workout?
+                        How much time can you commit per workout?
                       </label>
                       <div className="button-grid cols-2">
                         {[15, 30, 45, 60].map((time) => (
@@ -1517,7 +1517,7 @@ const WorkoutPlanGenerator = () => {
                     {/* Workout Type */}
                     <div className="form-group">
                       <label className="form-label">
-                        💪 What type of workout do you prefer?
+                       What type of workout do you prefer?
                       </label>
                       <div className="button-grid cols-2">
                         <button
@@ -1562,7 +1562,7 @@ const WorkoutPlanGenerator = () => {
                     {/* Intensity Level */}
                     <div className="form-group">
                       <label className="form-label">
-                        📈 What's your fitness level?
+                        What's your fitness level?
                       </label>
                       <div className="button-grid cols-3">
                         {["beginner", "intermediate", "advanced"].map((level) => (
@@ -1582,7 +1582,7 @@ const WorkoutPlanGenerator = () => {
                     {/* Equipment */}
                     <div className="form-group">
                       <label className="form-label">
-                        🏋️ What equipment do you have access to?
+                       What equipment do you have access to?
                       </label>
                       <div className="button-grid cols-1">
                         <button
@@ -1612,7 +1612,7 @@ const WorkoutPlanGenerator = () => {
                     {/* Days Per Week */}
                     <div className="form-group">
                       <label className="form-label">
-                        📅 How many days per week can you workout?
+                      How many days per week can you workout?
                       </label>
                       <div className="button-grid cols-4">
                         {[3, 4, 5, 6].map((days) => (
@@ -1707,18 +1707,18 @@ const WorkoutPlanGenerator = () => {
                         </div>
                       </div>
                       <div className="plan-tags">
-                        <span className="plan-tag">⏱️ {formData.timeCommitment} min sessions</span>
-                        <span className="plan-tag">💪 {formData.workoutType} training</span>
-                        <span className="plan-tag">📅 {formData.daysPerWeek} days/week</span>
-                        <span className="plan-tag">📈 {formData.intensity} level</span>
+                        <span className="plan-tag"> {formData.timeCommitment} min sessions</span>
+                        <span className="plan-tag"> {formData.workoutType} training</span>
+                        <span className="plan-tag"> {formData.daysPerWeek} days/week</span>
+                        <span className="plan-tag"> {formData.intensity} level</span>
                         {formData.goal && (
-                          <span className="plan-tag">🎯 {formData.goal.replace(/_/g, ' ')}</span>
+                          <span className="plan-tag"> {formData.goal.replace(/_/g, ' ')}</span>
                         )}
                         {(formData.goal === "lose_weight" || formData.goal === "gain_weight") && formData.targetWeight && (
-                          <span className="plan-tag">🎯 Target: {formData.targetWeight} kg</span>
+                          <span className="plan-tag"> Target: {formData.targetWeight} kg</span>
                         )}
                         {formData.currentWeight && (formData.goal === "build_muscles" || formData.targetWeight) && (
-                          <span className="plan-tag">📆 {calculateDurationWeeks(formData.currentWeight, formData.targetWeight, formData.goal, bmiData?.age || 25)} weeks</span>
+                          <span className="plan-tag"> {calculateDurationWeeks(formData.currentWeight, formData.targetWeight, formData.goal, bmiData?.age || 25)} weeks</span>
                         )}
                       </div>
                     </div>
