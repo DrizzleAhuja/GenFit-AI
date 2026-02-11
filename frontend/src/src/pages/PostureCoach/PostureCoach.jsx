@@ -44,6 +44,7 @@ export default function PostureCoach() {
   const [newRepAnimation, setNewRepAnimation] = useState(false);
   const [cameras, setCameras] = useState([]);
   const [selectedCameraId, setSelectedCameraId] = useState(null);
+  const [visibilityMessage, setVisibilityMessage] = useState("");
 
   // Initialize rep counter and reset when exercise changes
   useEffect(() => {
@@ -327,67 +328,92 @@ export default function PostureCoach() {
       const poses = await detectorRef.current.estimatePoses(video);
       const pose = poses[0];
       if (pose) {
+        // Check overall body visibility based on keypoint confidence
+        const visibleKeypoints = pose.keypoints.filter(
+          (kp) => kp && (kp.score || 0) > 0.3
+        );
+        const visibilityRatio =
+          pose.keypoints.length > 0
+            ? visibleKeypoints.length / pose.keypoints.length
+            : 0;
+
+        // Require at least ~50% of keypoints confidently visible
+        const bodyVisible = visibilityRatio >= 0.5;
+
         const ctx = canvas.getContext("2d");
         drawSkeleton(pose, ctx, videoWidth, videoHeight, exercise, repCounterRef.current);
 
-        // Update rep counter
-        if (repCounterRef.current && isRunning) {
-          const keypoints = pose.keypoints.map((kp) => ({
-            name: kp.name || kp.part || kp.id,
-            x: kp.x,
-            y: kp.y,
-            score: kp.score,
-          }));
-          
-          const repResult = repCounterRef.current.update(keypoints);
-          if (repResult.newRep) {
-            setReps(repResult.reps);
-            // Trigger animation
-            setNewRepAnimation(true);
-            setTimeout(() => setNewRepAnimation(false), 500);
+        if (!bodyVisible) {
+          setVisibilityMessage(
+            "Human body not clearly visible. Step back and make sure your full body is in the frame."
+          );
+        } else {
+          if (visibilityMessage) setVisibilityMessage("");
+
+          // Update rep counter only when body is visible
+          if (repCounterRef.current && isRunning) {
+            const keypoints = pose.keypoints.map((kp) => ({
+              name: kp.name || kp.part || kp.id,
+              x: kp.x,
+              y: kp.y,
+              score: kp.score,
+            }));
+
+            const repResult = repCounterRef.current.update(keypoints);
+            if (repResult.newRep) {
+              setReps(repResult.reps);
+              // Trigger animation
+              setNewRepAnimation(true);
+              setTimeout(() => setNewRepAnimation(false), 500);
+            }
+          }
+
+          const now = Date.now();
+          if (now - lastSentRef.current > 500) {
+            lastSentRef.current = now;
+            const landmarks = pose.keypoints.map((kp) => ({
+              name: kp.name || kp.part || kp.id,
+              x: kp.x,
+              y: kp.y,
+              score: kp.score,
+            }));
+            analyzePosture(exercise, landmarks)
+              .then((res) => {
+                if (res?.success && res.analysis) {
+                  setAnalysis(res.analysis);
+
+                  // Score-based rep counting: if score > 60 and it just crossed that threshold,
+                  // treat it as a "good rep" for rep-based exercises.
+                  const score = res.analysis.score || 0;
+                  const isTimeBased =
+                    exercise === "plank" ||
+                    exercise === "posture" ||
+                    exercise === "side_plank";
+
+                  if (!isTimeBased) {
+                    const isGoodNow = score > 60;
+                    if (isGoodNow && !lastGoodScoreRef.current) {
+                      setReps((prev) => prev + 1);
+                      // Trigger animation
+                      setNewRepAnimation(true);
+                      setTimeout(() => setNewRepAnimation(false), 500);
+                    }
+                    lastGoodScoreRef.current = isGoodNow;
+                  } else {
+                    lastGoodScoreRef.current = false;
+                  }
+                }
+              })
+              .catch((err) => {
+                console.error("Posture analysis error", err);
+              });
           }
         }
-
-        const now = Date.now();
-        if (now - lastSentRef.current > 500) {
-          lastSentRef.current = now;
-          const landmarks = pose.keypoints.map((kp) => ({
-            name: kp.name || kp.part || kp.id,
-            x: kp.x,
-            y: kp.y,
-            score: kp.score,
-          }));
-          analyzePosture(exercise, landmarks)
-            .then((res) => {
-              if (res?.success && res.analysis) {
-                setAnalysis(res.analysis);
-
-                // Score-based rep counting: if score > 60 and it just crossed that threshold,
-                // treat it as a "good rep" for rep-based exercises.
-                const score = res.analysis.score || 0;
-                const isTimeBased =
-                  exercise === "plank" ||
-                  exercise === "posture" ||
-                  exercise === "side_plank";
-
-                if (!isTimeBased) {
-                  const isGoodNow = score > 60;
-                  if (isGoodNow && !lastGoodScoreRef.current) {
-                    setReps((prev) => prev + 1);
-                    // Trigger animation
-                    setNewRepAnimation(true);
-                    setTimeout(() => setNewRepAnimation(false), 500);
-                  }
-                  lastGoodScoreRef.current = isGoodNow;
-                } else {
-                  lastGoodScoreRef.current = false;
-                }
-              }
-            })
-            .catch((err) => {
-              console.error("Posture analysis error", err);
-            });
-        }
+      } else {
+        // No pose detected at all
+        setVisibilityMessage(
+          "No human body detected. Step back and ensure your body is clearly visible to the camera."
+        );
       }
     } catch (err) {
       console.error("Pose detection error", err);
@@ -518,6 +544,11 @@ export default function PostureCoach() {
                 ref={canvasRef}
                 className="absolute inset-0 w-full h-full pointer-events-none"
               />
+              {visibilityMessage && !isModelLoading && (
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-red-500/80 text-white text-[11px] md:text-xs px-3 py-1 rounded-full shadow-lg">
+                  {visibilityMessage}
+                </div>
+              )}
               {isModelLoading && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-sm text-gray-100">
                   <div className="mb-2 h-6 w-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
