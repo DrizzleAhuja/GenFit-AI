@@ -17,11 +17,11 @@ export default function DietChartGenerator() {
   const [dietChart, setDietChart] = useState(null);
   const [loading, setLoading] = useState(false);
   const [savedDietChart, setSavedDietChart] = useState(null);
-  const [bmiResult, setBmiResult] = useState(null); // Added bmiResult state
+  const [bmiResult, setBmiResult] = useState(null);
 
   const user = useSelector(selectUser);
   const navigate = useNavigate();
-  const location = useLocation(); // Initialize useLocation
+  const location = useLocation();
 
   // Fetch BMI data
   useEffect(() => {
@@ -48,7 +48,7 @@ export default function DietChartGenerator() {
       setBmiResult(location.state.bmiResult);
       toast.success("BMI data loaded for personalized plan generation!");
     } else if (user?.email) {
-      fetchBMIData(); // Fetch from backend if not from navigation state
+      fetchBMIData();
     }
   }, [user, location.state]);
 
@@ -112,7 +112,6 @@ export default function DietChartGenerator() {
             "❌ [FRONTEND] Error checking existing diet chart:",
             error
           );
-          // Don't show error to user as this is just checking for existing charts
         }
       } else {
         console.log(
@@ -124,10 +123,10 @@ export default function DietChartGenerator() {
   }, [user, activeWorkoutPlan]);
 
   const calculateDurationWeeks = (currentWeight, targetWeight, goal, age) => {
-    if (!currentWeight || !targetWeight || !goal || !age) return 12; // Default 12 weeks
+    if (!currentWeight || !targetWeight || !goal || !age) return 12;
 
     const weightDifference = Math.abs(targetWeight - currentWeight);
-    let weeksPerKg = 0.5; // Default: 0.5 kg per week
+    let weeksPerKg = 0.5;
 
     if (goal === "lose_weight") {
       if (age < 25) weeksPerKg = 0.6;
@@ -140,12 +139,11 @@ export default function DietChartGenerator() {
       else if (age < 45) weeksPerKg = 0.25;
       else weeksPerKg = 0.2;
     } else {
-      // build_muscles
       weeksPerKg = 0.3;
     }
 
     const calculatedWeeks = Math.ceil(weightDifference / weeksPerKg);
-    return Math.max(4, Math.min(calculatedWeeks, 24)); // Between 4-24 weeks
+    return Math.max(4, Math.min(calculatedWeeks, 24));
   };
 
   const generateDietChart = async () => {
@@ -177,7 +175,6 @@ export default function DietChartGenerator() {
     try {
       let fitnessGoal = activeWorkoutPlan?.generatedParams?.fitnessGoal;
       if (!fitnessGoal && activeWorkoutPlan?.name) {
-        // Attempt to derive fitnessGoal from workout plan name if not explicitly present
         if (activeWorkoutPlan.name.toLowerCase().includes("lose weight")) {
           fitnessGoal = "lose_weight";
         } else if (
@@ -195,7 +192,6 @@ export default function DietChartGenerator() {
         activeWorkoutPlan?.generatedParams?.targetWeight ||
         bmiData.targetWeight;
 
-      // Use the same durationWeeks as the active workout plan
       const durationWeeks = activeWorkoutPlan.durationWeeks;
 
       const requestData = {
@@ -237,7 +233,7 @@ export default function DietChartGenerator() {
         console.log(
           "✅ [FRONTEND] Diet chart generated successfully, setting state..."
         );
-        setSavedDietChart(null); // mark as unsaved so user can store & earn points
+        setSavedDietChart(null);
         setDietChart(response.data.dietChart.dietChart);
         toast.success("Diet chart generated successfully!");
       } else {
@@ -254,18 +250,17 @@ export default function DietChartGenerator() {
     setLoading(false);
   };
 
-  // Helper function to clean and format diet chart content
   const formatDietChartContent = (content) => {
     if (!content) return "";
 
     return content
-      .replace(/\*+/g, "") // Remove all asterisks
-      .replace(/^[\s\-\*]+/gm, "") // Remove leading dashes, asterisks, and spaces
-      .replace(/\n\s*\n\s*\n/g, "\n\n") // Remove excessive line breaks
-      .replace(/^\s+|\s+$/gm, "") // Remove leading/trailing whitespace from each line
-      .replace(/\n{3,}/g, "\n\n") // Replace 3+ consecutive newlines with 2
-      .replace(/\s{2,}/g, " ") // Replace multiple spaces with single space
-      .replace(/\n\s+/g, "\n") // Remove spaces at beginning of lines
+      .replace(/\*+/g, "")
+      .replace(/^[\s\-\*]+/gm, "")
+      .replace(/\n\s*\n\s*\n/g, "\n\n")
+      .replace(/^\s+|\s+$/gm, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .replace(/\s{2,}/g, " ")
+      .replace(/\n\s+/g, "\n")
       .trim();
   };
 
@@ -386,7 +381,7 @@ export default function DietChartGenerator() {
         workoutPlanId: activeWorkoutPlan._id,
         dietChart: dietChart,
         durationWeeks: activeWorkoutPlan.durationWeeks,
-        activeWorkoutPlan: activeWorkoutPlan, // Send the full activeWorkoutPlan object
+        activeWorkoutPlan: activeWorkoutPlan,
       };
 
       console.log("💾 [FRONTEND] Save data prepared:", {
@@ -427,233 +422,251 @@ export default function DietChartGenerator() {
   };
 
   return (
-    <div className="dark min-h-screen bg-gray-900 pb-12 pt-4 px-3 sm:px-4 lg:px-8 text-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-gray-900 to-slate-950 text-gray-100">
       <NavBar />
+      
+      {/* Animated background elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-orange-500/5 rounded-full blur-3xl animate-pulse-slow"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-red-500/5 rounded-full blur-3xl animate-pulse-slower"></div>
+        <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-purple-500/3 rounded-full blur-3xl animate-float"></div>
+      </div>
 
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-6 sm:mb-12 mt-4 sm:mt-6">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 sm:mb-4 bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-red-500 px-2">
-            AI Diet Chart Generator
-          </h1>
-          <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 max-w-3xl mx-auto px-2">
-            Get personalized diet plans tailored to your active workout plan and
-            health information
+      <div className="relative max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {/* Header - Enhanced with animations */}
+        <div className="text-center mb-8 sm:mb-12 animate-fade-in">
+          <div className="relative inline-block mb-4">
+            <div className="absolute inset-0 bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 blur-3xl opacity-30 animate-pulse-slow"></div>
+            <h1 className="relative text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-4 px-4 py-2">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-400 via-red-500 to-pink-500 animate-gradient-x">
+                AI Diet Chart Generator
+              </span>
+            </h1>
+          </div>
+          <p className="text-base sm:text-lg md:text-xl text-gray-400 max-w-3xl mx-auto px-4 leading-relaxed animate-fade-in-delay">
+            Get personalized diet plans tailored to your active workout plan and health information
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 lg:gap-8">
-          {/* Left Side - Information and Controls */}
-          <div className="lg:col-span-1 space-y-4 sm:space-y-6 order-2 lg:order-1">
-            {/* BMI Data Display */}
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 sm:gap-6 lg:gap-8">
+          {/* Left Sidebar - Information Cards */}
+          <div className="xl:col-span-4 2xl:col-span-3 space-y-5 sm:space-y-6 order-2 xl:order-1">
+            {/* BMI Data Card - Enhanced */}
             {bmiData ? (
-              <div className="bg-gray-800 rounded-xl shadow-md border border-gray-700 overflow-hidden">
-                <div className="bg-gradient-to-r from-orange-600 to-red-700 p-4 sm:p-6 text-white">
-                  <h2 className="text-lg sm:text-xl lg:text-2xl font-bold flex items-center">
-                    <FiHeart className="mr-2 sm:mr-3 text-base sm:text-lg lg:text-xl" /> <span className="text-sm sm:text-base lg:text-lg">Your Health Profile</span>
-                  </h2>
+              <div className="group bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden transition-all duration-500 hover:shadow-orange-500/20 hover:border-orange-500/50 hover:-translate-y-1 animate-slide-in-left">
+                <div className="relative bg-gradient-to-r from-orange-600 via-orange-500 to-red-600 p-5 sm:p-6 overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
+                  <div className="relative flex items-center gap-3">
+                    <div className="p-2.5 bg-white/15 rounded-xl backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
+                      <FiHeart className="text-2xl text-white drop-shadow-lg" />
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-white">
+                      Your Health Profile
+                    </h2>
+                  </div>
                 </div>
-                <div className="p-4 sm:p-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    <div className="space-y-1 sm:space-y-2">
-                      <p className="text-xs sm:text-sm text-gray-300">
-                        BMI:{" "}
-                        <span className="font-bold text-white">
-                          {bmiData.bmi}
-                        </span>
+                <div className="p-5 sm:p-6 space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: "BMI", value: bmiData.bmi, color: "text-orange-400" },
+                      { label: "Category", value: bmiResult.category, color: "text-pink-400" },
+                      { label: "Weight", value: `${bmiData.weight}kg`, color: "text-blue-400" },
+                      { label: "Height", value: `${bmiData.heightFeet}'${bmiData.heightInches}"`, color: "text-purple-400" },
+                    ].map((item, idx) => (
+                      <div 
+                        key={idx}
+                        className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 p-4 rounded-xl border border-slate-700/50 hover:border-orange-500/30 transition-all duration-300 hover:scale-105"
+                        style={{ animationDelay: `${idx * 100}ms` }}
+                      >
+                        <p className="text-xs text-gray-400 mb-1">{item.label}</p>
+                        <p className={`font-bold text-lg ${item.color}`}>{item.value}</p>
+                      </div>
+                    ))}
+                    {bmiData.age && (
+                      <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 p-4 rounded-xl border border-slate-700/50 hover:border-orange-500/30 transition-all duration-300 hover:scale-105">
+                        <p className="text-xs text-gray-400 mb-1">Age</p>
+                        <p className="font-bold text-lg text-green-400">{bmiData.age} years</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-3 pt-4 border-t border-slate-700/50">
+                    <div className="bg-gradient-to-r from-red-500/10 to-pink-500/10 p-4 rounded-xl border border-red-500/20 hover:border-red-500/40 transition-all duration-300">
+                      <p className="text-xs text-gray-400 mb-2 flex items-center gap-2">
+                        <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
+                        Diseases
                       </p>
-                      <p className="text-xs sm:text-sm text-gray-300">
-                        Category:{" "}
-                        <span className="font-bold text-white">
-                          {bmiResult.category}
-                        </span>
+                      <p className="font-semibold text-sm text-gray-200 break-words">
+                        {user?.diseases && user.diseases.length > 0
+                          ? user.diseases.join(", ")
+                          : "None"}
                       </p>
-                      <p className="text-xs sm:text-sm text-gray-300">
-                        Weight:{" "}
-                        <span className="font-bold text-white">
-                          {bmiData.weight}kg
-                        </span>
-                      </p>
-                      <p className="text-xs sm:text-sm text-gray-300">
-                        Height:{" "}
-                        <span className="font-bold text-white">
-                          {bmiData.heightFeet}'{bmiData.heightInches}"
-                        </span>
-                      </p>
-                      {bmiData.age && (
-                        <p className="text-xs sm:text-sm text-gray-300">
-                          Age:{" "}
-                          <span className="font-bold text-white">
-                            {bmiData.age} years
-                          </span>
-                        </p>
-                      )}
                     </div>
-                    <div className="space-y-1 sm:space-y-2">
-                      <p className="text-xs sm:text-sm text-gray-300">
-                        Diseases:{" "}
-                        <span className="font-bold text-white text-xs sm:text-sm">
-                          {user?.diseases && user.diseases.length > 0
-                            ? user.diseases.join(", ")
-                            : "None"}
-                        </span>
+                    <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 p-4 rounded-xl border border-yellow-500/20 hover:border-yellow-500/40 transition-all duration-300">
+                      <p className="text-xs text-gray-400 mb-2 flex items-center gap-2">
+                        <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></span>
+                        Allergies
                       </p>
-                      <p className="text-xs sm:text-sm text-gray-300">
-                        Allergies:{" "}
-                        <span className="font-bold text-white text-xs sm:text-sm">
-                          {user?.allergies && user.allergies.length > 0
-                            ? user.allergies.join(", ")
-                            : "None"}
-                        </span>
+                      <p className="font-semibold text-sm text-gray-200 break-words">
+                        {user?.allergies && user.allergies.length > 0
+                          ? user.allergies.join(", ")
+                          : "None"}
                       </p>
-                      {bmiData.targetWeight && (
-                        <p className="text-gray-300">
-                          Target Weight:{" "}
-                          <span className="font-bold text-white">
-                            {bmiData.targetWeight}kg
-                          </span>
-                        </p>
-                      )}
-                      {bmiData.targetTimeline && (
-                        <p className="text-gray-300">
-                          Target Timeline:{" "}
-                          <span className="font-bold text-white">
-                            {bmiData.targetTimeline}
-                          </span>
-                        </p>
-                      )}
                     </div>
+                    {bmiData.targetWeight && (
+                      <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 p-4 rounded-xl border border-green-500/20 hover:border-green-500/40 transition-all duration-300">
+                        <p className="text-xs text-gray-400 mb-2 flex items-center gap-2">
+                          <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                          Target Weight
+                        </p>
+                        <p className="font-bold text-lg text-green-400">{bmiData.targetWeight}kg</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="bg-red-900/20 rounded-xl border border-red-600 p-4 sm:p-6">
-                <div className="flex items-center mb-3 sm:mb-4">
-                  <FaExclamationTriangle className="text-red-400 mr-2 sm:mr-3 text-base sm:text-lg" />
-                  <h3 className="text-base sm:text-lg font-semibold text-red-300">
-                    BMI Data Required
-                  </h3>
+              <div className="group bg-gradient-to-br from-red-950/40 to-red-900/30 backdrop-blur-xl rounded-2xl border-2 border-red-500/50 p-6 shadow-2xl hover:shadow-red-500/20 transition-all duration-500 hover:-translate-y-1 animate-slide-in-left">
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="p-3 bg-red-500/20 rounded-xl animate-bounce-slow">
+                    <FaExclamationTriangle className="text-2xl text-red-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-red-300 mb-2">
+                      BMI Data Required
+                    </h3>
+                    <p className="text-sm text-red-200 leading-relaxed">
+                      Please calculate your BMI first to generate a personalized diet chart.
+                    </p>
+                  </div>
                 </div>
-                <p className="text-red-300 mb-3 sm:mb-4 text-xs sm:text-sm">
-                  Please calculate your BMI first to generate a personalized
-                  diet chart.
-                </p>
                 <button
                   onClick={() => navigate("/CurrentBMI")}
-                  className="bg-blue-600 text-white py-2.5 px-4 rounded-lg font-medium hover:bg-blue-700 transition text-sm sm:text-base w-full sm:w-auto min-h-[44px] active:bg-blue-800"
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3.5 px-6 rounded-xl font-bold hover:from-blue-700 hover:to-blue-800 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-blue-500/50 active:scale-95 flex items-center justify-center gap-2 group"
                 >
-                  Go to BMI Calculator
+                  <span>Go to BMI Calculator</span>
+                  <span className="text-xl group-hover:translate-x-1 transition-transform">→</span>
                 </button>
               </div>
             )}
 
-            {/* Active Workout Plan Display */}
+            {/* Active Workout Plan Card - Enhanced */}
             {activeWorkoutPlan ? (
-              <div className="bg-gray-800 rounded-xl shadow-md border border-gray-700 overflow-hidden">
-                <div className="bg-gradient-to-r from-green-600 to-blue-700 p-4 sm:p-6 text-white">
-                  <h2 className="text-lg sm:text-xl lg:text-2xl font-bold flex items-center">
-                    <FaChartLine className="mr-2 sm:mr-3 text-base sm:text-lg lg:text-xl" /> <span className="text-sm sm:text-base lg:text-lg">Active Workout Plan</span>
-                  </h2>
+              <div className="group bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden transition-all duration-500 hover:shadow-green-500/20 hover:border-green-500/50 hover:-translate-y-1 animate-slide-in-left" style={{ animationDelay: '200ms' }}>
+                <div className="relative bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 p-5 sm:p-6 overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
+                  <div className="relative flex items-center gap-3">
+                    <div className="p-2.5 bg-white/15 rounded-xl backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
+                      <FaChartLine className="text-2xl text-white drop-shadow-lg" />
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-white">
+                      Active Workout Plan
+                    </h2>
+                  </div>
                 </div>
-                <div className="p-4 sm:p-6">
-                  <div className="space-y-1.5 sm:space-y-2">
-                    <p className="text-xs sm:text-sm text-gray-300">
-                      Plan Name:{" "}
-                      <span className="font-bold text-white text-xs sm:text-sm">
-                        {activeWorkoutPlan.name}
-                      </span>
-                    </p>
-                    <p className="text-xs sm:text-sm text-gray-300">
-                      Goal:{" "}
-                      <span className="font-bold text-white text-xs sm:text-sm">
-                        {activeWorkoutPlan?.generatedParams?.fitnessGoal
+                <div className="p-5 sm:p-6 space-y-3">
+                  <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 p-4 rounded-xl border border-green-500/30">
+                    <p className="text-xs text-gray-400 mb-2">Plan Name</p>
+                    <p className="font-bold text-white text-base">{activeWorkoutPlan.name}</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { 
+                        label: "Goal", 
+                        value: activeWorkoutPlan?.generatedParams?.fitnessGoal
                           ?.replace(/_/g, " ")
                           .split(" ")
-                          .map(
-                            (word) =>
-                              word.charAt(0).toUpperCase() + word.slice(1)
-                          )
-                          .join(" ") || "N/A"}
-                      </span>
-                    </p>
-                    <p className="text-xs sm:text-sm text-gray-300">
-                      Duration:{" "}
-                      <span className="font-bold text-white text-xs sm:text-sm">
-                        {activeWorkoutPlan.durationWeeks} weeks
-                      </span>
-                    </p>
-                    <p className="text-xs sm:text-sm text-gray-300">
-                      Current Week:{" "}
-                      <span className="font-bold text-white text-xs sm:text-sm">
-                        {activeWorkoutPlan.currentWeek} of{" "}
-                        {activeWorkoutPlan.durationWeeks}
-                      </span>
-                    </p>
-                    <p className="text-xs sm:text-sm text-gray-300">
-                      Days Per Week:{" "}
-                      <span className="font-bold text-white text-xs sm:text-sm">
-                        {activeWorkoutPlan?.generatedParams?.daysPerWeek ||
-                          "N/A"}
-                      </span>
-                    </p>
+                          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                          .join(" ") || "N/A",
+                        color: "text-green-400"
+                      },
+                      { label: "Duration", value: `${activeWorkoutPlan.durationWeeks} weeks`, color: "text-blue-400" },
+                      { label: "Progress", value: `Week ${activeWorkoutPlan.currentWeek}/${activeWorkoutPlan.durationWeeks}`, color: "text-purple-400" },
+                      { label: "Days/Week", value: activeWorkoutPlan?.generatedParams?.daysPerWeek || "N/A", color: "text-orange-400" },
+                    ].map((item, idx) => (
+                      <div 
+                        key={idx}
+                        className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 p-3 rounded-xl border border-slate-700/50 hover:border-green-500/30 transition-all duration-300 hover:scale-105"
+                      >
+                        <p className="text-xs text-gray-400 mb-1">{item.label}</p>
+                        <p className={`font-bold text-sm ${item.color}`}>{item.value}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="bg-yellow-900/20 rounded-xl border border-yellow-600 p-4 sm:p-6">
-                <div className="flex items-center mb-3 sm:mb-4">
-                  <FaExclamationTriangle className="text-yellow-400 mr-2 sm:mr-3 text-base sm:text-lg" />
-                  <h3 className="text-base sm:text-lg font-semibold text-yellow-300">
-                    No Active Workout Plan
-                  </h3>
+              <div className="group bg-gradient-to-br from-yellow-950/40 to-yellow-900/30 backdrop-blur-xl rounded-2xl border-2 border-yellow-500/50 p-6 shadow-2xl hover:shadow-yellow-500/20 transition-all duration-500 hover:-translate-y-1 animate-slide-in-left" style={{ animationDelay: '200ms' }}>
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="p-3 bg-yellow-500/20 rounded-xl animate-bounce-slow">
+                    <FaExclamationTriangle className="text-2xl text-yellow-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-yellow-300 mb-2">
+                      No Active Workout Plan
+                    </h3>
+                    <p className="text-sm text-yellow-200 leading-relaxed">
+                      Diet charts work in accordance with your active workout plan. Please create one first.
+                    </p>
+                  </div>
                 </div>
-                <p className="text-yellow-300 mb-3 sm:mb-4 text-xs sm:text-sm">
-                  Diet charts work in accordance with your active workout plan.
-                  Please create and activate a workout plan first.
-                </p>
                 <button
                   onClick={() => navigate("/Workout")}
-                  className="bg-green-600 text-white py-2.5 px-4 rounded-lg font-medium hover:bg-green-700 transition text-sm sm:text-base w-full sm:w-auto min-h-[44px] active:bg-green-800"
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-700 text-white py-3.5 px-6 rounded-xl font-bold hover:from-green-700 hover:to-emerald-800 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-green-500/50 active:scale-95 flex items-center justify-center gap-2 group"
                 >
-                  Go to Workout Generator
+                  <span>Go to Workout Generator</span>
+                  <span className="text-xl group-hover:translate-x-1 transition-transform">→</span>
                 </button>
               </div>
             )}
 
-            {/* Action Buttons */}
-            <div className="bg-gray-800 rounded-xl shadow-md border border-gray-700 overflow-hidden">
-              <div className="bg-gradient-to-r from-orange-600 to-red-700 p-4 sm:p-6 text-white">
-                <h2 className="text-lg sm:text-xl lg:text-2xl font-bold flex items-center">
-                  <FaUtensils className="mr-2 sm:mr-3 text-base sm:text-lg lg:text-xl" /> <span className="text-sm sm:text-base lg:text-lg">Generate Diet Chart</span>
-                </h2>
-              </div>
-              <div className="p-4 sm:p-6">
-                {savedDietChart ? (
-                  <div className="mb-3 sm:mb-4 p-3 sm:p-4 bg-green-900/20 border border-green-600 rounded-lg">
-                    <p className="text-green-300 text-xs sm:text-sm">
-                      ✓ You already have a saved diet chart for this workout
-                      plan
-                    </p>
+            {/* Action Buttons Card - Enhanced */}
+            <div className="group bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden transition-all duration-500 hover:shadow-orange-500/20 hover:-translate-y-1 animate-slide-in-left" style={{ animationDelay: '400ms' }}>
+              <div className="relative bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 p-5 sm:p-6 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
+                <div className="relative flex items-center gap-3">
+                  <div className="p-2.5 bg-white/15 rounded-xl backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
+                    <FaUtensils className="text-2xl text-white drop-shadow-lg" />
                   </div>
-                ) : null}
+                  <h2 className="text-xl sm:text-2xl font-bold text-white">
+                    Generate Diet Chart
+                  </h2>
+                </div>
+              </div>
+              <div className="p-5 sm:p-6">
+                {savedDietChart && (
+                  <div className="mb-4 p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/50 rounded-xl backdrop-blur-sm animate-fade-in">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-shrink-0">
+                        <div className="p-2 bg-green-500/30 rounded-lg">
+                          <svg className="w-5 h-5 text-green-300" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      </div>
+                      <p className="text-green-200 text-sm leading-relaxed flex-1">
+                        You already have a saved diet chart for this workout plan
+                      </p>
+                    </div>
+                  </div>
+                )}
 
-                <div className="space-y-3 sm:space-y-4">
+                <div className="space-y-3">
                   <button
                     onClick={generateDietChart}
-                    disabled={
-                      loading || !user || !bmiData || !activeWorkoutPlan
-                    }
-                    className="w-full bg-orange-600 text-white py-3 sm:py-3 px-6 rounded-lg font-medium hover:bg-orange-700 transition disabled:opacity-50 flex items-center justify-center text-sm sm:text-base min-h-[48px] active:bg-orange-800"
+                    disabled={loading || !user || !bmiData || !activeWorkoutPlan}
+                    className="w-full bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 text-white py-4 px-6 rounded-xl font-bold hover:from-orange-700 hover:to-pink-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-lg hover:shadow-orange-500/50 transform hover:scale-105 active:scale-95 min-h-[56px] group"
                   >
                     {loading ? (
                       <>
-                        <FiRefreshCw className="animate-spin mr-2" />
-                        Generating Diet Chart...
+                        <FiRefreshCw className="animate-spin text-xl" />
+                        <span>Generating Diet Chart...</span>
                       </>
                     ) : (
                       <>
-                        <FaUtensils className="mr-2" />
-                        Generate Diet Chart
+                        <FaUtensils className="text-xl group-hover:rotate-12 transition-transform" />
+                        <span>Generate Diet Chart</span>
                       </>
                     )}
                   </button>
@@ -662,149 +675,174 @@ export default function DietChartGenerator() {
                     <button
                       onClick={saveDietChart}
                       disabled={loading}
-                      className="w-full bg-green-600 text-white py-3 sm:py-3 px-6 rounded-lg font-medium hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center text-sm sm:text-base min-h-[48px] active:bg-green-800"
+                      className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 px-6 rounded-xl font-bold hover:from-green-700 hover:to-emerald-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-lg hover:shadow-green-500/50 transform hover:scale-105 active:scale-95 min-h-[56px] group animate-slide-in-up"
                     >
                       {loading ? (
                         <>
-                          <FiRefreshCw className="animate-spin mr-2" />
-                          Saving...
+                          <FiRefreshCw className="animate-spin text-xl" />
+                          <span>Saving...</span>
                         </>
                       ) : (
                         <>
-                          <FiSave className="mr-2" />
-                          Save Diet Chart
+                          <FiSave className="text-xl group-hover:scale-110 transition-transform" />
+                          <span>Save Diet Chart</span>
                         </>
                       )}
                     </button>
                   )}
                 </div>
 
-                <p className="text-gray-400 text-xs sm:text-sm mt-3 sm:mt-4">
-                  The diet chart will be personalized based on your BMI data,
-                  health conditions, and active workout plan.
-                </p>
+                <div className="mt-4 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-xl border border-blue-500/20">
+                  <p className="text-gray-300 text-xs leading-relaxed flex items-start gap-2">
+                    <span className="text-blue-400 text-sm mt-0.5">💡</span>
+                    <span>The diet chart will be personalized based on your BMI data, health conditions, and active workout plan.</span>
+                  </p>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Right Side - Diet Chart Display */}
-          <div className="lg:col-span-4 order-1 lg:order-2">
-            <div className="bg-gray-800 rounded-xl shadow-md border border-gray-700 h-full overflow-hidden w-full">
-              <div className="bg-gradient-to-r from-orange-600 to-red-700 p-4 sm:p-6 text-white">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
-                  <h2 className="text-lg sm:text-xl lg:text-2xl font-bold flex items-center">
-                    <FaUtensils className="mr-2 sm:mr-3 text-base sm:text-lg lg:text-xl" /> <span className="text-sm sm:text-base lg:text-lg">Your Personalized Diet Chart</span>
-                  </h2>
-                  <div className="flex space-x-2 sm:space-x-3 w-full sm:w-auto">
-                    {displayDietChart && (
+          {/* Right Side - Diet Chart Display - Full Height */}
+          <div className="xl:col-span-8 2xl:col-span-9 order-1 xl:order-2">
+            <div className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden transition-all duration-500 hover:shadow-orange-500/20 animate-slide-in-right h-full flex flex-col">
+              <div className="relative bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 p-5 sm:p-6 overflow-hidden flex-shrink-0">
+                <div className="absolute inset-0 bg-black/10"></div>
+                <div className="absolute -right-20 -top-20 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
+                <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2.5 bg-white/15 rounded-xl backdrop-blur-sm">
+                        <FaUtensils className="text-2xl text-white drop-shadow-lg" />
+                      </div>
+                      <h2 className="text-2xl sm:text-3xl font-bold text-white">
+                        Your Personalized Diet Chart
+                      </h2>
+                    </div>
+                    {activeWorkoutPlan && (
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          activeWorkoutPlan.generatedParams?.fitnessGoal?.replace(/_/g, " ").toUpperCase() || "FITNESS GOAL",
+                          `${activeWorkoutPlan.generatedParams?.daysPerWeek || 0} days/week`,
+                          `${activeWorkoutPlan.generatedParams?.timeCommitment || 0} min sessions`
+                        ].map((badge, idx) => (
+                          <span 
+                            key={idx}
+                            className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-xs font-bold border border-white/30 shadow-lg hover:bg-white/30 transition-all duration-300 hover:scale-105"
+                          >
+                            {badge}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {displayDietChart && (
+                    <div className="flex gap-2 sm:gap-3">
                       <button
                         onClick={saveDietChart}
                         disabled={loading}
-                        className="p-2 sm:p-2 bg-white/10 rounded-lg hover:bg-white/20 transition disabled:opacity-50 active:bg-white/30 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                        className="p-3 bg-white/10 backdrop-blur-sm rounded-xl hover:bg-white/20 transition-all duration-300 disabled:opacity-50 shadow-lg hover:shadow-white/30 border border-white/20 hover:scale-110 active:scale-95 min-w-[52px] min-h-[52px] flex items-center justify-center group"
                         title="Save diet chart"
                       >
-                        <FiSave className="text-base sm:text-lg" />
+                        <FiSave className="text-xl group-hover:rotate-12 transition-transform" />
                       </button>
-                    )}
-                    {displayDietChart && (
                       <button
                         onClick={() => {
                           navigator.clipboard.writeText(displayDietChart);
                           toast.success("Diet chart copied to clipboard!");
                         }}
-                        className="p-2 sm:p-2 bg-white/10 rounded-lg hover:bg-white/20 transition active:bg-white/30 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                        className="p-3 bg-white/10 backdrop-blur-sm rounded-xl hover:bg-white/20 transition-all duration-300 shadow-lg hover:shadow-white/30 border border-white/20 hover:scale-110 active:scale-95 min-w-[52px] min-h-[52px] flex items-center justify-center group"
                         title="Copy to clipboard"
                       >
-                        <FiCopy className="text-base sm:text-lg" />
+                        <FiCopy className="text-xl group-hover:scale-110 transition-transform" />
                       </button>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
-                {activeWorkoutPlan && (
-                  <div className="mt-3 sm:mt-4 flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm">
-                    <span className="bg-white/20 px-3 py-1 rounded-full">
-                      {activeWorkoutPlan.generatedParams?.fitnessGoal
-                        ?.replace(/_/g, " ")
-                        .toUpperCase() || "FITNESS GOAL"}
-                    </span>
-                    <span className="bg-white/20 px-3 py-1 rounded-full">
-                      {activeWorkoutPlan.generatedParams?.daysPerWeek || 0}{" "}
-                      days/week
-                    </span>
-                    <span className="bg-white/20 px-3 py-1 rounded-full">
-                      {activeWorkoutPlan.generatedParams?.timeCommitment || 0}{" "}
-                      min sessions
-                    </span>
-                  </div>
-                )}
               </div>
 
-              <div className="p-4 sm:p-6 max-h-[70vh] sm:max-h-96 overflow-y-auto w-full min-h-[300px] sm:min-h-96">
+              {/* Scrollable content area - takes remaining height */}
+              <div className="flex-1 p-5 sm:p-6 lg:p-8 overflow-y-auto custom-scrollbar">
                 {displayDietChart ? (
                   structuredDietChart.length > 0 ? (
-                    <div className="space-y-4 sm:space-y-6">
+                    <div className="space-y-5 sm:space-y-6">
                       {structuredDietChart.map((section, sectionIndex) => (
                         <div
                           key={`${section.title}-${sectionIndex}`}
-                          className="bg-gray-900/40 border border-gray-700 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg"
+                          className="group bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 rounded-2xl p-5 sm:p-6 shadow-xl backdrop-blur-sm transition-all duration-500 hover:scale-[1.01] hover:shadow-2xl hover:border-orange-500/50 animate-fade-in-up"
+                          style={{ animationDelay: `${sectionIndex * 100}ms` }}
                         >
-                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 sm:mb-4 gap-2">
-                            <h3 className="text-base sm:text-lg lg:text-xl font-bold text-white">
-                              {section.title}
-                            </h3>
-                            <span className="text-xs uppercase tracking-widest text-gray-400">
-                              {sectionIndex + 1 < 10
-                                ? `Day ${sectionIndex + 1}`
-                                : "Plan Detail"}
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 gap-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-1.5 h-12 bg-gradient-to-b from-orange-500 to-red-500 rounded-full"></div>
+                              <h3 className="text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">
+                                {section.title}
+                              </h3>
+                            </div>
+                            <span className="text-xs uppercase tracking-widest font-bold px-4 py-2 bg-gradient-to-r from-orange-500/20 to-red-500/20 text-orange-300 rounded-full border border-orange-500/30 shadow-lg">
+                              {sectionIndex + 1 < 10 ? `Day ${sectionIndex + 1}` : "Plan Detail"}
                             </span>
                           </div>
 
                           {section.notes.length > 0 && (
-                            <div className="mb-3 sm:mb-4 rounded-lg bg-gray-800/60 border border-gray-700 p-3 sm:p-4 text-xs sm:text-sm text-gray-200">
-                              <ul className="list-disc list-inside space-y-1">
+                            <div className="mb-5 rounded-xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 p-4 backdrop-blur-sm hover:border-blue-500/50 transition-all duration-300">
+                              <ul className="list-none space-y-2 text-sm text-gray-200 leading-relaxed">
                                 {section.notes.map((note, noteIndex) => (
-                                  <li key={noteIndex}>{note}</li>
+                                  <li key={noteIndex} className="flex items-start gap-2 hover:text-white transition-colors">
+                                    <span className="text-blue-400 mt-1">•</span>
+                                    <span>{note}</span>
+                                  </li>
                                 ))}
                               </ul>
                             </div>
                           )}
 
                           {section.meals.length > 0 && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                               {section.meals.map((meal, mealIndex) => (
                                 <div
                                   key={`${meal.title}-${mealIndex}`}
-                                  className="p-3 sm:p-4 bg-gray-800/70 border border-gray-700 rounded-lg sm:rounded-xl"
+                                  className="group/meal p-4 bg-gradient-to-br from-slate-700/40 to-slate-800/40 border border-slate-600/40 rounded-xl backdrop-blur-sm transition-all duration-300 hover:scale-[1.03] hover:border-orange-500/50 hover:shadow-lg"
                                 >
-                                  <h4 className="font-semibold text-base sm:text-lg text-orange-300 mb-2">
-                                    {meal.title}
-                                  </h4>
-                                  <ul className="list-disc list-inside text-xs sm:text-sm text-gray-200 space-y-1">
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <div className="w-2 h-2 bg-gradient-to-r from-orange-400 to-red-500 rounded-full animate-pulse"></div>
+                                    <h4 className="font-bold text-base sm:text-lg text-orange-300 group-hover/meal:text-orange-200 transition-colors">
+                                      {meal.title}
+                                    </h4>
+                                  </div>
+                                  <ul className="list-none space-y-2 text-sm text-gray-200 leading-relaxed">
                                     {meal.items.map((item, itemIndex) => (
-                                      <li key={itemIndex}>{item}</li>
+                                      <li key={itemIndex} className="flex items-start gap-2 hover:text-white transition-colors">
+                                        <span className="text-orange-400 mt-1 flex-shrink-0">→</span>
+                                        <span>{item}</span>
+                                      </li>
                                     ))}
                                   </ul>
                                 </div>
                               ))}
                             </div>
                           )}
-                    </div>
+                        </div>
                       ))}
-                  </div>
-                  ) : (
-                  <div className="w-full">
-                    <div className="whitespace-pre-wrap text-gray-300 leading-relaxed text-xs sm:text-sm w-full">
-                        {formatDietChartContent(displayDietChart)}
                     </div>
-                  </div>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <div className="w-full max-w-4xl">
+                        <div className="whitespace-pre-wrap text-gray-300 leading-relaxed text-sm sm:text-base p-6 bg-slate-800/30 rounded-2xl border border-slate-700/30 backdrop-blur-sm">
+                          {formatDietChartContent(displayDietChart)}
+                        </div>
+                      </div>
+                    </div>
                   )
                 ) : (
-                  <div className="flex flex-col items-center justify-center text-center p-6 sm:p-12 min-h-[300px]">
-                    <FaUtensils className="text-4xl sm:text-5xl text-gray-600 mb-4 sm:mb-6" />
-                    <h3 className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-400 mb-2 sm:mb-3">
+                  <div className="flex flex-col items-center justify-center text-center h-full min-h-[500px]">
+                    <div className="relative mb-8 animate-float">
+                      <div className="absolute inset-0 bg-gradient-to-r from-orange-400 to-red-500 blur-3xl opacity-20 rounded-full"></div>
+                      <FaUtensils className="relative text-7xl sm:text-8xl text-gray-600" />
+                    </div>
+                    <h3 className="text-2xl sm:text-3xl font-bold text-gray-400 mb-4 animate-fade-in">
                       No Diet Chart Generated
                     </h3>
-                    <p className="text-sm sm:text-base text-gray-500 max-w-md px-2">
+                    <p className="text-base sm:text-lg text-gray-500 max-w-md px-4 leading-relaxed animate-fade-in-delay">
                       {!bmiData
                         ? "Please calculate your BMI first to generate a personalized diet chart."
                         : !activeWorkoutPlan
@@ -818,9 +856,186 @@ export default function DietChartGenerator() {
           </div>
         </div>
       </div>
+      
       <Footer />
+      
+      <style jsx>{`
+        @keyframes gradient-x {
+          0%, 100% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+        }
+        
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-20px);
+          }
+        }
+        
+        @keyframes pulse-slow {
+          0%, 100% {
+            opacity: 0.3;
+          }
+          50% {
+            opacity: 0.5;
+          }
+        }
+        
+        @keyframes pulse-slower {
+          0%, 100% {
+            opacity: 0.2;
+          }
+          50% {
+            opacity: 0.4;
+          }
+        }
+        
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes fade-in-delay {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes slide-in-left {
+          from {
+            opacity: 0;
+            transform: translateX(-30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        @keyframes slide-in-right {
+          from {
+            opacity: 0;
+            transform: translateX(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        @keyframes slide-in-up {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes fade-in-up {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes bounce-slow {
+          0%, 100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-5px);
+          }
+        }
+        
+        .animate-gradient-x {
+          background-size: 200% 200%;
+          animation: gradient-x 3s ease infinite;
+        }
+        
+        .animate-float {
+          animation: float 3s ease-in-out infinite;
+        }
+        
+        .animate-pulse-slow {
+          animation: pulse-slow 3s ease-in-out infinite;
+        }
+        
+        .animate-pulse-slower {
+          animation: pulse-slower 4s ease-in-out infinite;
+        }
+        
+        .animate-fade-in {
+          animation: fade-in 0.6s ease-out;
+        }
+        
+        .animate-fade-in-delay {
+          animation: fade-in-delay 0.6s ease-out 0.2s both;
+        }
+        
+        .animate-slide-in-left {
+          animation: slide-in-left 0.6s ease-out;
+        }
+        
+        .animate-slide-in-right {
+          animation: slide-in-right 0.6s ease-out;
+        }
+        
+        .animate-slide-in-up {
+          animation: slide-in-up 0.4s ease-out;
+        }
+        
+        .animate-fade-in-up {
+          animation: fade-in-up 0.5s ease-out;
+        }
+        
+        .animate-bounce-slow {
+          animation: bounce-slow 2s ease-in-out infinite;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 10px;
+          height: 10px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(15, 23, 42, 0.5);
+          border-radius: 10px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: linear-gradient(180deg, #f97316, #ef4444);
+          border-radius: 10px;
+          border: 2px solid rgba(15, 23, 42, 0.5);
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(180deg, #ea580c, #dc2626);
+        }
+      `}</style>
     </div>
   );
 }
-
-// export default DietChartGenerator;
