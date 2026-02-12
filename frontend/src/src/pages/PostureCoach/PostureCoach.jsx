@@ -3,6 +3,9 @@ import Webcam from "react-webcam";
 import * as tf from "@tensorflow/tfjs";
 import * as poseDetection from "@tensorflow-models/pose-detection";
 import "@tensorflow/tfjs-backend-webgl";
+import { useSelector } from "react-redux";
+import { selectUser } from "../../redux/userSlice";
+import { API_BASE_URL } from "../../../config/api";
 import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
 import { analyzePosture } from "../../utils/postureService";
@@ -33,6 +36,7 @@ export default function PostureCoach() {
   const repCounterRef = useRef(null);
   const sessionStartTimeRef = useRef(null);
   const lastGoodScoreRef = useRef(false);
+  const user = useSelector(selectUser);
   const [exercise, setExercise] = useState("squat");
   const [isRunning, setIsRunning] = useState(false);
   const [isModelLoading, setIsModelLoading] = useState(true);
@@ -45,6 +49,9 @@ export default function PostureCoach() {
   const [cameras, setCameras] = useState([]);
   const [selectedCameraId, setSelectedCameraId] = useState(null);
   const [visibilityMessage, setVisibilityMessage] = useState("");
+  const [sessionHistory, setSessionHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState("");
 
   // Initialize rep counter and reset when exercise changes
   useEffect(() => {
@@ -137,6 +144,41 @@ export default function PostureCoach() {
       cancelled = true;
     };
   }, []);
+
+  // Fetch last 15 days of posture/virtual training sessions for logged-in user
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (!user?._id) {
+        setSessionHistory([]);
+        return;
+      }
+      setHistoryLoading(true);
+      setHistoryError("");
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/api/posture/sessions/${user._id}?days=15`
+        );
+        if (!res.ok) {
+          throw new Error("Failed to load session history");
+        }
+        const data = await res.json();
+        if (data?.success) {
+          setSessionHistory(data.sessions || []);
+        } else {
+          setHistoryError("Failed to load session history");
+        }
+      } catch (err) {
+        console.error("Posture history fetch error:", err);
+        setHistoryError(
+          err.message || "Failed to load session history"
+        );
+      } finally {
+        setHistoryLoading(false);
+      }
+    };
+
+    fetchHistory();
+  }, [user?._id]);
 
   // Enumerate available cameras and prefer back camera on phones
   useEffect(() => {
@@ -371,6 +413,44 @@ export default function PostureCoach() {
   const loopRef = useRef(null);
   const lastSentRef = useRef(0);
 
+  const logSession = useCallback(
+    async (snapshot) => {
+      try {
+        if (!user?._id) {
+          return;
+        }
+        const payload = {
+          userId: user._id,
+          exerciseType: snapshot.exercise,
+          reps: snapshot.reps,
+          calories: snapshot.calories,
+          durationSeconds: snapshot.sessionDuration,
+          date: new Date().toISOString(),
+        };
+
+        const res = await fetch(`${API_BASE_URL}/api/posture/session-log`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          console.error("Failed to log posture session");
+          return;
+        }
+        const data = await res.json();
+        if (data?.success && data.session) {
+          setSessionHistory((prev) => [data.session, ...prev].slice(0, 200));
+        }
+      } catch (err) {
+        console.error("Error logging posture session:", err);
+      }
+    },
+    [user]
+  );
+
   const captureLoop = useCallback(async () => {
     if (!detectorRef.current || !webcamRef.current || !canvasRef.current) return;
     if (!isRunning) return;
@@ -499,22 +579,29 @@ export default function PostureCoach() {
       if (loopRef.current) cancelAnimationFrame(loopRef.current);
     };
   }, [isRunning, captureLoop]);
-
   const toggleRunning = () => {
-    setIsRunning((prev) => {
-      const newState = !prev;
-      if (!newState) {
-        // Reset counters when stopping
-        if (repCounterRef.current) {
-          repCounterRef.current.reset();
-        }
-        setReps(0);
-        setCalories(0);
-        setSessionDuration(0);
-        lastGoodScoreRef.current = false;
+    if (isRunning) {
+      const snapshot = {
+        exercise,
+        reps,
+        calories,
+        sessionDuration,
+      };
+      if (snapshot.reps > 0 || snapshot.sessionDuration > 0) {
+        logSession(snapshot);
       }
-      return newState;
-    });
+      // Reset counters when stopping
+      if (repCounterRef.current) {
+        repCounterRef.current.reset();
+      }
+      setReps(0);
+      setCalories(0);
+      setSessionDuration(0);
+      lastGoodScoreRef.current = false;
+      setIsRunning(false);
+    } else {
+      setIsRunning(true);
+    }
   };
 
   const formatTime = (seconds) => {
@@ -726,6 +813,83 @@ export default function PostureCoach() {
                   Start the camera and perform a {EXERCISES.find((e) => e.id === exercise)?.label} to see feedback here.
                 </p>
               )}
+            </div>
+
+            <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
+              <h2 className="text-sm font-semibold text-gray-100 mb-2">
+                Last 15 Days History
+              </h2>
+              {!user && (
+                <p className="text-xs text-gray-400">
+                  Sign in to save your coaching sessions and see history here.
+                </p>
+              )}
+              {user && historyLoading && (
+                <p className="text-xs text-gray-400">Loading history…</p>
+              )}
+              {user && !historyLoading && historyError && (
+                <p className="text-xs text-red-400">{historyError}</p>
+              )}
+              {user &&
+                !historyLoading &&
+                !historyError &&
+                sessionHistory.length === 0 && (
+                  <p className="text-xs text-gray-400">
+                    No sessions logged yet. Finish a coaching session and tap
+                    “Stop Coaching” to save it.
+                  </p>
+                )}
+              {user &&
+                !historyLoading &&
+                !historyError &&
+                sessionHistory.length > 0 && (
+                  <ul className="mt-2 space-y-2 max-h-60 overflow-y-auto pr-1">
+                    {sessionHistory.map((s) => {
+                      const d = new Date(s.date);
+                      return (
+                        <li
+                          key={s._id}
+                          className="text-[11px] text-gray-200 border border-gray-700 rounded-lg px-3 py-2 bg-gray-900/60"
+                        >
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="font-semibold capitalize">
+                              {s.exerciseType.replace(/_/g, " ")}
+                            </span>
+                            <span className="text-gray-400">
+                              {d.toLocaleDateString()}{" "}
+                              {d.toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-3 text-[10px] text-gray-300">
+                            <span>
+                              Reps:{" "}
+                              <span className="font-semibold">
+                                {s.reps ?? 0}
+                              </span>
+                            </span>
+                            <span>
+                              Calories:{" "}
+                              <span className="font-semibold">
+                                {typeof s.calories === "number"
+                                  ? s.calories.toFixed(1)
+                                  : "0.0"}
+                              </span>
+                            </span>
+                            <span>
+                              Time:{" "}
+                              <span className="font-semibold">
+                                {formatTime(s.durationSeconds || 0)}
+                              </span>
+                            </span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
             </div>
 
             <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 text-xs text-gray-300 space-y-2">

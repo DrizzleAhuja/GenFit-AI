@@ -1,5 +1,7 @@
 const express = require("express");
 const router = express.Router();
+const User = require("../models/User");
+const PostureSessionLog = require("../models/PostureSessionLog").default;
 
 /**
  * Utility: compute angle (in degrees) at point B between BA and BC.
@@ -968,6 +970,107 @@ router.post("/analyze", (req, res) => {
     return res.status(500).json({
       success: false,
       error: "Failed to analyze posture",
+    });
+  }
+});
+
+// Log a virtual training (posture coach) session
+router.post("/session-log", async (req, res) => {
+  try {
+    const {
+      userId,
+      exerciseType,
+      reps,
+      calories,
+      durationSeconds,
+      date,
+    } = req.body || {};
+
+    if (!exerciseType) {
+      return res.status(400).json({
+        success: false,
+        error: "exerciseType is required",
+      });
+    }
+
+    let user = null;
+    if (userId) {
+      user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: "User not found",
+        });
+      }
+    }
+
+    const sessionDate = date ? new Date(date) : new Date();
+
+    const session = new PostureSessionLog({
+      userId: user ? user._id : undefined,
+      exerciseType,
+      reps: typeof reps === "number" ? reps : 0,
+      calories: typeof calories === "number" ? calories : 0,
+      durationSeconds:
+        typeof durationSeconds === "number" ? durationSeconds : 0,
+      date: sessionDate,
+    });
+
+    await session.save();
+
+    return res.status(201).json({
+      success: true,
+      session,
+    });
+  } catch (err) {
+    console.error("Posture session-log error:", err);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to log posture session",
+    });
+  }
+});
+
+// Get posture/virtual training sessions for last N days (default 15)
+router.get("/sessions/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const days = parseInt(req.query.days, 10) || 15;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: "userId is required",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+    }
+
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+
+    const sessions = await PostureSessionLog.find({
+      userId: userId,
+      date: { $gte: cutoff },
+    })
+      .sort({ date: -1 })
+      .limit(200);
+
+    return res.json({
+      success: true,
+      sessions,
+    });
+  } catch (err) {
+    console.error("Posture sessions fetch error:", err);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to fetch posture sessions",
     });
   }
 });
