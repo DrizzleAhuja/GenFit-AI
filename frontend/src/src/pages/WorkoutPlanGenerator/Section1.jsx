@@ -1333,7 +1333,7 @@ const WorkoutPlanGenerator = () => {
           {/* Header */}
           <div className="header-section">
             <h1 className="main-title">
-              ⚡ AI Workout Plan Generator
+              AI Workout Plan Generator
             </h1>
             <p className="subtitle">
               Get personalized workout plans tailored to your goals, fitness level, and preferences
@@ -1767,7 +1767,7 @@ const WorkoutPlanGenerator = () => {
                                 </p>
                                 {exercise.notes && (
                                   <p style={{ color: '#9CA3AF', fontSize: '0.75rem', marginTop: '0.5rem', lineHeight: '1.5' }}>
-                                    💡 <em>{exercise.notes}</em>
+                                     <em>{exercise.notes}</em>
                                   </p>
                                 )}
                                 {exercise.demonstrationLink && (
@@ -1783,7 +1783,7 @@ const WorkoutPlanGenerator = () => {
                                       display: 'inline-block'
                                     }}
                                   >
-                                    🎥 Watch Demo →
+                                   Watch Demo →
                                   </a>
                                 )}
                               </div>

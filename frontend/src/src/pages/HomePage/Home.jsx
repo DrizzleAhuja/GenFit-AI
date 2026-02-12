@@ -225,7 +225,7 @@ export default function Home() {
                   to="/Workout"
                   className="bg-gray-800/40 backdrop-blur-xl hover:bg-gray-700/60 border border-gray-700/50 hover:border-orange-500/50 rounded-xl p-4 sm:p-6 text-center transition-all hover:scale-105 transform shadow-lg hover:shadow-orange-500/20"
                 >
-                  <div className="text-3xl sm:text-4xl mb-2">💪</div>
+                  <div className="text-3xl sm:text-4xl mb-2"></div>
                   <div className="text-white font-medium text-sm sm:text-base">Workout</div>
                 </Link>
                 <Link

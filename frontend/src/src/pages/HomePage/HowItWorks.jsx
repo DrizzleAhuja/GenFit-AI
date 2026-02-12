@@ -65,8 +65,7 @@ export default function HowItWorks() {
         {/* Steps Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 lg:gap-10 relative">
           {/* Connection Lines for Desktop */}
-          <div className="hidden md:block absolute top-1/4 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500/30 to-transparent -z-10"></div>
-          
+         
           {steps.map((step, index) => (
             <div key={index} className="relative group">
               {/* Mobile Arrow */}
