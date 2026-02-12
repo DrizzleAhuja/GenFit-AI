@@ -335,16 +335,16 @@ const WorkoutPlanGenerator = () => {
 
         @keyframes glow {
           0%, 100% {
-            box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
           }
           50% {
-            box-shadow: 0 0 40px rgba(16, 185, 129, 0.8);
+            box-shadow: 0 0 40px rgba(34, 211, 238, 0.5);
           }
         }
 
         .workout-plan-container {
           min-height: 100vh;
-          background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+          background: #020617;
           position: relative;
           overflow-x: hidden;
         }
@@ -357,9 +357,9 @@ const WorkoutPlanGenerator = () => {
           right: 0;
           bottom: 0;
           background: 
-            radial-gradient(circle at 20% 30%, rgba(16, 185, 129, 0.1) 0%, transparent 50%),
-            radial-gradient(circle at 80% 70%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
-            radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.05) 0%, transparent 50%);
+            radial-gradient(circle at 20% 30%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+            radial-gradient(circle at 80% 70%, rgba(34, 211, 238, 0.12) 0%, transparent 50%),
+            radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.08) 0%, transparent 50%);
           pointer-events: none;
         }
 
@@ -396,7 +396,7 @@ const WorkoutPlanGenerator = () => {
         .main-title {
           font-size: 1.875rem;
           font-weight: 900;
-          background: linear-gradient(135deg, #10B981 0%, #3B82F6 50%, #8B5CF6 100%);
+          background: linear-gradient(135deg, #22D3EE 0%, #8B5CF6 50%, #A855F7 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
@@ -479,10 +479,10 @@ const WorkoutPlanGenerator = () => {
           font-weight: 600;
           border-radius: 0.75rem;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          background: rgba(31, 41, 55, 0.6);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(75, 85, 99, 0.3);
-          color: #9CA3AF;
+          background: rgba(2, 6, 23, 0.8);
+          backdrop-filter: blur(12px);
+          border: 1px solid #1F2937;
+          color: #D1D5DB;
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -500,15 +500,15 @@ const WorkoutPlanGenerator = () => {
         }
 
         .tab-button.active {
-          background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-          border-color: rgba(16, 185, 129, 0.5);
+          background: linear-gradient(135deg, #8B5CF6 0%, #A855F7 50%, #22D3EE 100%);
+          border-color: rgba(34, 211, 238, 0.5);
           color: white;
-          box-shadow: 0 0 30px rgba(16, 185, 129, 0.3);
+          box-shadow: 0 0 30px rgba(139, 92, 246, 0.4);
         }
 
         .tab-button:not(.active):hover {
-          background: rgba(31, 41, 55, 0.8);
-          border-color: rgba(96, 165, 250, 0.5);
+          background: rgba(2, 6, 23, 0.95);
+          border-color: rgba(34, 211, 238, 0.5);
           transform: translateY(-2px);
         }
 
@@ -530,17 +530,30 @@ const WorkoutPlanGenerator = () => {
         }
 
         .form-card {
-          background: rgba(31, 41, 55, 0.6);
+          position: relative;
+          background: rgba(2, 6, 23, 0.8);
           backdrop-filter: blur(20px);
           border-radius: 1.5rem;
-          border: 1px solid rgba(75, 85, 99, 0.3);
+          border: 1px solid #1F2937;
           overflow: hidden;
           animation: fadeInUp 0.6s ease-out 0.2s backwards;
-          box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.5);
+          box-shadow: 0 18px 45px rgba(15, 23, 42, 0.8);
+        }
+
+        .form-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          border-radius: 1.5rem 1.5rem 0 0;
+          background: linear-gradient(90deg, #8B5CF6, #A855F7, #22D3EE);
+          z-index: 1;
         }
 
         .form-header {
-          background: linear-gradient(135deg, #10B981 0%, #3B82F6 100%);
+          background: linear-gradient(135deg, #8B5CF6 0%, #A855F7 50%, #22D3EE 100%);
           padding: 1.25rem;
           color: white;
         }
@@ -572,8 +585,9 @@ const WorkoutPlanGenerator = () => {
         }
 
         .bmi-display {
-          background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
-          border: 1px solid rgba(16, 185, 129, 0.2);
+          background: rgba(2, 6, 23, 0.6);
+          backdrop-filter: blur(10px);
+          border: 1px solid #1F2937;
           border-radius: 1rem;
           padding: 1rem;
           margin: 1rem;
@@ -588,8 +602,9 @@ const WorkoutPlanGenerator = () => {
         }
 
         .bmi-warning {
-          background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%);
-          border: 1px solid rgba(239, 68, 68, 0.3);
+          background: rgba(2, 6, 23, 0.6);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(239, 68, 68, 0.4);
           border-radius: 1rem;
           padding: 1rem;
           margin: 1rem;
@@ -667,8 +682,8 @@ const WorkoutPlanGenerator = () => {
           position: relative;
           padding: 0.875rem;
           border-radius: 0.75rem;
-          border: 2px solid rgba(75, 85, 99, 0.3);
-          background: rgba(55, 65, 81, 0.6);
+          border: 1px solid #1F2937;
+          background: rgba(2, 6, 23, 0.6);
           backdrop-filter: blur(10px);
           color: #E5E7EB;
           font-weight: 600;
@@ -707,8 +722,8 @@ const WorkoutPlanGenerator = () => {
 
         .option-button:hover {
           transform: translateY(-2px);
-          border-color: rgba(96, 165, 250, 0.5);
-          box-shadow: 0 10px 30px -10px rgba(96, 165, 250, 0.4);
+          border-color: rgba(34, 211, 238, 0.5);
+          box-shadow: 0 10px 30px -10px rgba(34, 211, 238, 0.3);
         }
 
         .option-button:active {
@@ -716,9 +731,9 @@ const WorkoutPlanGenerator = () => {
         }
 
         .option-button.selected {
-          border-color: rgba(16, 185, 129, 0.6);
-          background: linear-gradient(135deg, rgba(16, 185, 129, 0.3) 0%, rgba(5, 150, 105, 0.3) 100%);
-          box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+          border-color: rgba(34, 211, 238, 0.6);
+          background: linear-gradient(135deg, rgba(139, 92, 246, 0.25) 0%, rgba(34, 211, 238, 0.2) 100%);
+          box-shadow: 0 0 20px rgba(139, 92, 246, 0.35);
           animation: glow 2s ease-in-out infinite;
         }
 
@@ -759,9 +774,9 @@ const WorkoutPlanGenerator = () => {
         }
 
         .weight-input-section {
-          background: linear-gradient(135deg, rgba(55, 65, 81, 0.6) 0%, rgba(31, 41, 55, 0.6) 100%);
+          background: rgba(2, 6, 23, 0.6);
           backdrop-filter: blur(10px);
-          border: 1px solid rgba(75, 85, 99, 0.3);
+          border: 1px solid #1F2937;
           border-radius: 1rem;
           padding: 1rem;
           margin-top: 1rem;
@@ -777,8 +792,8 @@ const WorkoutPlanGenerator = () => {
         .weight-input {
           width: 100%;
           padding: 0.875rem;
-          background: rgba(55, 65, 81, 0.6);
-          border: 2px solid rgba(75, 85, 99, 0.3);
+          background: rgba(2, 6, 23, 0.6);
+          border: 1px solid #1F2937;
           border-radius: 0.75rem;
           color: white;
           font-size: 1rem;
@@ -794,8 +809,8 @@ const WorkoutPlanGenerator = () => {
 
         .weight-input:focus {
           outline: none;
-          border-color: rgba(16, 185, 129, 0.6);
-          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+          border-color: rgba(34, 211, 238, 0.6);
+          box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
         }
 
         .weight-input:disabled {
@@ -804,8 +819,9 @@ const WorkoutPlanGenerator = () => {
         }
 
         .duration-display {
-          background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%);
-          border: 1px solid rgba(16, 185, 129, 0.3);
+          background: rgba(2, 6, 23, 0.6);
+          backdrop-filter: blur(10px);
+          border: 1px solid #1F2937;
           border-radius: 1rem;
           padding: 1rem;
           animation: fadeInUp 0.6s ease-out;
@@ -820,7 +836,7 @@ const WorkoutPlanGenerator = () => {
         .submit-button {
           width: 100%;
           padding: 1rem;
-          background: linear-gradient(135deg, #10B981 0%, #3B82F6 100%);
+          background: linear-gradient(135deg, #8B5CF6 0%, #A855F7 50%, #22D3EE 100%);
           color: white;
           font-weight: 700;
           font-size: 0.9375rem;
@@ -858,7 +874,7 @@ const WorkoutPlanGenerator = () => {
 
         .submit-button:hover {
           transform: translateY(-2px);
-          box-shadow: 0 20px 40px -15px rgba(16, 185, 129, 0.5);
+          box-shadow: 0 20px 40px -15px rgba(139, 92, 246, 0.5);
         }
 
         .submit-button:active {
@@ -872,17 +888,30 @@ const WorkoutPlanGenerator = () => {
         }
 
         .plan-card {
-          background: rgba(31, 41, 55, 0.6);
+          position: relative;
+          background: rgba(2, 6, 23, 0.8);
           backdrop-filter: blur(20px);
           border-radius: 1.5rem;
-          border: 1px solid rgba(75, 85, 99, 0.3);
+          border: 1px solid #1F2937;
           overflow: hidden;
           animation: fadeInUp 0.6s ease-out 0.4s backwards;
-          box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.5);
+          box-shadow: 0 18px 45px rgba(15, 23, 42, 0.8);
+        }
+
+        .plan-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          border-radius: 1.5rem 1.5rem 0 0;
+          background: linear-gradient(90deg, #8B5CF6, #A855F7, #22D3EE);
+          z-index: 1;
         }
 
         .plan-header {
-          background: linear-gradient(135deg, #10B981 0%, #3B82F6 100%);
+          background: linear-gradient(135deg, #8B5CF6 0%, #A855F7 50%, #22D3EE 100%);
           padding: 1.25rem;
           color: white;
         }
@@ -993,7 +1022,7 @@ const WorkoutPlanGenerator = () => {
 
         .start-plan-section {
           padding: 1rem;
-          border-bottom: 1px solid rgba(75, 85, 99, 0.3);
+          border-bottom: 1px solid #1F2937;
         }
 
         @media (min-width: 640px) {
@@ -1005,7 +1034,7 @@ const WorkoutPlanGenerator = () => {
         .start-plan-button {
           width: 100%;
           padding: 1rem 1.5rem;
-          background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+          background: linear-gradient(135deg, #8B5CF6 0%, #22D3EE 100%);
           color: white;
           font-weight: 700;
           font-size: 0.9375rem;
@@ -1027,9 +1056,9 @@ const WorkoutPlanGenerator = () => {
         }
 
         .start-plan-button:hover {
-          background: linear-gradient(135deg, #059669 0%, #047857 100%);
+          background: linear-gradient(135deg, #7C3AED 0%, #06B6D4 100%);
           transform: translateY(-2px);
-          box-shadow: 0 20px 40px -15px rgba(16, 185, 129, 0.5);
+          box-shadow: 0 20px 40px -15px rgba(139, 92, 246, 0.5);
         }
 
         .start-plan-button:active {
@@ -1060,19 +1089,19 @@ const WorkoutPlanGenerator = () => {
         }
 
         .plan-content::-webkit-scrollbar-track {
-          background: rgba(31, 41, 55, 0.5);
+          background: rgba(2, 6, 23, 0.5);
           border-radius: 10px;
         }
 
         .plan-content::-webkit-scrollbar-thumb {
-          background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+          background: linear-gradient(135deg, #8B5CF6 0%, #22D3EE 100%);
           border-radius: 10px;
         }
 
         .day-card {
-          background: linear-gradient(135deg, rgba(55, 65, 81, 0.6) 0%, rgba(31, 41, 55, 0.6) 100%);
+          background: rgba(2, 6, 23, 0.6);
           backdrop-filter: blur(10px);
-          border: 1px solid rgba(75, 85, 99, 0.3);
+          border: 1px solid #1F2937;
           border-radius: 1rem;
           padding: 1rem;
           margin-bottom: 1.5rem;
@@ -1089,8 +1118,8 @@ const WorkoutPlanGenerator = () => {
 
         .day-card:hover {
           transform: translateX(5px);
-          border-color: rgba(16, 185, 129, 0.5);
-          box-shadow: 0 10px 30px -10px rgba(16, 185, 129, 0.3);
+          border-color: rgba(34, 211, 238, 0.5);
+          box-shadow: 0 10px 30px -10px rgba(139, 92, 246, 0.3);
         }
 
         .day-title {
@@ -1130,9 +1159,9 @@ const WorkoutPlanGenerator = () => {
         }
 
         .exercise-item {
-          background: rgba(55, 65, 81, 0.6);
+          background: rgba(2, 6, 23, 0.6);
           backdrop-filter: blur(10px);
-          border: 1px solid rgba(75, 85, 99, 0.3);
+          border: 1px solid #1F2937;
           border-radius: 0.75rem;
           padding: 0.875rem;
           transition: all 0.3s ease;
@@ -1145,8 +1174,8 @@ const WorkoutPlanGenerator = () => {
         }
 
         .exercise-item:hover {
-          background: rgba(55, 65, 81, 0.8);
-          border-color: rgba(96, 165, 250, 0.5);
+          background: rgba(2, 6, 23, 0.9);
+          border-color: rgba(34, 211, 238, 0.5);
           transform: translateX(5px);
         }
 
@@ -1176,10 +1205,10 @@ const WorkoutPlanGenerator = () => {
         }
 
         .empty-state {
-          background: rgba(31, 41, 55, 0.6);
+          background: rgba(2, 6, 23, 0.8);
           backdrop-filter: blur(20px);
           border-radius: 1.5rem;
-          border: 1px solid rgba(75, 85, 99, 0.3);
+          border: 1px solid #1F2937;
           padding: 2rem;
           text-align: center;
           min-height: 400px;
@@ -1188,6 +1217,7 @@ const WorkoutPlanGenerator = () => {
           align-items: center;
           justify-content: center;
           animation: fadeInUp 0.6s ease-out 0.4s backwards;
+          box-shadow: 0 18px 45px rgba(15, 23, 42, 0.8);
         }
 
         @media (min-width: 640px) {
@@ -1199,7 +1229,7 @@ const WorkoutPlanGenerator = () => {
 
         .empty-icon {
           font-size: 3rem;
-          color: #4B5563;
+          color: #8B5CF6;
           margin-bottom: 1.5rem;
           animation: float 3s ease-in-out infinite;
         }
@@ -1247,7 +1277,7 @@ const WorkoutPlanGenerator = () => {
         .cta-button {
           margin-top: 1.5rem;
           padding: 0.875rem 1.5rem;
-          background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+          background: linear-gradient(135deg, #8B5CF6 0%, #22D3EE 100%);
           color: white;
           font-weight: 600;
           font-size: 0.875rem;
@@ -1266,9 +1296,9 @@ const WorkoutPlanGenerator = () => {
         }
 
         .cta-button:hover {
-          background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+          background: linear-gradient(135deg, #7C3AED 0%, #06B6D4 100%);
           transform: translateY(-2px);
-          box-shadow: 0 20px 40px -15px rgba(59, 130, 246, 0.5);
+          box-shadow: 0 20px 40px -15px rgba(139, 92, 246, 0.5);
         }
 
         .cta-button:active {
@@ -1331,14 +1361,14 @@ const WorkoutPlanGenerator = () => {
       <div className="main-content">
         <div style={{ maxWidth: '80rem', margin: '0 auto' }}>
           {/* Header */}
-          <div className="header-section">
+          {/* <div className="header-section">
             <h1 className="main-title">
               AI Workout Plan Generator
             </h1>
             <p className="subtitle">
               Get personalized workout plans tailored to your goals, fitness level, and preferences
             </p>
-          </div>
+          </div> */}
 
           {/* Tabs */}
           <div className="tab-container">
@@ -1412,7 +1442,7 @@ const WorkoutPlanGenerator = () => {
                         style={{
                           width: '100%',
                           padding: '0.75rem 1rem',
-                          background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+                          background: 'linear-gradient(135deg, #8B5CF6 0%, #22D3EE 100%)',
                           color: 'white',
                           fontWeight: '600',
                           fontSize: '0.875rem',
@@ -1635,7 +1665,7 @@ const WorkoutPlanGenerator = () => {
                           <FiTrendingUp style={{ display: 'inline', marginRight: '0.5rem' }} />
                           Suggested Plan Duration
                         </h3>
-                        <p style={{ fontSize: '1.5rem', fontWeight: '700', background: 'linear-gradient(135deg, #10B981 0%, #3B82F6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                        <p style={{ fontSize: '1.5rem', fontWeight: '700', background: 'linear-gradient(135deg, #22D3EE 0%, #8B5CF6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                           {calculateDurationWeeks(
                             formData.currentWeight,
                             formData.targetWeight,
@@ -1755,7 +1785,7 @@ const WorkoutPlanGenerator = () => {
                           </h3>
                           {dayPlan.warmup && (
                             <p style={{ fontSize: '0.875rem', color: '#D1D5DB', marginBottom: '0.75rem', lineHeight: '1.5' }}>
-                              <span style={{ fontWeight: '700', color: '#10B981' }}>🔥 Warmup:</span> {dayPlan.warmup}
+                              <span style={{ fontWeight: '700', color: '#22D3EE' }}>🔥 Warmup:</span> {dayPlan.warmup}
                             </p>
                           )}
                           <div className="exercise-list">
@@ -1791,7 +1821,7 @@ const WorkoutPlanGenerator = () => {
                           </div>
                           {dayPlan.cooldown && (
                             <p style={{ fontSize: '0.875rem', color: '#D1D5DB', marginTop: '1rem', lineHeight: '1.5' }}>
-                              <span style={{ fontWeight: '700', color: '#3B82F6' }}>❄️ Cooldown:</span> {dayPlan.cooldown}
+                              <span style={{ fontWeight: '700', color: '#8B5CF6' }}>❄️ Cooldown:</span> {dayPlan.cooldown}
                             </p>
                           )}
                         </div>

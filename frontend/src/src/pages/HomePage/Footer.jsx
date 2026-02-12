@@ -19,7 +19,7 @@ import {
 } from "react-icons/fa";
 import { NavLink } from "react-router-dom";
 import { useTheme } from '../../context/ThemeContext'; // Corrected Import useTheme path
-import { Brain, Sparkles } from 'lucide-react'; // Import Lucide icons for logo
+import GenFitLogo from "../../Components/GenFitLogo";
 import { toast } from 'react-toastify';
 import { 
   getInstallPrompt, 
@@ -254,24 +254,22 @@ export default function Footer() {
   };
 
   return (
-    <footer className={`py-12 ${darkMode ? 'bg-gray-900 text-gray-300' : 'bg-gray-100 text-gray-700'}`}>
+    <footer className={`py-4 sm:py-6 ${darkMode ? 'bg-[#05010d] text-gray-300' : 'bg-[#020617] text-gray-100'}`}>
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Brand Info */}
           <div className="lg:col-span-1">
-            <NavLink
-              to="/"
-              className="text-2xl font-bold mb-4 flex items-center gap-2"
-            >
-              <Brain className={`w-8 h-8 ${darkMode ? 'text-green-400' : 'text-green-600'} mr-1`} />
-              <Sparkles className={`w-5 h-5 ${darkMode ? 'text-blue-400' : 'text-blue-600'} mr-2`} />
-              <span className={`bg-clip-text text-transparent ${darkMode ? 'bg-gradient-to-r from-green-400 to-blue-500' : 'bg-gradient-to-r from-green-600 to-blue-800'}`}>
-                GenFit AI
-              </span>
-            </NavLink>
-            <p className={`mt-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Empowering your mind and body with AI-driven wellness personalized for you.
-            </p>
+            <div className="mb-4 flex flex-col items-start gap-3">
+              <GenFitLogo size="large" />
+              <div>
+                <p className="text-xs tracking-[0.25em] uppercase text-[#22D3EE]/80 mt-2">
+                  Your AI Fitness Partner
+                </p>
+                <p className={`mt-3 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-300'}`}>
+                  Precision coaching, posture tracking, and smart nutrition—powered by AI, designed for real humans.
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Footer Links */}
@@ -310,21 +308,21 @@ export default function Footer() {
             <div className="flex space-x-4 mb-6">
               <a
                 href="#"
-                className={`p-2 rounded-full shadow-sm transition-colors ${darkMode ? 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-900'}`}
+                className={`p-2 rounded-full shadow-sm transition-colors ${darkMode ? 'bg-[#020617]/80 backdrop-blur-sm border border-[#1F2937] text-gray-300 hover:bg-[#1F2937] hover:text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-900'}`}
                 aria-label="Facebook"
               >
                 <FaFacebook size={18} />
               </a>
               <a
                 href="#"
-                className={`p-2 rounded-full shadow-sm transition-colors ${darkMode ? 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-900'}`}
+                className={`p-2 rounded-full shadow-sm transition-colors ${darkMode ? 'bg-[#020617]/80 backdrop-blur-sm border border-[#1F2937] text-gray-300 hover:bg-[#1F2937] hover:text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-900'}`}
                 aria-label="Instagram"
               >
                 <FaInstagram size={18} />
               </a>
               <a
                 href="#"
-                className={`p-2 rounded-full shadow-sm transition-colors ${darkMode ? 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-900'}`}
+                className={`p-2 rounded-full shadow-sm transition-colors ${darkMode ? 'bg-[#020617]/80 backdrop-blur-sm border border-[#1F2937] text-gray-300 hover:bg-[#1F2937] hover:text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-900'}`}
                 aria-label="LinkedIn"
               >
                 <FaLinkedin size={18} />
@@ -339,7 +337,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className={`border-t mt-12 pt-8 ${darkMode ? 'border-gray-700' : 'border-gray-300'}`}>
+        <div className={`border-t mt-6 pt-4 ${darkMode ? 'border-gray-700' : 'border-gray-300'}`}>
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className={`text-sm mb-4 md:mb-0 ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>
               &copy; {new Date().getFullYear()} GenFit AI. All rights reserved.

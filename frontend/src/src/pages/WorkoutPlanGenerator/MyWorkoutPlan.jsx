@@ -16,8 +16,11 @@ import "react-toastify/dist/ReactToastify.css";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
 import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
+import { useTheme } from '../../context/ThemeContext';
+import { Sparkles } from 'lucide-react';
 
 const MyWorkoutPlan = () => {
+  const { darkMode } = useTheme();
   const user = useSelector(selectUser);
   const navigate = useNavigate();
   const [activePlan, setActivePlan] = useState(null);
@@ -421,16 +424,18 @@ const MyWorkoutPlan = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-500 via-blue-500 to-violet-50">
+      <div className={`min-h-screen flex flex-col ${
+        darkMode ? 'bg-[#05010d] text-white' : 'bg-[#020617] text-gray-100'
+      }`}>
         <NavBar />
-        <div className="flex flex-col items-center justify-center min-h-screen px-4">
+        <div className="flex flex-col items-center justify-center flex-grow px-4">
           <div className="relative">
-            <div className="animate-spin rounded-full h-20 w-20 border-t-4 border-b-4 border-purple-500"></div>
+            <div className="rounded-full h-20 w-20 border-t-4 border-b-4 border-purple-500"></div>
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-              <div className="h-12 w-12 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 opacity-75 animate-pulse"></div>
+              <div className="h-12 w-12 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 opacity-75"></div>
             </div>
           </div>
-          <p className="mt-6 text-xl text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400 font-semibold animate-pulse">
+          <p className="mt-6 text-xl text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400 font-semibold">
             Loading your workout plans...
           </p>
         </div>
@@ -441,7 +446,9 @@ const MyWorkoutPlan = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-500 via-blue-500 to-violet-500">
+      <div className={`min-h-screen flex flex-col ${
+        darkMode ? 'bg-[#05010d] text-white' : 'bg-[#020617] text-gray-100'
+      }`}>
         <NavBar />
         <div className="flex flex-col items-center justify-center min-h-screen text-red-400 p-4 sm:p-6">
           <div className="bg-gradient-to-br from-emerald-500 via-blue-500 to-violet-500 rounded-2xl p-8 sm:p-12 max-w-md w-full shadow-2xl">
@@ -462,10 +469,42 @@ const MyWorkoutPlan = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className={`min-h-screen flex flex-col ${
+      darkMode ? 'bg-[#05010d] text-white' : 'bg-[#020617] text-gray-100'
+    }`}>
       <NavBar />
+      <main className="flex-grow">
+        <section className="relative overflow-hidden py-6 sm:py-8 lg:py-10">
+          {/* Background blobs */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute -top-24 -left-16 w-72 h-72 bg-[#8B5CF6] rounded-full blur-3xl opacity-30" />
+            <div className="absolute -bottom-28 right-0 w-80 h-80 bg-[#22D3EE] rounded-full blur-3xl opacity-25" />
+          </div>
 
-      <div className="py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
+          <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl mb-6 sm:mb-8 lg:mb-10">
+            {/* Header */}
+            <header className="text-center">
+              <div className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-gradient-to-r from-[#8B5CF6]/20 to-[#22D3EE]/20 border border-[#8B5CF6]/40 backdrop-blur-xl mb-4">
+                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#FACC15]" />
+                <span className="text-xs sm:text-sm font-semibold text-gray-100">
+                  Your Plans
+                </span>
+              </div>
+
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold mb-3 sm:mb-4">
+                My{" "}
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]">
+                  Workout Plans
+                </span>
+              </h1>
+
+              <p className="max-w-3xl mx-auto text-sm sm:text-base lg:text-lg text-gray-300">
+                Manage your active and completed workout plans. Track progress and stay consistent.
+              </p>
+            </header>
+          </div>
+
+          <div className="relative z-10 container mx-auto py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
         <ToastContainer
           position="bottom-right"
           autoClose={3000}
@@ -488,7 +527,7 @@ const MyWorkoutPlan = () => {
             <span className="font-medium">Back to Generator</span>
           </button>
 
-          <div className="text-center mb-8 sm:mb-12">
+          {/* <div className="text-center mb-8 sm:mb-12">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 animate-gradient">
               My Workout Plans
             </h1>
@@ -496,18 +535,18 @@ const MyWorkoutPlan = () => {
               View your active plan, track your progress, and manage your
               workout history.
             </p>
-          </div>
+          </div> */}
 
           {/* Tabs for Active/Pending and Completed Plans */}
           <div className="flex justify-center mb-6 sm:mb-8 px-4">
-            <div className="inline-flex rounded-2xl bg-slate-800/50 backdrop-blur-lg p-1.5 border border-purple-500/20 shadow-xl">
+            <div className="inline-flex rounded-2xl bg-[#020617]/80 backdrop-blur-xl p-1.5 border border-[#1F2937] shadow-xl">
               <button
                 onClick={() => setActiveTab("active-pending")}
                 className={`py-2.5 sm:py-3 px-4 sm:px-8 text-sm sm:text-lg font-medium rounded-xl transition-all duration-300 transform
                 ${
                   activeTab === "active-pending"
                     ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg scale-105"
-                    : "text-gray-300 hover:text-white hover:bg-slate-700/50"
+                    : "text-gray-300 hover:text-white hover:bg-[#020617]/60"
                 }`}
               >
                 <span className="hidden sm:inline">Active & Pending Plans</span>
@@ -519,7 +558,7 @@ const MyWorkoutPlan = () => {
                 ${
                   activeTab === "completed"
                     ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg scale-105"
-                    : "text-gray-300 hover:text-white hover:bg-slate-700/50"
+                    : "text-gray-300 hover:text-white hover:bg-[#020617]/60"
                 }`}
               >
                 Completed
@@ -534,7 +573,7 @@ const MyWorkoutPlan = () => {
                 <FiActivity className="mr-3 text-purple-400" /> Active Plan
               </h2>
               {activePlan && !activePlan.completed ? (
-                <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl border border-purple-500/20 overflow-hidden">
+                <div className="relative rounded-2xl sm:rounded-3xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] overflow-hidden">
                   <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 p-4 sm:p-6 text-white">
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                       <div className="flex-1">
@@ -543,7 +582,7 @@ const MyWorkoutPlan = () => {
                             type="text"
                             value={newPlanName}
                             onChange={(e) => setNewPlanName(e.target.value)}
-                            className="bg-slate-700/70 backdrop-blur text-white p-2 sm:p-3 rounded-xl w-full border border-purple-400/30 focus:border-purple-400 focus:outline-none transition"
+                            className="bg-[#020617]/80 backdrop-blur-sm text-white p-2 sm:p-3 rounded-xl w-full border border-[#1F2937] focus:border-purple-400 focus:outline-none transition"
                           />
                         ) : (
                           <h3 className="text-xl sm:text-2xl font-bold">
@@ -557,7 +596,7 @@ const MyWorkoutPlan = () => {
                             onChange={(e) =>
                               setNewPlanDescription(e.target.value)
                             }
-                            className="bg-slate-700/70 backdrop-blur text-white p-2 sm:p-3 rounded-xl mt-2 block w-full border border-purple-400/30 focus:border-purple-400 focus:outline-none transition"
+                            className="bg-[#020617]/80 backdrop-blur-sm text-white p-2 sm:p-3 rounded-xl mt-2 block w-full border border-[#1F2937] focus:border-purple-400 focus:outline-none transition"
                             placeholder="Plan description"
                           />
                         ) : (
@@ -705,7 +744,7 @@ const MyWorkoutPlan = () => {
 
                       return (
                         <>
-                          <div className="mb-6 p-4 sm:p-6 bg-gradient-to-r from-slate-800/50 to-purple-900/30 backdrop-blur-lg rounded-xl sm:rounded-2xl shadow-xl border border-purple-500/30">
+                          <div className="mb-6 p-4 sm:p-6 bg-[#020617]/80 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] border border-[#1F2937]">
                             <h4 className="text-lg sm:text-xl font-bold text-white mb-2 sm:mb-3">
                               Week {currentWeekNumber} of{" "}
                               {activePlan.durationWeeks}
@@ -721,7 +760,7 @@ const MyWorkoutPlan = () => {
                               </span>{" "}
                               days completed ({currentWeekProgressPercentage}%)
                             </p>
-                            <div className="w-full bg-slate-700/50 h-3 rounded-full overflow-hidden border border-purple-500/20">
+                            <div className="w-full bg-[#020617]/60 h-3 rounded-full overflow-hidden border border-[#1F2937]">
                               <div
                                 className="bg-gradient-to-r from-purple-500 to-blue-500 h-3 rounded-full transition-all duration-500 shadow-lg"
                                 style={{
@@ -804,7 +843,7 @@ const MyWorkoutPlan = () => {
                                     const progressPercentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
                                     
                                     return (
-                                      <div className="mb-6 p-3 sm:p-4 bg-slate-800/50 backdrop-blur-lg rounded-xl sm:rounded-2xl border border-purple-500/20">
+                                      <div className="mb-6 p-3 sm:p-4 bg-[#020617]/80 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-[#1F2937]">
                                         <div className="flex items-center justify-between mb-2">
                                           <p className="text-white font-semibold text-sm sm:text-lg">
                                             Progress: {completedCount} of {totalCount} exercises
@@ -813,7 +852,7 @@ const MyWorkoutPlan = () => {
                                             {Math.round(progressPercentage)}%
                                           </span>
                                         </div>
-                                        <div className="w-full bg-slate-700/50 rounded-full h-2.5 sm:h-3 overflow-hidden border border-purple-500/20">
+                                        <div className="w-full bg-[#020617]/60 rounded-full h-2.5 sm:h-3 overflow-hidden border border-[#1F2937]">
                                           <div
                                             className="bg-gradient-to-r from-purple-500 via-blue-500 to-purple-500 h-full rounded-full transition-all duration-500 shadow-lg"
                                             style={{ width: `${progressPercentage}%` }}
@@ -856,7 +895,7 @@ const MyWorkoutPlan = () => {
                                           className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 backdrop-blur-lg transition-all duration-300 ${
                                             isExerciseCompleted 
                                               ? 'bg-green-900/30 border-green-500/50 shadow-lg shadow-green-500/20' 
-                                              : 'bg-slate-800/40 border-purple-500/20 hover:border-purple-500/40'
+                                              : 'bg-[#020617]/80 border-[#1F2937] hover:border-[#22D3EE]/60'
                                           }`}
                                         >
                                           <div className="flex items-start justify-between gap-3">
@@ -887,7 +926,7 @@ const MyWorkoutPlan = () => {
                                               className={`flex-shrink-0 p-2 sm:p-3 rounded-xl transition-all duration-300 transform hover:scale-110 shadow-lg ${
                                                 isExerciseCompleted
                                                   ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
-                                                  : 'bg-slate-700 hover:bg-slate-600 text-gray-300'
+                                                  : 'bg-[#020617]/80 hover:bg-[#1F2937] text-gray-300'
                                               }`}
                                               disabled={todayWorkout.isCompleted}
                                             >
@@ -942,7 +981,7 @@ const MyWorkoutPlan = () => {
                               )}
                               
                               {nextWorkoutDate && (
-                                <div className="mt-4 p-3 bg-slate-800/50 backdrop-blur rounded-xl border border-purple-500/20">
+                                <div className="mt-4 p-3 bg-[#020617]/80 backdrop-blur-xl rounded-xl border border-[#1F2937]">
                                   <p className="text-gray-200 text-xs sm:text-sm">
                                     <strong className="text-purple-300">Next Workout:</strong> {new Date(nextWorkoutDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                                   </p>
@@ -1149,7 +1188,7 @@ const MyWorkoutPlan = () => {
                               planned workout days completed (
                               {overallProgressPercentage}%).
                             </p>
-                            <div className="w-full bg-slate-700/50 h-3 rounded-full overflow-hidden border border-purple-500/20">
+                            <div className="w-full bg-[#020617]/60 h-3 rounded-full overflow-hidden border border-[#1F2937]">
                               <div
                                 className="bg-gradient-to-r from-purple-500 to-blue-500 h-3 rounded-full transition-all duration-500 shadow-lg"
                                 style={{ width: `${overallProgressPercentage}%` }}
@@ -1179,7 +1218,7 @@ const MyWorkoutPlan = () => {
                   )}
                 </div>
               ) : (
-                <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl border border-purple-500/20 p-8 sm:p-12 text-center">
+                <div className="relative rounded-2xl sm:rounded-3xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] p-8 sm:p-12 text-center">
                   <FaDumbbell className="text-5xl sm:text-6xl text-purple-500 mb-6 mx-auto opacity-50" />
                   <h3 className="text-xl sm:text-2xl font-medium text-gray-300 mb-3">
                     No Active Workout Plan
@@ -1214,7 +1253,7 @@ const MyWorkoutPlan = () => {
                       .map((plan) => (
                         <div
                           key={plan._id}
-                          className="bg-slate-800/40 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-xl border border-purple-500/20 overflow-hidden flex flex-col hover:border-purple-500/40 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/10"
+                          className="relative rounded-xl sm:rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] overflow-hidden flex flex-col hover:border-[#22D3EE]/60 transition-all duration-300 hover:shadow-2xl"
                         >
                           <div className="p-4 sm:p-5 flex-1">
                             <h3 className="font-bold text-lg sm:text-xl text-white mb-2">
@@ -1234,7 +1273,7 @@ const MyWorkoutPlan = () => {
                               Intensity: {plan.generatedParams.intensity}
                             </p>
                           </div>
-                          <div className="mt-auto p-4 sm:p-5 border-t border-purple-500/20 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 sm:gap-3 bg-slate-900/30">
+                          <div className="mt-auto p-4 sm:p-5 border-t border-[#1F2937] flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 sm:gap-3 bg-[#020617]/60">
                             {!plan.completed && (
                               <>
                                 <button
@@ -1256,7 +1295,7 @@ const MyWorkoutPlan = () => {
                       ))}
                   </div>
                 ) : (
-                  <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl border border-purple-500/20 p-8 sm:p-12 text-center mx-4 sm:mx-0">
+                  <div className="relative rounded-2xl sm:rounded-3xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] p-8 sm:p-12 text-center mx-4 sm:mx-0">
                     <FiClock className="text-5xl sm:text-6xl text-purple-500 mb-6 mx-auto opacity-50" />
                     <h3 className="text-xl sm:text-2xl font-medium text-gray-300 mb-3">
                       No Other Pending Plans
@@ -1282,7 +1321,7 @@ const MyWorkoutPlan = () => {
                   {activePlan && activePlan.completed && (
                     <div
                       key={activePlan._id}
-                      className="bg-slate-800/40 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-xl border border-green-500/30 overflow-hidden flex flex-col hover:shadow-2xl hover:shadow-green-500/20 transition-all duration-300"
+                      className="relative rounded-xl sm:rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] overflow-hidden flex flex-col hover:border-[#22D3EE]/60 transition-all duration-300"
                     >
                       <div className="p-4 sm:p-5 flex-1">
                         <h3 className="font-bold text-lg sm:text-xl text-white mb-2">
@@ -1314,7 +1353,7 @@ const MyWorkoutPlan = () => {
                     .map((plan) => (
                       <div
                         key={plan._id}
-                        className="bg-slate-800/40 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-xl border border-green-500/30 overflow-hidden flex flex-col hover:shadow-2xl hover:shadow-green-500/20 transition-all duration-300"
+                        className="relative rounded-xl sm:rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] overflow-hidden flex flex-col hover:border-[#22D3EE]/60 transition-all duration-300"
                       >
                         <div className="p-4 sm:p-5 flex-1">
                           <h3 className="font-bold text-lg sm:text-xl text-white mb-2">
@@ -1343,7 +1382,7 @@ const MyWorkoutPlan = () => {
                     ))}
                 </div>
               ) : (
-                <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl border border-purple-500/20 p-8 sm:p-12 text-center mx-4 sm:mx-0">
+                <div className="relative rounded-2xl sm:rounded-3xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] p-8 sm:p-12 text-center mx-4 sm:mx-0">
                   <FaCheckCircle className="text-5xl sm:text-6xl text-purple-500 mb-6 mx-auto opacity-50" />
                   <h3 className="text-xl sm:text-2xl font-medium text-gray-300 mb-3">
                     No Completed Plans Yet
@@ -1356,7 +1395,9 @@ const MyWorkoutPlan = () => {
             </div>
           )}
         </div>
-      </div>
+          </div>
+        </section>
+      </main>
       <Footer />
     </div>
   );

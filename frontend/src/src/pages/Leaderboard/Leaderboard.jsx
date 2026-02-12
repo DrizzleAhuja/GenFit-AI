@@ -5,8 +5,10 @@ import { selectUser } from "../../redux/userSlice";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
 import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
+import { useTheme } from '../../context/ThemeContext';
 
 export default function Leaderboard() {
+  const { darkMode } = useTheme();
   const user = useSelector(selectUser);
   const [weekly, setWeekly] = useState([]);
   const [allTime, setAllTime] = useState([]);
@@ -42,7 +44,6 @@ export default function Leaderboard() {
         className={`leaderboard-row group relative overflow-hidden ${
           isCurrentUser ? 'current-user-row' : ''
         }`}
-        style={{ animationDelay: `${i * 50}ms` }}
       >
         {/* Rank Badge */}
         <div className="flex items-center gap-4">
@@ -73,7 +74,7 @@ export default function Leaderboard() {
 
           {/* Points */}
           <div className="points-display">
-            <div className="text-2xl font-black bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 bg-clip-text text-transparent">
+            <div className="text-2xl font-black bg-gradient-to-r from-[#22D3EE] via-[#8B5CF6] to-[#A855F7] bg-clip-text text-transparent">
               {points}
             </div>
             <div className="text-xs text-gray-400 font-medium">points</div>
@@ -82,103 +83,39 @@ export default function Leaderboard() {
 
         {/* Animated Background for Current User */}
         {isCurrentUser && (
-          <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-blue-500/10 to-purple-500/10 animate-gradient -z-10"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-[#8B5CF6]/10 via-[#A855F7]/10 to-[#22D3EE]/10 -z-10"></div>
         )}
         
         {/* Hover Effect */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 -z-10"></div>
       </div>
     );
   };
 
   return (
-    <div className="dark">
+    <div className={`min-h-screen flex flex-col ${
+      darkMode ? 'bg-[#05010d] text-white' : 'bg-[#020617] text-gray-100'
+    }`}>
       <style>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateX(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        @keyframes pulse {
-          0%, 100% {
-            transform: scale(1);
-          }
-          50% {
-            transform: scale(1.05);
-          }
-        }
-
-        @keyframes gradient {
-          0% {
-            background-position: 0% 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
-          100% {
-            background-position: 0% 50%;
-          }
-        }
-
-        @keyframes shimmer {
-          0% {
-            background-position: -1000px 0;
-          }
-          100% {
-            background-position: 1000px 0;
-          }
-        }
-
-        .animate-gradient {
-          background-size: 200% 200%;
-          animation: gradient 3s ease infinite;
-        }
-
         .leaderboard-row {
           position: relative;
           padding: 1.25rem;
           margin-bottom: 0.75rem;
           border-radius: 1rem;
-          background: rgba(31, 41, 55, 0.6);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(75, 85, 99, 0.3);
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          animation: slideIn 0.5s ease-out forwards;
-          opacity: 0;
+          background: rgba(2, 6, 23, 0.8);
+          backdrop-filter: blur(12px);
+          border: 1px solid #1F2937;
+          box-shadow: 0 18px 45px rgba(15, 23, 42, 0.8);
         }
 
         .leaderboard-row:hover {
-          transform: translateY(-2px);
-          border-color: rgba(96, 165, 250, 0.5);
-          box-shadow: 0 10px 30px -10px rgba(96, 165, 250, 0.3);
+          border-color: rgba(34, 211, 238, 0.5);
         }
 
         .current-user-row {
-          background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%);
-          border: 2px solid rgba(16, 185, 129, 0.4);
-          box-shadow: 0 0 30px rgba(16, 185, 129, 0.2);
-        }
-
-        .current-user-row:hover {
-          border-color: rgba(16, 185, 129, 0.6);
-          box-shadow: 0 0 40px rgba(16, 185, 129, 0.3);
+          background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(34, 211, 238, 0.15) 100%);
+          border: 2px solid rgba(34, 211, 238, 0.5);
+          box-shadow: 0 0 30px rgba(139, 92, 246, 0.25);
         }
 
         .rank-badge {
@@ -190,7 +127,6 @@ export default function Leaderboard() {
           justify-content: center;
           font-weight: 800;
           font-size: 1.125rem;
-          transition: all 0.3s ease;
           position: relative;
           z-index: 10;
         }
@@ -199,7 +135,6 @@ export default function Leaderboard() {
           background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
           color: #7C2D12;
           box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-          animation: pulse 2s ease-in-out infinite;
         }
 
         .rank-2 {
@@ -215,36 +150,25 @@ export default function Leaderboard() {
         }
 
         .rank-current {
-          background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+          background: linear-gradient(135deg, #8B5CF6 0%, #22D3EE 100%);
           color: white;
-          box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+          box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
         }
 
         .rank-normal {
-          background: linear-gradient(135deg, #4B5563 0%, #374151 100%);
+          background: rgba(2, 6, 23, 0.9);
+          border: 1px solid #1F2937;
           color: #D1D5DB;
         }
 
         .you-badge {
           position: relative;
           padding: 0.25rem 0.75rem;
-          background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+          background: linear-gradient(135deg, #8B5CF6 0%, #22D3EE 100%);
           border-radius: 9999px;
           font-size: 0.75rem;
           font-weight: 700;
           color: white;
-          overflow: hidden;
-        }
-
-        .you-badge::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-          animation: shimmer 2s infinite;
         }
 
         .points-display {
@@ -254,74 +178,77 @@ export default function Leaderboard() {
 
         .stat-card {
           position: relative;
-          background: rgba(31, 41, 55, 0.6);
+          background: rgba(2, 6, 23, 0.8);
           backdrop-filter: blur(20px);
           border-radius: 1.5rem;
           padding: 2rem;
-          border: 1px solid rgba(75, 85, 99, 0.3);
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          border: 1px solid #1F2937;
           overflow: hidden;
-          animation: fadeInUp 0.6s ease-out forwards;
-        }
-
-        .stat-card:hover {
-          transform: translateY(-5px);
-          border-color: rgba(96, 165, 250, 0.5);
-          box-shadow: 0 20px 40px -15px rgba(96, 165, 250, 0.3);
+          box-shadow: 0 18px 45px rgba(15, 23, 42, 0.8);
         }
 
         .stat-card::before {
           content: '';
           position: absolute;
           top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
-          transition: left 0.5s;
+          left: 0;
+          right: 0;
+          height: 4px;
+          border-radius: 1.5rem 1.5rem 0 0;
+          background: linear-gradient(90deg, #8B5CF6, #A855F7, #22D3EE);
+          z-index: 1;
         }
-
-        .stat-card:hover::before {
-          left: 100%;
-        }
-
-        .stat-card-1 { animation-delay: 0.1s; opacity: 0; }
-        .stat-card-2 { animation-delay: 0.2s; opacity: 0; }
-        .stat-card-3 { animation-delay: 0.3s; opacity: 0; }
 
         .info-card {
-          background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%);
+          position: relative;
+          background: rgba(2, 6, 23, 0.8);
           backdrop-filter: blur(20px);
           border-radius: 1.5rem;
           padding: 2rem;
-          border: 1px solid rgba(139, 92, 246, 0.3);
-          animation: fadeInUp 0.6s ease-out 0.4s forwards;
-          opacity: 0;
+          border: 1px solid #1F2937;
+          box-shadow: 0 18px 45px rgba(15, 23, 42, 0.8);
+        }
+
+        .info-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          border-radius: 1.5rem 1.5rem 0 0;
+          background: linear-gradient(90deg, #8B5CF6, #A855F7, #22D3EE);
+          z-index: 1;
         }
 
         .info-item {
-          background: rgba(31, 41, 55, 0.6);
+          background: rgba(2, 6, 23, 0.6);
           backdrop-filter: blur(10px);
           border-radius: 0.75rem;
           padding: 1rem;
-          border: 1px solid rgba(75, 85, 99, 0.3);
-          transition: all 0.3s ease;
-        }
-
-        .info-item:hover {
-          background: rgba(31, 41, 55, 0.8);
-          transform: translateX(5px);
-          border-color: rgba(139, 92, 246, 0.5);
+          border: 1px solid #1F2937;
         }
 
         .leaderboard-section {
-          background: rgba(31, 41, 55, 0.6);
+          position: relative;
+          background: rgba(2, 6, 23, 0.8);
           backdrop-filter: blur(20px);
           border-radius: 1.5rem;
           padding: 2rem;
-          border: 1px solid rgba(75, 85, 99, 0.3);
-          animation: fadeInUp 0.6s ease-out 0.5s forwards;
-          opacity: 0;
+          border: 1px solid #1F2937;
+          box-shadow: 0 18px 45px rgba(15, 23, 42, 0.8);
+        }
+
+        .leaderboard-section::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          border-radius: 1.5rem 1.5rem 0 0;
+          background: linear-gradient(90deg, #8B5CF6, #A855F7, #22D3EE);
+          z-index: 1;
         }
 
         .tab-button {
@@ -329,31 +256,22 @@ export default function Leaderboard() {
           padding: 0.75rem 2rem;
           font-weight: 600;
           border-radius: 0.75rem;
-          transition: all 0.3s ease;
           background: transparent;
-          border: none;
+          border: 1px solid #1F2937;
           color: #9CA3AF;
           cursor: pointer;
         }
 
+        .tab-button:hover {
+          border-color: rgba(34, 211, 238, 0.5);
+          color: white;
+        }
+
         .tab-button.active {
           color: white;
-          background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-          box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
-        }
-
-        .tab-button:not(.active):hover {
-          color: white;
-          background: rgba(75, 85, 99, 0.5);
-        }
-
-        .title-gradient {
-          background: linear-gradient(135deg, #60A5FA 0%, #A78BFA 50%, #F472B6 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          animation: gradient 3s ease infinite;
-          background-size: 200% 200%;
+          background: linear-gradient(135deg, #8B5CF6 0%, #A855F7 50%, #22D3EE 100%);
+          border-color: rgba(34, 211, 238, 0.5);
+          box-shadow: 0 0 20px rgba(139, 92, 246, 0.35);
         }
 
         .scroll-container {
@@ -367,37 +285,45 @@ export default function Leaderboard() {
         }
 
         .scroll-container::-webkit-scrollbar-track {
-          background: rgba(31, 41, 55, 0.5);
+          background: rgba(2, 6, 23, 0.5);
           border-radius: 10px;
         }
 
         .scroll-container::-webkit-scrollbar-thumb {
-          background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+          background: linear-gradient(135deg, #8B5CF6 0%, #22D3EE 100%);
           border-radius: 10px;
-        }
-
-        .scroll-container::-webkit-scrollbar-thumb:hover {
-          background: linear-gradient(135deg, #059669 0%, #047857 100%);
         }
       `}</style>
 
       <NavBar />
       
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 py-12 px-4 sm:px-6 lg:px-8 text-white relative overflow-hidden">
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-        </div>
-
-        <div className="max-w-7xl mx-auto relative z-10">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <h1 className="text-5xl md:text-6xl font-black mb-4 title-gradient">
-              🏆 Leaderboard
-            </h1>
-            <p className="text-gray-400 text-lg">Compete, Track, and Dominate Your Fitness Journey</p>
+      <main className="flex-grow">
+        <section className="relative overflow-hidden py-6 sm:py-8 lg:py-10">
+          {/* Background blobs */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute -top-24 -left-16 w-72 h-72 bg-[#8B5CF6] rounded-full blur-3xl opacity-30" />
+            <div className="absolute -bottom-28 right-0 w-80 h-80 bg-[#22D3EE] rounded-full blur-3xl opacity-25" />
           </div>
+
+          <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+            {/* Header */}
+            <header className="text-center mb-10 sm:mb-14 lg:mb-16">
+              <div className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-gradient-to-r from-[#8B5CF6]/20 to-[#22D3EE]/20 border border-[#8B5CF6]/40 backdrop-blur-xl mb-4">
+                <span className="text-xs sm:text-sm font-semibold text-gray-100">
+                  🏆 Competition & Rankings
+                </span>
+              </div>
+
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold mb-3 sm:mb-4">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]">
+                  Leaderboard
+                </span>
+              </h1>
+
+              <p className="max-w-3xl mx-auto text-sm sm:text-base lg:text-lg text-gray-300">
+                Compete, track, and dominate your fitness journey. See where you rank among GenFit AI users.
+              </p>
+            </header>
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
@@ -406,13 +332,13 @@ export default function Leaderboard() {
                 <div className="text-sm font-semibold text-gray-400 uppercase tracking-wider">This Week</div>
                 <div className="text-3xl">📅</div>
               </div>
-              <div className="text-5xl font-black bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent mb-2">
+              <div className="text-5xl font-black bg-gradient-to-r from-[#22D3EE] to-[#8B5CF6] bg-clip-text text-transparent mb-2">
                 {stats.weeklyPoints || 0}
               </div>
               <div className="text-sm text-gray-400">Points earned this week</div>
-              <div className="mt-4 h-2 bg-gray-700 rounded-full overflow-hidden">
+              <div className="mt-4 h-2 bg-[#020617]/60 rounded-full overflow-hidden border border-[#1F2937]">
                 <div 
-                  className="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full transition-all duration-1000"
+                  className="h-full bg-gradient-to-r from-[#22D3EE] to-[#8B5CF6] rounded-full"
                   style={{ width: `${Math.min((stats.weeklyPoints || 0) / 100 * 100, 100)}%` }}
                 ></div>
               </div>
@@ -423,13 +349,13 @@ export default function Leaderboard() {
                 <div className="text-sm font-semibold text-gray-400 uppercase tracking-wider">All-Time</div>
                 <div className="text-3xl">💎</div>
               </div>
-              <div className="text-5xl font-black bg-gradient-to-r from-blue-400 to-cyan-500 bg-clip-text text-transparent mb-2">
+              <div className="text-5xl font-black bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE] bg-clip-text text-transparent mb-2">
                 {stats.points || 0}
               </div>
               <div className="text-sm text-gray-400">Total lifetime points</div>
-              <div className="mt-4 h-2 bg-gray-700 rounded-full overflow-hidden">
+              <div className="mt-4 h-2 bg-[#020617]/60 rounded-full overflow-hidden border border-[#1F2937]">
                 <div 
-                  className="h-full bg-gradient-to-r from-blue-400 to-cyan-500 rounded-full transition-all duration-1000"
+                  className="h-full bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE] rounded-full"
                   style={{ width: `${Math.min((stats.points || 0) / 500 * 100, 100)}%` }}
                 ></div>
               </div>
@@ -440,13 +366,13 @@ export default function Leaderboard() {
                 <div className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Streak</div>
                 <div className="text-3xl">🔥</div>
               </div>
-              <div className="text-5xl font-black bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent mb-2">
+              <div className="text-5xl font-black bg-gradient-to-r from-[#FACC15] to-[#F97316] bg-clip-text text-transparent mb-2">
                 {stats.streakCount || 0}
               </div>
               <div className="text-sm text-gray-400">Consecutive days active</div>
-              <div className="mt-4 h-2 bg-gray-700 rounded-full overflow-hidden">
+              <div className="mt-4 h-2 bg-[#020617]/60 rounded-full overflow-hidden border border-[#1F2937]">
                 <div 
-                  className="h-full bg-gradient-to-r from-orange-400 to-red-500 rounded-full transition-all duration-1000"
+                  className="h-full bg-gradient-to-r from-[#FACC15] to-[#F97316] rounded-full"
                   style={{ width: `${Math.min((stats.streakCount || 0) / 30 * 100, 100)}%` }}
                 ></div>
               </div>
@@ -457,7 +383,7 @@ export default function Leaderboard() {
           <div className="info-card mb-12">
             <div className="flex items-center gap-3 mb-6">
               <div className="text-3xl">💡</div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE] bg-clip-text text-transparent">
                 How to Earn Points
               </h2>
             </div>
@@ -468,7 +394,7 @@ export default function Leaderboard() {
                     <div className="text-2xl">📊</div>
                     <span className="text-gray-200 font-medium">BMI Save/Update</span>
                   </div>
-                  <span className="text-2xl font-black bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent">
+                  <span className="text-2xl font-black bg-gradient-to-r from-[#22D3EE] to-[#8B5CF6] bg-clip-text text-transparent">
                     +10
                   </span>
                 </div>
@@ -479,7 +405,7 @@ export default function Leaderboard() {
                     <div className="text-2xl">💪</div>
                     <span className="text-gray-200 font-medium">Workout Plan Generated</span>
                   </div>
-                  <span className="text-2xl font-black bg-gradient-to-r from-blue-400 to-cyan-500 bg-clip-text text-transparent">
+                  <span className="text-2xl font-black bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE] bg-clip-text text-transparent">
                     +20
                   </span>
                 </div>
@@ -490,7 +416,7 @@ export default function Leaderboard() {
                     <div className="text-2xl">✅</div>
                     <span className="text-gray-200 font-medium">Workout Day Completed</span>
                   </div>
-                  <span className="text-2xl font-black bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+                  <span className="text-2xl font-black bg-gradient-to-r from-[#FACC15] to-[#F97316] bg-clip-text text-transparent">
                     +20
                   </span>
                 </div>
@@ -501,7 +427,7 @@ export default function Leaderboard() {
                     <div className="text-2xl">🥗</div>
                     <span className="text-gray-200 font-medium">Diet Chart Generated</span>
                   </div>
-                  <span className="text-2xl font-black bg-gradient-to-r from-pink-400 to-rose-500 bg-clip-text text-transparent">
+                  <span className="text-2xl font-black bg-gradient-to-r from-[#A855F7] to-[#22D3EE] bg-clip-text text-transparent">
                     +20
                   </span>
                 </div>
@@ -553,7 +479,8 @@ export default function Leaderboard() {
             </div>
           </div>
         </div>
-      </div>
+        </section>
+      </main>
       
       <Footer />
     </div>

@@ -81,27 +81,38 @@ export default function EditProfile() {
 
   if (!user) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gray-900 text-white">
-        <div className="animate-pulse text-lg">Loading user data...</div>
+      <div className="flex justify-center items-center min-h-[60vh] bg-[#020617] text-gray-100">
+        <div className="animate-pulse text-lg text-gray-300">Loading user data...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-[#020617]">
       <ToastContainer position="top-center" autoClose={2000} theme="dark" />
-      <div className="max-w-2xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-        <div className="rounded-xl shadow-xl overflow-hidden bg-gray-800">
+      {/* Background blobs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-24 -left-16 w-72 h-72 bg-[#8B5CF6] rounded-full blur-3xl opacity-30" />
+        <div className="absolute -bottom-28 right-0 w-80 h-80 bg-[#22D3EE] rounded-full blur-3xl opacity-25" />
+      </div>
+
+      <div className="relative z-10 max-w-2xl mx-auto py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
+        <div className="relative rounded-xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl overflow-hidden shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
+          {/* Top gradient bar */}
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
+
           {/* Header */}
-          <div className="px-6 py-4 border-b border-gray-700 bg-gray-900">
+          <div className="px-6 py-4 border-b border-[#1F2937]">
             <div className="flex items-center">
               <button
                 onClick={() => navigate(-1)}
-                className="p-2 rounded-full mr-4 text-gray-300 hover:bg-gray-700"
+                className="p-2 rounded-full mr-4 text-gray-300 hover:bg-[#020617]/80 hover:text-[#22D3EE] transition-colors"
               >
                 <FiArrowLeft size={20} />
               </button>
-              <h2 className="text-2xl font-bold text-white">Edit Profile</h2>
+              <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]">
+                Edit Profile
+              </h2>
             </div>
           </div>
 
@@ -117,7 +128,7 @@ export default function EditProfile() {
                 </label>
                 <div className="relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                    <FiUser size={18} />
+                    <FiUser size={18} className="text-[#22D3EE]" />
                   </div>
                   <input
                     type="text"
@@ -125,7 +136,7 @@ export default function EditProfile() {
                     name="firstName"
                     value={formData.firstName}
                     onChange={handleChange}
-                    className="block w-full pl-10 pr-3 py-3 rounded-md bg-gray-700 border-gray-600 text-white placeholder-gray-400 border focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="block w-full pl-10 pr-3 py-3 rounded-md bg-[#020617]/60 border border-[#1F2937] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] focus:border-transparent"
                     placeholder="John"
                     required
                   />
@@ -141,7 +152,7 @@ export default function EditProfile() {
                 </label>
                 <div className="relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                    <FiUser size={18} />
+                    <FiUser size={18} className="text-[#22D3EE]" />
                   </div>
                   <input
                     type="text"
@@ -149,7 +160,7 @@ export default function EditProfile() {
                     name="lastName"
                     value={formData.lastName}
                     onChange={handleChange}
-                    className="block w-full pl-10 pr-3 py-3 rounded-md bg-gray-700 border-gray-600 text-white placeholder-gray-400 border focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="block w-full pl-10 pr-3 py-3 rounded-md bg-[#020617]/60 border border-[#1F2937] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] focus:border-transparent"
                     placeholder="Doe"
                   />
                 </div>
@@ -169,7 +180,7 @@ export default function EditProfile() {
                     value={formData.diseasesAndAllergies}
                     onChange={handleChange}
                     rows="4"
-                    className="block w-full pl-3 pr-3 py-3 rounded-md bg-gray-700 border-gray-600 text-white placeholder-gray-400 border focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="block w-full pl-3 pr-3 py-3 rounded-md bg-[#020617]/60 border border-[#1F2937] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] focus:border-transparent"
                     placeholder="Diabetes, Hypertension, Pollen, Peanuts, etc."
                   ></textarea>
                 </div>
@@ -183,18 +194,18 @@ export default function EditProfile() {
                   htmlFor="email"
                   className="block text-sm font-medium mb-2 text-gray-300"
                 >
-                  Email 
+                  Email
                 </label>
                 <div className="relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                    <FiMail size={18} />
+                    <FiMail size={18} className="text-[#8B5CF6]" />
                   </div>
                   <input
                     type="email"
                     id="email"
                     name="email"
                     value={user?.email || ""}
-                    className="block w-full pl-10 pr-3 py-3 rounded-md bg-gray-600 border-gray-500 text-gray-300 placeholder-gray-400 border focus:outline-none cursor-not-allowed"
+                    className="block w-full pl-10 pr-3 py-3 rounded-md bg-[#020617]/40 border border-[#1F2937] text-gray-400 placeholder-gray-500 focus:outline-none cursor-not-allowed"
                     disabled
                     readOnly
                   />
@@ -207,7 +218,7 @@ export default function EditProfile() {
               <div className="pt-4">
                 <button
                   type="submit"
-                  className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="w-full flex justify-center items-center py-3 px-4 rounded-md text-sm font-medium text-white bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE] hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#020617] focus:ring-[#8B5CF6] shadow-lg hover:shadow-[#8B5CF6]/30 transition-all"
                 >
                   <FiSave className="mr-2" />
                   Save Changes

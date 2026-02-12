@@ -5,6 +5,8 @@ import { selectUser } from "../../redux/userSlice";
 import { toast } from "react-toastify";
 import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
+import { useTheme } from '../../context/ThemeContext';
+import { Sparkles } from 'lucide-react';
 import {
   FaWeight,
   FaRulerVertical,
@@ -28,6 +30,7 @@ import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
 import { useNavigate } from "react-router-dom";
 
 export default function EnhancedBMICalculator() {
+  const { darkMode } = useTheme();
   const user = useSelector(selectUser);
   const [activeTab, setActiveTab] = useState("calculator");
   const [isEditing, setIsEditing] = useState(false);
@@ -383,20 +386,42 @@ export default function EnhancedBMICalculator() {
   };
 
   return (
-    <div className="dark">
+    <div className={`min-h-screen flex flex-col ${
+      darkMode ? 'bg-[#05010d] text-white' : 'bg-[#020617] text-gray-100'
+    }`}>
       <NavBar />
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 py-4 sm:py-8 px-3 sm:px-4 lg:px-8 text-white">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-6 sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 sm:mb-4 bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-400 px-2">
-              Enhanced BMI Calculator
-            </h1>
-            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 px-2">
-              Track your health journey with AI-powered insights
-            </p>
+      <main className="flex-grow">
+        <section className="relative overflow-hidden py-6 sm:py-8 lg:py-10">
+          {/* Background blobs */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute -top-24 -left-16 w-72 h-72 bg-[#8B5CF6] rounded-full blur-3xl opacity-30" />
+            <div className="absolute -bottom-28 right-0 w-80 h-80 bg-[#22D3EE] rounded-full blur-3xl opacity-25" />
           </div>
 
+          <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl mb-6 sm:mb-8 lg:mb-10">
+            {/* Header */}
+            <header className="text-center">
+              <div className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-gradient-to-r from-[#8B5CF6]/20 to-[#22D3EE]/20 border border-[#8B5CF6]/40 backdrop-blur-xl mb-4">
+                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#FACC15]" />
+                <span className="text-xs sm:text-sm font-semibold text-gray-100">
+                  Health Assessment
+                </span>
+              </div>
+
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold mb-3 sm:mb-4">
+                BMI{" "}
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]">
+                  Calculator
+                </span>
+              </h1>
+
+              <p className="max-w-3xl mx-auto text-sm sm:text-base lg:text-lg text-gray-300">
+                Calculate your Body Mass Index and get personalized health insights powered by AI.
+              </p>
+            </header>
+          </div>
+
+          <div className="relative z-10 container mx-auto px-3 sm:px-4 lg:px-8 max-w-7xl py-4 sm:py-8">
           {/* Tab Navigation */}
           <div className="flex flex-wrap justify-center mb-4 sm:mb-8 gap-2 sm:gap-0">
             {[
@@ -422,7 +447,7 @@ export default function EnhancedBMICalculator() {
                 className={`flex items-center px-3 sm:px-6 py-2 sm:py-3 m-1 sm:m-2 rounded-lg font-medium transition-all text-xs sm:text-sm md:text-base min-h-[44px] ${
                   activeTab === tab.id
                     ? "bg-gradient-to-r from-green-500 to-blue-600 text-white shadow-lg"
-                    : "bg-gray-800 text-gray-300 hover:bg-gray-700 active:bg-gray-600"
+                    : "bg-[#020617]/80 backdrop-blur-sm border border-[#1F2937] text-gray-300 hover:bg-[#1F2937] active:bg-[#1F2937]/80"
                 }`}
               >
                 {tab.icon}
@@ -436,7 +461,7 @@ export default function EnhancedBMICalculator() {
           {activeTab === "calculator" && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
               {/* Form */}
-              <div className="bg-gray-800 rounded-xl shadow-xl border border-gray-700 p-4 sm:p-6 order-2 lg:order-1">
+              <div className="relative rounded-xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-4 sm:p-6 shadow-[0_18px_45px_rgba(15,23,42,0.8)] order-2 lg:order-1">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3">
                   <h2 className="text-lg sm:text-xl lg:text-2xl font-bold flex items-center">
                     <FaWeight className="mr-2 sm:mr-3 text-green-400 text-base sm:text-lg lg:text-xl" />
@@ -472,7 +497,7 @@ export default function EnhancedBMICalculator() {
                               heightFeet: e.target.value,
                             })
                           }
-                          className="w-full p-3 sm:p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white text-base pr-10"
+                          className="w-full p-3 sm:p-3 rounded-lg bg-[#020617]/60 backdrop-blur-sm border border-[#1F2937] focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white text-base pr-10"
                           min="1"
                           max="8"
                         />
@@ -491,7 +516,7 @@ export default function EnhancedBMICalculator() {
                               heightInches: e.target.value,
                             })
                           }
-                          className="w-full p-3 sm:p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white text-base pr-10"
+                          className="w-full p-3 sm:p-3 rounded-lg bg-[#020617]/60 backdrop-blur-sm border border-[#1F2937] focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white text-base pr-10"
                           min="0"
                           max="11"
                         />
@@ -515,7 +540,7 @@ export default function EnhancedBMICalculator() {
                       onChange={(e) =>
                         setFormData({ ...formData, weight: e.target.value })
                       }
-                      className="w-full p-3 sm:p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white text-base"
+                      className="w-full p-3 sm:p-3 rounded-lg bg-[#020617]/60 backdrop-blur-sm border border-[#1F2937] focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white text-base"
                     />
                   </div>
 
@@ -532,7 +557,7 @@ export default function EnhancedBMICalculator() {
                       onChange={(e) =>
                         setFormData({ ...formData, age: e.target.value })
                       }
-                      className="w-full p-3 sm:p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white text-base"
+                      className="w-full p-3 sm:p-3 rounded-lg bg-[#020617]/60 backdrop-blur-sm border border-[#1F2937] focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white text-base"
                     />
                   </div>
 
@@ -569,7 +594,7 @@ export default function EnhancedBMICalculator() {
                             setShowDiseaseDropdown(true);
                           }}
                           onFocus={() => setShowDiseaseDropdown(true)}
-                          className="flex-1 p-3 sm:p-3 rounded-l-lg bg-gray-700 border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white text-sm sm:text-base"
+                          className="flex-1 p-3 sm:p-3 rounded-l-lg bg-[#020617]/60 backdrop-blur-sm border border-[#1F2937] focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white text-sm sm:text-base"
                         />
                         <button
                           onClick={() => addDisease()}
@@ -581,7 +606,7 @@ export default function EnhancedBMICalculator() {
 
                       {/* Disease Dropdown */}
                       {showDiseaseDropdown && (
-                        <div className="absolute z-10 w-full mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                        <div className="absolute z-10 w-full mt-1 bg-[#020617]/95 backdrop-blur-xl border border-[#1F2937] rounded-lg shadow-lg max-h-48 overflow-y-auto">
                           {commonDiseases
                             .filter(
                               (disease) =>
@@ -594,7 +619,7 @@ export default function EnhancedBMICalculator() {
                               <button
                                 key={index}
                                 onClick={() => addDisease(disease)}
-                                className="w-full px-3 sm:px-4 py-2 text-left text-white hover:bg-gray-600 transition-colors text-xs sm:text-sm min-h-[44px] active:bg-gray-500"
+                                className="w-full px-3 sm:px-4 py-2 text-left text-white hover:bg-[#1F2937] transition-colors text-xs sm:text-sm min-h-[44px] active:bg-[#1F2937]/80"
                               >
                                 {disease}
                               </button>
@@ -649,7 +674,7 @@ export default function EnhancedBMICalculator() {
                             setShowAllergyDropdown(true);
                           }}
                           onFocus={() => setShowAllergyDropdown(true)}
-                          className="flex-1 p-3 sm:p-3 rounded-l-lg bg-gray-700 border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white text-sm sm:text-base"
+                          className="flex-1 p-3 sm:p-3 rounded-l-lg bg-[#020617]/60 backdrop-blur-sm border border-[#1F2937] focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white text-sm sm:text-base"
                         />
                         <button
                           onClick={() => addAllergy()}
@@ -661,7 +686,7 @@ export default function EnhancedBMICalculator() {
 
                       {/* Allergy Dropdown */}
                       {showAllergyDropdown && (
-                        <div className="absolute z-10 w-full mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                        <div className="absolute z-10 w-full mt-1 bg-[#020617]/95 backdrop-blur-xl border border-[#1F2937] rounded-lg shadow-lg max-h-48 overflow-y-auto">
                           {commonAllergies
                             .filter(
                               (allergy) =>
@@ -674,7 +699,7 @@ export default function EnhancedBMICalculator() {
                               <button
                                 key={index}
                                 onClick={() => addAllergy(allergy)}
-                                className="w-full px-3 sm:px-4 py-2 text-left text-white hover:bg-gray-600 transition-colors text-xs sm:text-sm min-h-[44px] active:bg-gray-500"
+                                className="w-full px-3 sm:px-4 py-2 text-left text-white hover:bg-[#1F2937] transition-colors text-xs sm:text-sm min-h-[44px] active:bg-[#1F2937]/80"
                               >
                                 {allergy}
                               </button>
@@ -709,7 +734,7 @@ export default function EnhancedBMICalculator() {
                         </button>
                         <button
                           onClick={() => setIsEditing(false)}
-                          className="px-4 sm:px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm sm:text-base min-h-[48px] active:bg-gray-800"
+                          className="px-4 sm:px-6 py-3 bg-[#1F2937] text-white rounded-lg hover:bg-[#1F2937]/80 transition-colors text-sm sm:text-base min-h-[48px] active:bg-[#1F2937]/60"
                         >
                           Cancel
                         </button>
@@ -731,7 +756,7 @@ export default function EnhancedBMICalculator() {
               <div className="space-y-4 sm:space-y-6 order-1 lg:order-2">
                 {/* BMI Result */}
                 {bmiResult && (
-                  <div className="bg-gray-800 rounded-xl shadow-xl border border-gray-700 p-4 sm:p-6">
+                  <div className="relative rounded-xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-4 sm:p-6 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
                     <h3 className="text-lg sm:text-xl lg:text-2xl font-bold mb-3 sm:mb-4 flex items-center">
                       <FaCheckCircle className="mr-2 sm:mr-3 text-green-400 text-base sm:text-lg lg:text-xl" />
                       <span className="text-sm sm:text-base lg:text-lg">Your BMI Result</span>
@@ -762,7 +787,7 @@ export default function EnhancedBMICalculator() {
 
           {/* AI Insights Tab */}
           {activeTab === "ai-insights" && (
-            <div className="bg-gray-800 rounded-xl shadow-xl border border-gray-700 p-4 sm:p-6 lg:p-8">
+            <div className="relative rounded-xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-4 sm:p-6 lg:p-8 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
               <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6 lg:mb-8 text-center flex items-center justify-center">
                 <FaBrain className="mr-2 sm:mr-3 text-purple-400 text-base sm:text-lg lg:text-xl" />
                 <span className="text-base sm:text-lg lg:text-xl">AI Health Insights</span>
@@ -796,7 +821,7 @@ export default function EnhancedBMICalculator() {
 
           {/* History Tab */}
           {activeTab === "history" && (
-            <div className="bg-gray-800 rounded-xl shadow-xl border border-gray-700 p-4 sm:p-6 lg:p-8">
+            <div className="relative rounded-xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-4 sm:p-6 lg:p-8 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
               <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6 lg:mb-8 flex items-center">
                 <FaHistory className="mr-2 sm:mr-3 text-green-400 text-base sm:text-lg lg:text-xl" />
                 <span className="text-base sm:text-lg lg:text-xl">Your Health Journey</span>
@@ -815,7 +840,7 @@ export default function EnhancedBMICalculator() {
                   {history.map((record, index) => (
                     <div
                       key={index}
-                      className="bg-gray-700 rounded-lg p-4 sm:p-6 border border-gray-600 hover:border-gray-500 transition-colors"
+                      className="relative rounded-lg border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-4 sm:p-6 shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 transition-colors"
                     >
                       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-3">
                         <div className="flex items-center w-full sm:w-auto">
@@ -897,8 +922,9 @@ export default function EnhancedBMICalculator() {
               )}
             </div>
           )}
-        </div>
-      </div>
+          </div>
+        </section>
+      </main>
       <Footer />
     </div>
   );

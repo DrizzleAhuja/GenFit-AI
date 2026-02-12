@@ -10,8 +10,11 @@ import { FaUtensils, FaChartLine, FaExclamationTriangle } from "react-icons/fa";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
 import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
+import { useTheme } from '../../context/ThemeContext';
+import { Sparkles } from 'lucide-react';
 
 export default function DietChartGenerator() {
+  const { darkMode } = useTheme();
   const [bmiData, setBmiData] = useState(null);
   const [activeWorkoutPlan, setActiveWorkoutPlan] = useState(null);
   const [dietChart, setDietChart] = useState(null);
@@ -422,38 +425,48 @@ export default function DietChartGenerator() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-gray-900 to-slate-950 text-gray-100">
+    <div className={`min-h-screen flex flex-col ${
+      darkMode ? 'bg-[#05010d] text-white' : 'bg-[#020617] text-gray-100'
+    }`}>
       <NavBar />
-      
-      {/* Animated background elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-orange-500/5 rounded-full blur-3xl animate-pulse-slow"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-red-500/5 rounded-full blur-3xl animate-pulse-slower"></div>
-        <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-purple-500/3 rounded-full blur-3xl animate-float"></div>
-      </div>
-
-      <div className="relative max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {/* Header - Enhanced with animations */}
-        <div className="text-center mb-8 sm:mb-12 animate-fade-in">
-          <div className="relative inline-block mb-4">
-            <div className="absolute inset-0 bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 blur-3xl opacity-30 animate-pulse-slow"></div>
-            <h1 className="relative text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-4 px-4 py-2">
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-400 via-red-500 to-pink-500 animate-gradient-x">
-                AI Diet Chart Generator
-              </span>
-            </h1>
+      <main className="flex-grow">
+        <section className="relative overflow-hidden py-6 sm:py-8 lg:py-10">
+          {/* Background blobs */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute -top-24 -left-16 w-72 h-72 bg-[#8B5CF6] rounded-full blur-3xl opacity-30" />
+            <div className="absolute -bottom-28 right-0 w-80 h-80 bg-[#22D3EE] rounded-full blur-3xl opacity-25" />
           </div>
-          <p className="text-base sm:text-lg md:text-xl text-gray-400 max-w-3xl mx-auto px-4 leading-relaxed animate-fade-in-delay">
-            Get personalized diet plans tailored to your active workout plan and health information
-          </p>
-        </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 sm:gap-6 lg:gap-8">
+          <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl mb-6 sm:mb-8 lg:mb-10">
+            {/* Header */}
+            <header className="text-center">
+              <div className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-gradient-to-r from-[#8B5CF6]/20 to-[#22D3EE]/20 border border-[#8B5CF6]/40 backdrop-blur-xl mb-4">
+                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#FACC15]" />
+                <span className="text-xs sm:text-sm font-semibold text-gray-100">
+                  Nutrition Planning
+                </span>
+              </div>
+
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold mb-3 sm:mb-4">
+                Diet{" "}
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]">
+                  Chart Generator
+                </span>
+              </h1>
+
+              <p className="max-w-3xl mx-auto text-sm sm:text-base lg:text-lg text-gray-300">
+                Generate personalized meal plans based on your BMI, goals, and workout schedule.
+              </p>
+            </header>
+          </div>
+
+          <div className="relative z-10 container mx-auto max-w-[1800px] px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 sm:gap-6 lg:gap-8">
           {/* Left Sidebar - Information Cards */}
           <div className="xl:col-span-4 2xl:col-span-3 space-y-5 sm:space-y-6 order-2 xl:order-1">
             {/* BMI Data Card - Enhanced */}
             {bmiData ? (
-              <div className="group bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden transition-all duration-500 hover:shadow-orange-500/20 hover:border-orange-500/50 hover:-translate-y-1 animate-slide-in-left">
+              <div className="group relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] overflow-hidden transition-all duration-500 hover:border-[#22D3EE]/60 hover:-translate-y-1 animate-slide-in-left">
                 <div className="relative bg-gradient-to-r from-orange-600 via-orange-500 to-red-600 p-5 sm:p-6 overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
                   <div className="relative flex items-center gap-3">
@@ -475,7 +488,7 @@ export default function DietChartGenerator() {
                     ].map((item, idx) => (
                       <div 
                         key={idx}
-                        className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 p-4 rounded-xl border border-slate-700/50 hover:border-orange-500/30 transition-all duration-300 hover:scale-105"
+                        className="bg-[#020617]/60 backdrop-blur-sm p-4 rounded-xl border border-[#1F2937] hover:border-[#22D3EE]/40 transition-all duration-300 hover:scale-105"
                         style={{ animationDelay: `${idx * 100}ms` }}
                       >
                         <p className="text-xs text-gray-400 mb-1">{item.label}</p>
@@ -483,7 +496,7 @@ export default function DietChartGenerator() {
                       </div>
                     ))}
                     {bmiData.age && (
-                      <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 p-4 rounded-xl border border-slate-700/50 hover:border-orange-500/30 transition-all duration-300 hover:scale-105">
+                      <div className="bg-[#020617]/60 backdrop-blur-sm p-4 rounded-xl border border-[#1F2937] hover:border-[#22D3EE]/40 transition-all duration-300 hover:scale-105">
                         <p className="text-xs text-gray-400 mb-1">Age</p>
                         <p className="font-bold text-lg text-green-400">{bmiData.age} years</p>
                       </div>
@@ -552,7 +565,7 @@ export default function DietChartGenerator() {
 
             {/* Active Workout Plan Card - Enhanced */}
             {activeWorkoutPlan ? (
-              <div className="group bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden transition-all duration-500 hover:shadow-green-500/20 hover:border-green-500/50 hover:-translate-y-1 animate-slide-in-left" style={{ animationDelay: '200ms' }}>
+              <div className="group relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] overflow-hidden transition-all duration-500 hover:border-[#22D3EE]/60 hover:-translate-y-1 animate-slide-in-left" style={{ animationDelay: '200ms' }}>
                 <div className="relative bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 p-5 sm:p-6 overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
                   <div className="relative flex items-center gap-3">
@@ -587,7 +600,7 @@ export default function DietChartGenerator() {
                     ].map((item, idx) => (
                       <div 
                         key={idx}
-                        className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 p-3 rounded-xl border border-slate-700/50 hover:border-green-500/30 transition-all duration-300 hover:scale-105"
+                        className="bg-[#020617]/60 backdrop-blur-sm p-3 rounded-xl border border-[#1F2937] hover:border-[#22D3EE]/40 transition-all duration-300 hover:scale-105"
                       >
                         <p className="text-xs text-gray-400 mb-1">{item.label}</p>
                         <p className={`font-bold text-sm ${item.color}`}>{item.value}</p>
@@ -622,7 +635,7 @@ export default function DietChartGenerator() {
             )}
 
             {/* Action Buttons Card - Enhanced */}
-            <div className="group bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden transition-all duration-500 hover:shadow-orange-500/20 hover:-translate-y-1 animate-slide-in-left" style={{ animationDelay: '400ms' }}>
+            <div className="group relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] overflow-hidden transition-all duration-500 hover:border-[#22D3EE]/60 hover:-translate-y-1 animate-slide-in-left" style={{ animationDelay: '400ms' }}>
               <div className="relative bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 p-5 sm:p-6 overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
                 <div className="relative flex items-center gap-3">
@@ -704,9 +717,9 @@ export default function DietChartGenerator() {
 
           {/* Right Side - Diet Chart Display - Full Height */}
           <div className="xl:col-span-8 2xl:col-span-9 order-1 xl:order-2">
-            <div className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden transition-all duration-500 hover:shadow-orange-500/20 animate-slide-in-right h-full flex flex-col">
+            <div className="relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] overflow-hidden transition-all duration-500 hover:border-[#22D3EE]/60 animate-slide-in-right h-full flex flex-col">
               <div className="relative bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 p-5 sm:p-6 overflow-hidden flex-shrink-0">
-                <div className="absolute inset-0 bg-black/10"></div>
+                <div className="absolute inset-0 bg-[#020617]/20"></div>
                 <div className="absolute -right-20 -top-20 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
                 <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div className="flex-1">
@@ -768,7 +781,7 @@ export default function DietChartGenerator() {
                       {structuredDietChart.map((section, sectionIndex) => (
                         <div
                           key={`${section.title}-${sectionIndex}`}
-                          className="group bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 rounded-2xl p-5 sm:p-6 shadow-xl backdrop-blur-sm transition-all duration-500 hover:scale-[1.01] hover:shadow-2xl hover:border-orange-500/50 animate-fade-in-up"
+                          className="group relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-5 sm:p-6 shadow-[0_18px_45px_rgba(15,23,42,0.8)] transition-all duration-500 hover:scale-[1.01] hover:border-[#22D3EE]/60 animate-fade-in-up"
                           style={{ animationDelay: `${sectionIndex * 100}ms` }}
                         >
                           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 gap-3">
@@ -801,7 +814,7 @@ export default function DietChartGenerator() {
                               {section.meals.map((meal, mealIndex) => (
                                 <div
                                   key={`${meal.title}-${mealIndex}`}
-                                  className="group/meal p-4 bg-gradient-to-br from-slate-700/40 to-slate-800/40 border border-slate-600/40 rounded-xl backdrop-blur-sm transition-all duration-300 hover:scale-[1.03] hover:border-orange-500/50 hover:shadow-lg"
+                                  className="group/meal p-4 bg-[#020617]/60 backdrop-blur-sm border border-[#1F2937] rounded-xl transition-all duration-300 hover:scale-[1.03] hover:border-[#22D3EE]/50 hover:shadow-lg"
                                 >
                                   <div className="flex items-center gap-2 mb-3">
                                     <div className="w-2 h-2 bg-gradient-to-r from-orange-400 to-red-500 rounded-full animate-pulse"></div>
@@ -827,7 +840,7 @@ export default function DietChartGenerator() {
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <div className="w-full max-w-4xl">
-                        <div className="whitespace-pre-wrap text-gray-300 leading-relaxed text-sm sm:text-base p-6 bg-slate-800/30 rounded-2xl border border-slate-700/30 backdrop-blur-sm">
+                        <div className="whitespace-pre-wrap text-gray-300 leading-relaxed text-sm sm:text-base p-6 bg-[#020617]/60 backdrop-blur-sm rounded-2xl border border-[#1F2937]">
                           {formatDietChartContent(displayDietChart)}
                         </div>
                       </div>
@@ -854,9 +867,10 @@ export default function DietChartGenerator() {
               </div>
             </div>
           </div>
-        </div>
-      </div>
-      
+            </div>
+          </div>
+        </section>
+      </main>
       <Footer />
       
       <style jsx>{`

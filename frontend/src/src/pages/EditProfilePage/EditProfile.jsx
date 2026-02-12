@@ -5,12 +5,12 @@ import Footer from "../HomePage/Footer";
 
 export default function EditProfile() {
   return (
-    <div className="dark">
+    <div className="dark min-h-screen flex flex-col bg-[#020617] text-gray-100">
       <NavBar />
-      <div>
+      <main className="flex-grow">
         <Section1 />
-        <Footer />
-      </div>
+      </main>
+      <Footer />
     </div>
   );
 }

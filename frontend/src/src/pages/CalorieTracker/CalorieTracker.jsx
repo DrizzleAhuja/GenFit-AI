@@ -423,62 +423,77 @@ const CalorieTracker = () => {
   };
 
   return (
-    <div className="dark min-h-screen bg-gray-900 text-gray-100">
+    <div className="dark min-h-screen bg-[#020617] text-gray-100">
       <NavBar />
-      <main className="max-w-5xl mx-auto px-4 pt-6 pb-16">
-        <header className="text-center mb-6">
-          <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">
-            AI Calorie Scanner
-          </h1>
-          <p className="mt-2 text-sm md:text-base text-gray-300">
-            Upload a photo of your meal and let AI estimate calories. You can
-            adjust the values if the portion looks different.
-          </p>
-        </header>
+      <main className="max-w-5xl mx-auto px-4 pt-6 pb-4">
+        <section className="relative overflow-hidden py-6 sm:py-8">
+          {/* Background blobs */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute -top-24 -left-16 w-72 h-72 bg-[#8B5CF6] rounded-full blur-3xl opacity-30" />
+            <div className="absolute -bottom-28 right-0 w-80 h-80 bg-[#22D3EE] rounded-full blur-3xl opacity-25" />
+          </div>
 
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left: Image upload & preview */}
-          <div className="space-y-4">
-            <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
-              <h2 className="text-sm font-semibold text-gray-100 mb-3">
-                Upload food image
-              </h2>
+          <div className="relative z-10">
+            <header className="text-center mb-6">
+              <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]">
+                AI Calorie Scanner
+              </h1>
+              <p className="mt-2 text-sm md:text-base text-gray-300">
+                Upload a photo of your meal and let AI estimate calories. You can
+                adjust the values if the portion looks different.
+              </p>
+            </header>
+
+            <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left: Image upload & preview */}
+              <div className="space-y-4">
+                <div className="relative rounded-xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl">
+                  {/* Top gradient bar */}
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE] rounded-t-xl"></div>
+                  <div className="p-4">
+                    <h2 className="text-sm font-semibold text-gray-100 mb-3">
+                      Upload food image
+                    </h2>
               <input
                 type="file"
                 accept="image/*"
                 onChange={handleFileChange}
                 className="block w-full text-xs text-gray-300 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-500 file:text-gray-900 hover:file:bg-emerald-400"
               />
-              <textarea
-                placeholder="Optional: add a note like '1 plate, medium portion' or 'only half the bowl is eaten'."
-                value={userNote}
-                onChange={(e) => setUserNote(e.target.value)}
-                className="mt-3 w-full rounded-lg bg-gray-900 border border-gray-700 px-3 py-2 text-xs text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                rows={3}
-              />
-              <button
-                onClick={handleAnalyze}
-                disabled={loading || !imageBase64}
-                className={`mt-4 w-full px-4 py-2 rounded-lg text-sm font-semibold ${
-                  loading || !imageBase64
-                    ? "bg-emerald-500/40 text-gray-900 cursor-not-allowed"
-                    : "bg-emerald-500 text-gray-900 hover:bg-emerald-400"
-                }`}
-              >
-                {loading ? "Analyzing..." : "Analyze Food Image"}
-              </button>
-              {error && (
-                <p className="mt-2 text-xs text-red-400">
-                  {error}
-                </p>
-              )}
-            </div>
+                    <textarea
+                      placeholder="Optional: add a note like '1 plate, medium portion' or 'only half the bowl is eaten'."
+                      value={userNote}
+                      onChange={(e) => setUserNote(e.target.value)}
+                      className="mt-3 w-full rounded-lg bg-[#020617]/60 border border-[#1F2937] px-3 py-2 text-xs text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
+                      rows={3}
+                    />
+                    <button
+                      onClick={handleAnalyze}
+                      disabled={loading || !imageBase64}
+                      className={`mt-4 w-full px-4 py-2 rounded-lg text-sm font-semibold ${
+                        loading || !imageBase64
+                          ? "bg-[#8B5CF6]/40 text-gray-400 cursor-not-allowed"
+                          : "bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE] text-white hover:opacity-90"
+                      }`}
+                    >
+                      {loading ? "Analyzing..." : "Analyze Food Image"}
+                    </button>
+                    {error && (
+                      <p className="mt-2 text-xs text-red-400">
+                        {error}
+                      </p>
+                    )}
+                  </div>
+                </div>
 
-            <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
-              <h2 className="text-sm font-semibold text-gray-100 mb-3">
-                Preview
-              </h2>
-              <div className="relative aspect-video rounded-lg overflow-hidden border border-gray-700 bg-black/60 flex items-center justify-center">
+                <div className="relative rounded-xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl">
+                  {/* Top gradient bar */}
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE] rounded-t-xl"></div>
+                  <div className="p-4">
+                    <h2 className="text-sm font-semibold text-gray-100 mb-3">
+                      Preview
+                    </h2>
+                    <div className="relative aspect-video rounded-lg overflow-hidden border border-[#1F2937] bg-[#020617]/60 flex items-center justify-center">
                 {imagePreview ? (
                   <img
                     src={imagePreview}
@@ -486,43 +501,47 @@ const CalorieTracker = () => {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <p className="text-xs text-gray-500">
-                    No image selected. Upload a photo of your meal to begin.
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Results & editing */}
-          <div className="space-y-4">
-            <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
-              <h2 className="text-sm font-semibold text-gray-100 mb-3">
-                Estimated calories
-              </h2>
-
-              {items.length === 0 ? (
-                <p className="text-xs text-gray-400">
-                  After you analyze an image, detected foods and calories will
-                  appear here. You can then fine-tune the numbers if AI got the
-                  portion slightly wrong.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-xs uppercase tracking-wide text-gray-400">
-                      Total estimated calories
-                    </span>
-                    <span className="text-2xl font-bold text-emerald-400">
-                      {Math.round(totalCalories)} kcal
-                    </span>
+                      <p className="text-xs text-gray-500">
+                        No image selected. Upload a photo of your meal to begin.
+                      </p>
+                    )}
                   </div>
-                  <div className="border-t border-gray-700 pt-3 space-y-2 max-h-72 overflow-y-auto pr-1">
-                    {items.map((item, idx) => (
-                      <div
-                        key={`${item.name}-${idx}`}
-                        className="flex items-center justify-between gap-2 text-xs bg-gray-900/60 border border-gray-700 rounded-lg px-3 py-2"
-                      >
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: Results & editing */}
+              <div className="space-y-4">
+                <div className="relative rounded-xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl">
+                  {/* Top gradient bar */}
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE] rounded-t-xl"></div>
+                  <div className="p-4">
+                    <h2 className="text-sm font-semibold text-gray-100 mb-3">
+                      Estimated calories
+                    </h2>
+
+                    {items.length === 0 ? (
+                      <p className="text-xs text-gray-400">
+                        After you analyze an image, detected foods and calories will
+                        appear here. You can then fine-tune the numbers if AI got the
+                        portion slightly wrong.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-xs uppercase tracking-wide text-gray-400">
+                            Total estimated calories
+                          </span>
+                          <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE]">
+                            {Math.round(totalCalories)} kcal
+                          </span>
+                        </div>
+                        <div className="border-t border-[#1F2937] pt-3 space-y-2 max-h-72 overflow-y-auto pr-1">
+                          {items.map((item, idx) => (
+                            <div
+                              key={`${item.name}-${idx}`}
+                              className="flex items-center justify-between gap-2 text-xs bg-[#020617]/60 border border-[#1F2937] rounded-lg px-3 py-2"
+                            >
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-gray-100 truncate">
                             {item.name}
@@ -540,32 +559,36 @@ const CalorieTracker = () => {
                           <input
                             type="number"
                             min="0"
-                            value={item.calories}
-                            onChange={(e) =>
-                              handleCaloriesChange(idx, e.target.value)
-                            }
-                            className="w-24 rounded-md bg-gray-800 border border-gray-600 px-2 py-1 text-right text-xs text-gray-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                          />
+                              value={item.calories}
+                              onChange={(e) =>
+                                handleCaloriesChange(idx, e.target.value)
+                              }
+                              className="w-24 rounded-md bg-[#020617]/60 border border-[#1F2937] px-2 py-1 text-right text-xs text-gray-100 focus:outline-none focus:ring-1 focus:ring-[#8B5CF6]"
+                            />
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                    {aiNotes && (
+                      <p className="mt-2 text-[11px] text-gray-400">
+                        <span className="font-semibold text-gray-300">
+                          AI notes:
+                        </span>{" "}
+                        {aiNotes}
+                      </p>
+                    )}
                   </div>
-                  {aiNotes && (
-                    <p className="mt-2 text-[11px] text-gray-400">
-                      <span className="font-semibold text-gray-300">
-                        AI notes:
-                      </span>{" "}
-                      {aiNotes}
-                    </p>
-                  )}
+                )}
+                  </div>
                 </div>
-              )}
-            </div>
 
-            <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 text-xs text-gray-300 space-y-2">
-              <h2 className="text-sm font-semibold text-gray-100 mb-1">
-                How this works
-              </h2>
+                <div className="relative rounded-xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl">
+                  {/* Top gradient bar */}
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE] rounded-t-xl"></div>
+                  <div className="p-4 text-xs text-gray-300 space-y-2">
+                    <h2 className="text-sm font-semibold text-gray-100 mb-1">
+                      How this works
+                    </h2>
               <ol className="list-decimal list-inside space-y-1">
                 <li>
                   Upload a clear photo of your meal from above or at an angle.
@@ -576,11 +599,14 @@ const CalorieTracker = () => {
                   Adjust the calories per item if the portion looks different.
                 </li>
               </ol>
-              <p className="text-[11px] text-gray-400 mt-1">
-                These are estimates only. For medical or very strict dieting
-                purposes, double‑check with a nutrition professional.
-              </p>
-            </div>
+                    <p className="text-[11px] text-gray-400 mt-1">
+                      These are estimates only. For medical or very strict dieting
+                      purposes, double‑check with a nutrition professional.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
           </div>
         </section>
       </main>

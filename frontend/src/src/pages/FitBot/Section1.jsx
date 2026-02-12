@@ -8,6 +8,7 @@ import { IoMdSend } from "react-icons/io";
 import { useSelector } from "react-redux";
 import { selectUser } from "../../redux/userSlice";
 import { API_BASE_URL } from "../../../config/api";
+import { useTheme } from "../../context/ThemeContext";
 
 const FitBot = () => {
   const user = useSelector(selectUser);
@@ -113,11 +114,13 @@ const FitBot = () => {
     }
   };
 
+  const { darkMode } = useTheme();
+
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col items-center p-4 md:p-8">
-      <div className="w-full max-w-4xl bg-gray-800 rounded-2xl shadow-xl overflow-hidden border border-gray-700">
+    <div className="w-full flex justify-center py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-4xl rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-green-600 to-blue-700 p-6 text-white">
+        <div className="bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE] p-6 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <BsRobot className="text-2xl mr-3" />
@@ -126,7 +129,7 @@ const FitBot = () => {
                 <p className="text-sm opacity-90">
                   Your AI Fitness Assistant
                   {user && (
-                    <span className="ml-2 px-2 py-1 bg-green-500/20 text-green-300 rounded-full text-xs">
+                    <span className="ml-2 px-2 py-1 bg-white/20 text-white rounded-full text-xs">
                       Personalized
                     </span>
                   )}
@@ -142,7 +145,9 @@ const FitBot = () => {
         </div>
 
         {/* Chat Container */}
-        <div className="h-96 md:h-[32rem] overflow-y-auto p-4 bg-gray-900">
+        <div className={`h-96 md:h-[32rem] overflow-y-auto p-4 ${
+          darkMode ? 'bg-[#05010d]' : 'bg-[#020617]'
+        }`}>
           {messages.map((msg, index) => (
             <div
               key={index}
@@ -153,8 +158,8 @@ const FitBot = () => {
               <div
                 className={`max-w-xs md:max-w-md lg:max-w-lg rounded-2xl p-4 ${
                   msg.role === "user"
-                    ? "bg-blue-600 text-white rounded-br-none"
-                    : "bg-gray-700 text-white shadow-sm rounded-bl-none"
+                    ? "bg-gradient-to-r from-[#22D3EE] to-[#0EA5E9] text-white rounded-br-none"
+                    : "bg-[#020617]/80 border border-[#1F2937] text-white shadow-sm rounded-bl-none"
                 }`}
               >
                 <div className="flex items-center mb-1">
@@ -175,7 +180,7 @@ const FitBot = () => {
           ))}
           {loading && (
             <div className="flex justify-start mb-4">
-              <div className="bg-gray-700 text-gray-800 shadow-sm rounded-2xl rounded-bl-none p-4 max-w-xs">
+              <div className="bg-[#020617]/80 border border-[#1F2937] text-gray-800 shadow-sm rounded-2xl rounded-bl-none p-4 max-w-xs">
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                   <div
@@ -193,7 +198,7 @@ const FitBot = () => {
         </div>
 
         {/* Input Area */}
-        <div className="border-t border-gray-700 bg-gray-800 p-4">
+        <div className={`border-t border-[#1F2937] bg-[#020617]/80 p-4`}>
           {error && (
             <div className="mb-3 px-4 py-2 bg-red-900 text-red-300 rounded-lg text-sm border border-red-700">
               {error}
@@ -205,13 +210,13 @@ const FitBot = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              className="flex-1 px-4 py-3 rounded-l-lg border border-gray-600 focus:ring-2 focus:ring-green-500 focus:border-transparent bg-gray-700 text-white"
+              className="flex-1 px-4 py-3 rounded-l-lg border border-[#1F2937] focus:ring-2 focus:ring-[#22D3EE] focus:border-transparent bg-[#020617]/80 text-white"
               placeholder="Ask FitBot about workouts, nutrition, etc..."
               disabled={loading}
             />
             <button
               onClick={sendMessage}
-              className="px-6 bg-gradient-to-r from-green-500 to-blue-600 text-white rounded-r-lg hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center"
+              className="px-6 bg-gradient-to-r from-[#22D3EE] via-[#0EA5E9] to-[#8B5CF6] text-white rounded-r-lg hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center"
               disabled={loading || !input.trim()}
             >
               {loading ? (
@@ -241,14 +246,14 @@ const FitBot = () => {
             </button>
           </div>
           <div className="mt-3 flex items-center justify-center space-x-4">
-            <button className="text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-full flex items-center text-gray-200">
-              <FaDumbbell className="mr-1 text-green-400" /> Workout
+            <button className="text-xs bg-[#020617]/80 border border-[#1F2937] hover:bg-[#020617] px-3 py-1 rounded-full flex items-center text-gray-200">
+              <FaDumbbell className="mr-1 text-[#22D3EE]" /> Workout
             </button>
-            <button className="text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-full flex items-center text-gray-200">
-              <FaHeartbeat className="mr-1 text-red-400" /> Nutrition
+            <button className="text-xs bg-[#020617]/80 border border-[#1F2937] hover:bg-[#020617] px-3 py-1 rounded-full flex items-center text-gray-200">
+              <FaHeartbeat className="mr-1 text-[#8B5CF6]" /> Nutrition
             </button>
-            <button className="text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-full flex items-center text-gray-200">
-              <FaRunning className="mr-1 text-blue-400" /> Cardio
+            <button className="text-xs bg-[#020617]/80 border border-[#1F2937] hover:bg-[#020617] px-3 py-1 rounded-full flex items-center text-gray-200">
+              <FaRunning className="mr-1 text-[#22D3EE]" /> Cardio
             </button>
           </div>
           {user && (

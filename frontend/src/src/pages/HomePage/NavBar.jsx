@@ -11,7 +11,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
 import { isPWAInstalled } from "../../utils/pwaInstall";
 import { getOAuthErrorMessage, isPWAMode } from "../../utils/googleOAuthPWA";
-import Logo from "../../assets/logo.png";
+import GenFitLogo from "../../Components/GenFitLogo";
 
 export default function NavBar() {
   const dispatch = useDispatch();
@@ -169,19 +169,10 @@ export default function NavBar() {
         }}
       >
         {/* Desktop Navbar */}
-        <nav className="hidden lg:block sticky top-0 left-0 w-full z-50 bg-gray-900 shadow-lg text-white">
+        <nav className="hidden lg:block sticky top-0 left-0 w-full z-50 bg-[#05010d]/95 backdrop-blur-xl border-b border-purple-500/30 shadow-[0_0_25px_rgba(139,92,246,0.35)] text-white">
           <div className="container mx-auto px-6 py-3 flex justify-between items-center">
             {/* Logo */}
-            <NavLink
-              to="/"
-              className="hover:opacity-90 transition-opacity"
-            >
-              <img 
-                src={Logo} 
-                alt="GenFit AI" 
-                className="w-16 h-16 object-contain"
-              />
-            </NavLink>
+            <GenFitLogo size="default" />
 
             {/* Desktop Navigation Links */}
             <div className="flex space-x-6">
@@ -190,10 +181,10 @@ export default function NavBar() {
                   key={link.path}
                   to={link.path}
                   className={({ isActive }) =>
-                    `px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    `px-3 py-2 rounded-md text-sm font-medium transition-colors border-b-2 border-transparent ${
                       isActive
-                        ? "bg-gray-700 text-white"
-                        : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                        ? "text-[#22D3EE] border-[#22D3EE] bg-[#22D3EE]/10"
+                        : "text-gray-300 hover:text-white hover:bg-white/5 hover:border-[#22D3EE]/60"
                     }`
                   }
                 >
@@ -210,7 +201,7 @@ export default function NavBar() {
                     className="flex items-center space-x-2 cursor-pointer group"
                     onClick={() => setDropdownOpen(!dropdownOpen)}
                   >
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center font-medium bg-blue-700 text-white">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center font-medium bg-[#8B5CF6] text-white">
                       {getUserInitials(user)}
                     </div>
                     <span className="text-gray-200">
@@ -220,7 +211,7 @@ export default function NavBar() {
                     </span>
                   </div>
                   {dropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 z-50 bg-gray-800 border border-gray-700">
+                    <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 z-50 bg-[#020617]/95 backdrop-blur-xl border border-[#1F2937]">
                       <NavLink
                         to="/EditProfile"
                         className="flex px-4 py-2 text-sm items-center text-gray-200 hover:bg-gray-700"
@@ -254,7 +245,7 @@ export default function NavBar() {
         </nav>
 
         {/* Mobile Header with Menu Button */}
-        <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-gray-900 shadow-lg text-white">
+        <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-[#05010d]/95 backdrop-blur-xl border-b border-purple-500/40 shadow-[0_0_20px_rgba(139,92,246,0.35)] text-white">
           <div className="flex justify-between items-center px-4 py-3">
             <button
               className="text-gray-300 hover:text-white transition-colors"
@@ -263,20 +254,11 @@ export default function NavBar() {
               {mobileMenuOpen ? <FiX size={28} /> : <FiMenu size={28} />}
             </button>
             
-            <NavLink
-              to="/"
-              className="hover:opacity-90 transition-opacity"
-            >
-              <img 
-                src={Logo}
-                alt="GenFit AI" 
-                className="w-12 h-12 object-contain"
-              />
-            </NavLink>
+            <GenFitLogo size="small" />
 
             {user && (
               <div
-                className="w-9 h-9 rounded-full flex items-center justify-center font-medium bg-blue-700 text-white text-sm cursor-pointer"
+                className="w-9 h-9 rounded-full flex items-center justify-center font-medium bg-[#8B5CF6] text-white text-sm cursor-pointer"
                 onClick={() => setDropdownOpen(!dropdownOpen)}
               >
                 {getUserInitials(user)}
@@ -287,24 +269,16 @@ export default function NavBar() {
 
         {/* Mobile Sidebar */}
         <div
-          className={`lg:hidden fixed top-0 left-0 h-full w-72 bg-gray-900 shadow-2xl transform transition-transform duration-300 ease-in-out z-50 ${
+          className={`lg:hidden fixed top-0 left-0 h-full w-72 bg-[#040011] shadow-2xl border-r border-purple-500/30 transform transition-transform duration-300 ease-in-out z-50 ${
             mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
           <div className="flex flex-col h-full">
             {/* Sidebar Header */}
-            <div className="flex justify-between items-center p-4 border-b border-gray-700">
-              <NavLink
-                to="/"
-                className="hover:opacity-90 transition-opacity"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <img 
-                  src={Logo} 
-                  alt="GenFit AI" 
-                  className="w-12 h-12 object-contain"
-                />
-              </NavLink>
+            <div className="flex justify-between items-center p-4 border-b border-purple-500/40">
+              <div onClick={() => setMobileMenuOpen(false)}>
+                <GenFitLogo size="small" />
+              </div>
               <button
                 className="text-gray-300 hover:text-white"
                 onClick={() => setMobileMenuOpen(false)}
@@ -317,7 +291,7 @@ export default function NavBar() {
             {user && (
               <div className="p-4 border-b border-gray-700">
                 <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center font-medium bg-blue-700 text-white">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center font-medium bg-[#8B5CF6] text-white">
                     {getUserInitials(user)}
                   </div>
                   <div>
@@ -339,8 +313,8 @@ export default function NavBar() {
                   className={({ isActive }) =>
                     `block px-6 py-3 text-base font-medium transition-colors ${
                       isActive
-                        ? "bg-gray-700 text-white border-l-4 border-blue-500"
-                        : "text-gray-300 hover:bg-gray-800 hover:text-white"
+                        ? "bg-gray-700 text-white border-l-4 border-[#22D3EE]"
+                        : "text-gray-300 hover:bg-[#020617]/60 hover:text-white"
                     }`
                   }
                   onClick={() => setMobileMenuOpen(false)}
@@ -356,7 +330,7 @@ export default function NavBar() {
                 <div className="space-y-2">
                   <NavLink
                     to="/EditProfile"
-                    className="flex items-center px-4 py-2 text-gray-200 hover:bg-gray-800 rounded-md transition-colors"
+                    className="flex items-center px-4 py-2 text-gray-200 hover:bg-[#020617]/60 rounded-md transition-colors"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <FiEdit2 className="mr-3" /> Edit Profile
@@ -399,7 +373,7 @@ export default function NavBar() {
 
         {/* User Dropdown for Mobile Top Bar */}
         {user && dropdownOpen && (
-          <div className="lg:hidden fixed top-16 right-4 w-48 rounded-md shadow-lg py-1 z-50 bg-gray-800 border border-gray-700">
+          <div className="lg:hidden fixed top-16 right-4 w-48 rounded-md shadow-lg py-1 z-50 bg-[#020617]/95 backdrop-blur-xl border border-[#1F2937]">
             <NavLink
               to="/EditProfile"
               className="flex px-4 py-2 text-sm items-center text-gray-200 hover:bg-gray-700"

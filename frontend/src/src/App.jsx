@@ -81,6 +81,7 @@ function App() {
             // }
           />
           <Route path="/about" element={<About />} />
+          {/* Features & product overview */}
           <Route path="/features" element={<Features />} />
         </Routes>
         <ToastContainer />

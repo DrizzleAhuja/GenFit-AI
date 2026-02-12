@@ -8,6 +8,8 @@ import { selectUser } from "../../redux/userSlice";
 import { API_BASE_URL } from "../../../config/api";
 import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
+import { useTheme } from '../../context/ThemeContext';
+import { Sparkles } from 'lucide-react';
 import { analyzePosture } from "../../utils/postureService";
 import { RepCounter, calculateCaloriesBurned } from "../../utils/repCounter";
 
@@ -30,6 +32,7 @@ const EXERCISES = [
 ];
 
 export default function PostureCoach() {
+  const { darkMode } = useTheme();
   const webcamRef = useRef(null);
   const canvasRef = useRef(null);
   const detectorRef = useRef(null);
@@ -611,19 +614,43 @@ export default function PostureCoach() {
   };
 
   return (
-    <div className="dark min-h-screen bg-gray-900 text-gray-100">
+    <div className={`min-h-screen flex flex-col ${
+      darkMode ? 'bg-[#05010d] text-white' : 'bg-[#020617] text-gray-100'
+    }`}>
       <NavBar />
-      <main className="max-w-6xl mx-auto px-4 pt-6 pb-16">
-        <header className="text-center mb-6">
-          <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">
-            Virtual Training Assistant
-          </h1>
-          <p className="mt-2 text-sm md:text-base text-gray-300">
-            Use your phone or laptop camera to get real-time posture feedback on your exercise form.
-          </p>
-        </header>
+      <main className="flex-grow">
+        <section className="relative overflow-hidden py-6 sm:py-8 lg:py-10">
+          {/* Background blobs */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute -top-24 -left-16 w-72 h-72 bg-[#8B5CF6] rounded-full blur-3xl opacity-30" />
+            <div className="absolute -bottom-28 right-0 w-80 h-80 bg-[#22D3EE] rounded-full blur-3xl opacity-25" />
+          </div>
 
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl mb-6 sm:mb-8 lg:mb-10">
+            {/* Header */}
+            <header className="text-center">
+              <div className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-gradient-to-r from-[#8B5CF6]/20 to-[#22D3EE]/20 border border-[#8B5CF6]/40 backdrop-blur-xl mb-4">
+                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#FACC15]" />
+                <span className="text-xs sm:text-sm font-semibold text-gray-100">
+                  Real-time Form Analysis
+                </span>
+              </div>
+
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold mb-3 sm:mb-4">
+                Virtual{" "}
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]">
+                  Training Assistant
+                </span>
+              </h1>
+
+              <p className="max-w-3xl mx-auto text-sm sm:text-base lg:text-lg text-gray-300">
+                Real-time posture analysis and exercise form correction powered by computer vision.
+              </p>
+            </header>
+          </div>
+
+          <div className="relative z-10 container mx-auto px-4 pt-6 pb-4 max-w-6xl">
+            <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
@@ -635,7 +662,7 @@ export default function PostureCoach() {
                       className={`px-3 py-1.5 rounded-full text-xs md:text-sm border ${
                         exercise === ex.id
                           ? "bg-emerald-500 text-gray-900 border-emerald-400"
-                          : "border-gray-600 text-gray-200 hover:bg-gray-800"
+                          : "border-[#1F2937] text-gray-200 hover:bg-[#020617]/60"
                       }`}
                     >
                       {ex.label}
@@ -648,7 +675,7 @@ export default function PostureCoach() {
                       Camera:
                     </span>
                     <select
-                      className="bg-gray-900 border border-gray-700 rounded-lg px-2 py-1 text-gray-100"
+                      className="bg-[#020617]/80 backdrop-blur-sm border border-[#1F2937] rounded-lg px-2 py-1 text-gray-100"
                       value={selectedCameraId || ""}
                       onChange={(e) =>
                         setSelectedCameraId(e.target.value || null)
@@ -680,7 +707,7 @@ export default function PostureCoach() {
               </button>
             </div>
 
-            <div className="relative rounded-2xl overflow-hidden border border-gray-700 bg-black aspect-video">
+            <div className="relative rounded-2xl overflow-hidden border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl aspect-video">
               <Webcam
                 ref={webcamRef}
                 mirrored={true}
@@ -704,13 +731,13 @@ export default function PostureCoach() {
                 </div>
               )}
               {isModelLoading && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-sm text-gray-100">
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#020617]/80 backdrop-blur-sm text-sm text-gray-100">
                   <div className="mb-2 h-6 w-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
                   <p>AI model loading, please wait…</p>
                 </div>
               )}
               {!isModelLoading && !isRunning && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-sm text-gray-100">
+                <div className="absolute inset-0 flex items-center justify-center bg-[#020617]/60 backdrop-blur-sm text-sm text-gray-100">
                   Press <span className="mx-1 font-semibold">Start Coaching</span> to begin.
                 </div>
               )}
@@ -753,8 +780,9 @@ export default function PostureCoach() {
               ) : null}
             </div>
 
-            <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
-              <h2 className="text-sm font-semibold text-gray-100 mb-2">
+            <div className="relative rounded-xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-4 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
+              <div className="absolute inset-x-0 top-0 h-1 rounded-t-xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
+              <h2 className="text-sm font-semibold text-white mb-2">
                 Live Feedback
               </h2>
               {analysis ? (
@@ -815,8 +843,9 @@ export default function PostureCoach() {
               )}
             </div>
 
-            <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
-              <h2 className="text-sm font-semibold text-gray-100 mb-2">
+            <div className="relative rounded-xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-4 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
+              <div className="absolute inset-x-0 top-0 h-1 rounded-t-xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
+              <h2 className="text-sm font-semibold text-white mb-2">
                 Last 15 Days History
               </h2>
               {!user && (
@@ -849,7 +878,7 @@ export default function PostureCoach() {
                       return (
                         <li
                           key={s._id}
-                          className="text-[11px] text-gray-200 border border-gray-700 rounded-lg px-3 py-2 bg-gray-900/60"
+                          className="text-[11px] text-gray-200 border border-[#1F2937] rounded-lg px-3 py-2 bg-[#020617]/60 backdrop-blur-sm"
                         >
                           <div className="flex justify-between items-center mb-1">
                             <span className="font-semibold capitalize">
@@ -892,8 +921,9 @@ export default function PostureCoach() {
                 )}
             </div>
 
-            <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 text-xs text-gray-300 space-y-2">
-              <h2 className="text-sm font-semibold text-gray-100 mb-1">
+            <div className="relative rounded-xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-4 text-xs text-gray-300 space-y-2 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
+              <div className="absolute inset-x-0 top-0 h-1 rounded-t-xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
+              <h2 className="text-sm font-semibold text-white mb-1">
                 How to use
               </h2>
               <ol className="list-decimal list-inside space-y-1">
@@ -906,6 +936,8 @@ export default function PostureCoach() {
               </p>
             </div>
           </aside>
+            </section>
+          </div>
         </section>
       </main>
       <Footer />
