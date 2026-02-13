@@ -52,6 +52,7 @@ export default function PostureCoach() {
   const [cameras, setCameras] = useState([]);
   const [selectedCameraId, setSelectedCameraId] = useState(null);
   const [visibilityMessage, setVisibilityMessage] = useState("");
+  const [cameraError, setCameraError] = useState("");
   const [sessionHistory, setSessionHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState("");
@@ -710,7 +711,21 @@ export default function PostureCoach() {
             <div className="relative rounded-2xl overflow-hidden border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl aspect-video">
               <Webcam
                 ref={webcamRef}
+                audio={false}
                 mirrored={true}
+                onUserMedia={() => {
+                  setCameraError("");
+                  setLastError(null);
+                }}
+                onUserMediaError={(err) => {
+                  console.error("Camera access error:", err);
+                  setCameraError(
+                    "Unable to access camera. Please allow camera permission for this site in your browser settings and reload."
+                  );
+                  setLastError(
+                    "Camera access was blocked. Check browser permission for this site and try again."
+                  );
+                }}
                 style={{
                   width: "100%",
                   height: "100%",
@@ -725,6 +740,11 @@ export default function PostureCoach() {
                 ref={canvasRef}
                 className="absolute inset-0 w-full h-full pointer-events-none"
               />
+              {cameraError && (
+                <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-red-500/90 text-white text-[11px] md:text-xs px-3 py-1 rounded-full shadow-lg max-w-full text-center">
+                  {cameraError}
+                </div>
+              )}
               {visibilityMessage && !isModelLoading && (
                 <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-red-500/80 text-white text-[11px] md:text-xs px-3 py-1 rounded-full shadow-lg">
                   {visibilityMessage}
