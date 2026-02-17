@@ -17,10 +17,20 @@ const {
 
 function getGoogleFitRedirectUri(req) {
   // Must match an Authorized redirect URI in Google Cloud Console
-  return (
-    process.env.GOOGLE_FIT_REDIRECT_URI ||
-    `${getCurrentUrl(req)}/api/auth/google-fit/callback`
-  );
+  // Use explicit env var if set, otherwise construct from backend URL
+  if (process.env.GOOGLE_FIT_REDIRECT_URI) {
+    return process.env.GOOGLE_FIT_REDIRECT_URI;
+  }
+  
+  // Construct from backend base URL (remove trailing slash if present)
+  const baseUrl = getCurrentUrl(req).replace(/\/$/, '');
+  const redirectUri = `${baseUrl}/api/auth/google-fit/callback`;
+  
+  // Log for debugging
+  console.log('🔗 [Google Fit] Redirect URI:', redirectUri);
+  console.log('🔗 [Google Fit] Backend base URL:', baseUrl);
+  
+  return redirectUri;
 }
 
 function getFrontendRedirectBase() {
@@ -1713,10 +1723,35 @@ router.get("/google-fit/link", async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: "User not found" });
 
+    // Validate environment variables
+    const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
+    
+    if (!clientId) {
+      console.error('❌ [Google Fit] GOOGLE_CLIENT_ID is missing or empty');
+      return res.status(500).json({ 
+        error: "Google OAuth configuration error: Client ID is missing",
+        hint: "Check your .env file - ensure GOOGLE_CLIENT_ID has no spaces around the = sign"
+      });
+    }
+    
+    if (!clientSecret) {
+      console.error('❌ [Google Fit] GOOGLE_CLIENT_SECRET is missing or empty');
+      return res.status(500).json({ 
+        error: "Google OAuth configuration error: Client Secret is missing",
+        hint: "Check your .env file - ensure GOOGLE_CLIENT_SECRET has no spaces around the = sign"
+      });
+    }
+
     const redirectUri = getGoogleFitRedirectUri(req);
+    console.log('🔗 [Google Fit] Starting OAuth flow');
+    console.log('🔗 [Google Fit] Redirect URI:', redirectUri);
+    console.log('🔗 [Google Fit] Client ID:', clientId.substring(0, 20) + '...');
+    console.log('🔗 [Google Fit] Client Secret:', clientSecret.substring(0, 10) + '...');
+    
     const oauth2Client = new OAuth2Client(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
+      clientId,
+      clientSecret,
       redirectUri
     );
 
@@ -1730,10 +1765,11 @@ router.get("/google-fit/link", async (req, res) => {
       include_granted_scopes: true,
     });
 
+    console.log('🔗 [Google Fit] Generated auth URL (first 100 chars):', authUrl.substring(0, 100) + '...');
     return res.redirect(authUrl);
   } catch (e) {
-    console.error("Google Fit link error:", e);
-    return res.status(500).json({ error: "Failed to start Google Fit linking" });
+    console.error("❌ [Google Fit] Link error:", e);
+    return res.status(500).json({ error: "Failed to start Google Fit linking", details: e.message });
   }
 });
 
