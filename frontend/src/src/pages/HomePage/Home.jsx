@@ -17,6 +17,13 @@ export default function Home() {
   const [stats, setStats] = useState({ points: 0, weeklyPoints: 0, streakCount: 0, badges: [], weeklyChallenge: {} });
   const [adherence, setAdherence] = useState({ active: false, adherenceThisWeek: 0, last4Weeks: [] });
   const { steps, target: stepTarget, permissionState, startTracking } = useStepCounter();
+  const [googleFit, setGoogleFit] = useState({
+    loading: false,
+    linked: false,
+    fitSteps: null,
+    lastSyncAt: null,
+    error: "",
+  });
 
   useEffect(() => {
     async function load() {
@@ -34,6 +41,63 @@ export default function Home() {
     load();
   }, [user]);
 
+  useEffect(() => {
+    async function loadGoogleFitStatus() {
+      if (!user?._id) return;
+      try {
+        setGoogleFit((prev) => ({ ...prev, loading: true, error: "" }));
+        const res = await axios.get(`${API_BASE_URL}/api/auth/google-fit/status`, {
+          params: { userId: user._id },
+        });
+        setGoogleFit((prev) => ({
+          ...prev,
+          loading: false,
+          linked: !!res.data?.linked,
+          lastSyncAt: res.data?.lastSyncAt || null,
+          // keep fitSteps as-is until user explicitly syncs
+        }));
+      } catch (e) {
+        setGoogleFit((prev) => ({
+          ...prev,
+          loading: false,
+          error: "Failed to load Google Fit status",
+        }));
+      }
+    }
+    loadGoogleFitStatus();
+  }, [user?._id]);
+
+  const linkGoogleFit = () => {
+    if (!user?._id) return;
+    // Opens Google OAuth consent screen and returns to /home
+    window.location.href = `${API_BASE_URL}/api/auth/google-fit/link?userId=${encodeURIComponent(
+      user._id
+    )}`;
+  };
+
+  const syncGoogleFitSteps = async () => {
+    if (!user?._id) return;
+    try {
+      setGoogleFit((prev) => ({ ...prev, loading: true, error: "" }));
+      const res = await axios.get(`${API_BASE_URL}/api/auth/google-fit/steps/today`, {
+        params: { userId: user._id },
+      });
+      setGoogleFit((prev) => ({
+        ...prev,
+        loading: false,
+        linked: true,
+        fitSteps: typeof res.data?.steps === "number" ? res.data.steps : null,
+        lastSyncAt: new Date().toISOString(),
+      }));
+    } catch (e) {
+      const msg =
+        e?.response?.data?.error ||
+        e?.response?.data?.details ||
+        "Failed to sync steps from Google Fit";
+      setGoogleFit((prev) => ({ ...prev, loading: false, error: msg }));
+    }
+  };
+
   const getNextBadge = () => {
     if ((stats.badges || []).includes('30-Day Streak')) return 'All badges earned! 🎉';
     if ((stats.badges || []).includes('14-Day Streak')) return 'Aim 30-Day Streak';
@@ -45,6 +109,14 @@ export default function Home() {
   const challengeProgress = stats.weeklyChallenge?.progress || 0;
   const challengeTarget = stats.weeklyChallenge?.target || 3;
   const challengePercent = Math.min((challengeProgress / challengeTarget) * 100, 100);
+  const displaySteps =
+    googleFit.linked && typeof googleFit.fitSteps === "number"
+      ? googleFit.fitSteps
+      : steps;
+  const stepSourceLabel =
+    googleFit.linked && typeof googleFit.fitSteps === "number"
+      ? "Google Fit"
+      : "Motion sensor (in-app)";
 
   return (
     <div className={`min-h-screen flex flex-col ${
@@ -153,7 +225,10 @@ export default function Home() {
                       Target: {stepTarget.toLocaleString()} steps
                     </p>
                     <p className="text-emerald-300 text-sm sm:text-base font-semibold mt-1">
-                      {steps.toLocaleString()} steps today
+                      {displaySteps.toLocaleString()} steps today
+                    </p>
+                    <p className="text-gray-400 text-[11px] mt-1">
+                      Source: {stepSourceLabel}
                     </p>
                   </div>
                 </div>
@@ -163,25 +238,58 @@ export default function Home() {
                       className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-cyan-500 transition-all duration-500 shadow-lg shadow-emerald-500/40"
                       style={{
                         width: `${Math.min(
-                          (steps / stepTarget) * 100 || 0,
+                          (displaySteps / stepTarget) * 100 || 0,
                           100
                         )}%`,
                       }}
                     />
                   </div>
-                  {permissionState !== "granted" && (
-                    <button
-                      onClick={startTracking}
-                      className="mt-1 inline-flex items-center justify-center px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium bg-gradient-to-r from-emerald-500 to-cyan-500 text-gray-900 hover:from-emerald-400 hover:to-cyan-400 transition-all shadow-md hover:shadow-emerald-500/40"
-                    >
-                      {permissionState === "denied"
-                        ? "Motion access denied – tap to try again"
-                        : permissionState === "unsupported"
-                        ? "Step tracking not supported on this device"
-                        : "Enable step tracking"}
-                    </button>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {!googleFit.linked && (
+                      <button
+                        onClick={linkGoogleFit}
+                        className="inline-flex items-center justify-center px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium bg-white/10 text-white hover:bg-white/15 transition-all border border-white/15"
+                        disabled={googleFit.loading}
+                      >
+                        {googleFit.loading ? "Loading..." : "Link Google Fit"}
+                      </button>
+                    )}
+                    {googleFit.linked && (
+                      <button
+                        onClick={syncGoogleFitSteps}
+                        className="inline-flex items-center justify-center px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium bg-white/10 text-white hover:bg-white/15 transition-all border border-white/15"
+                        disabled={googleFit.loading}
+                      >
+                        {googleFit.loading ? "Syncing..." : "Sync Google Fit"}
+                      </button>
+                    )}
+                    {permissionState !== "granted" && (
+                      <button
+                        onClick={startTracking}
+                        className="inline-flex items-center justify-center px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium bg-gradient-to-r from-emerald-500 to-cyan-500 text-gray-900 hover:from-emerald-400 hover:to-cyan-400 transition-all shadow-md hover:shadow-emerald-500/40"
+                      >
+                        {permissionState === "denied"
+                          ? "Motion denied – try again"
+                          : permissionState === "unsupported"
+                          ? "Motion not supported"
+                          : "Enable motion"}
+                      </button>
+                    )}
+                  </div>
+
+                  {googleFit.error && (
+                    <p className="text-[11px] text-red-300">{googleFit.error}</p>
                   )}
-                  {permissionState === "granted" && (
+
+                  {googleFit.linked && (
+                    <p className="text-[11px] text-gray-400">
+                      {googleFit.lastSyncAt
+                        ? `Last synced: ${new Date(googleFit.lastSyncAt).toLocaleString()}`
+                        : "Linked to Google Fit (not synced yet)"}
+                    </p>
+                  )}
+
+                  {permissionState === "granted" && !googleFit.linked && (
                     <p className="text-[11px] text-gray-400">
                       Tracking steps using your phone&apos;s motion sensors while
                       the app is open.

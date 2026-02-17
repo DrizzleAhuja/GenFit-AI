@@ -7,12 +7,25 @@ const WorkoutPlan = require("../models/WorkoutPlan").default; // Correct import 
 const WorkoutSessionLog = require("../models/WorkoutSessionLog").default; // Correct import for default export
 const DietChart = require("../models/DietChart");
 const axios = require("axios");
+const { OAuth2Client } = require("google-auth-library");
 const { login } = require("../controllers/authController");
 const {
   getCurrentUrl,
   GEMINI_API_KEY,
   GEMINI_API_URL,
 } = require("../config/config");
+
+function getGoogleFitRedirectUri(req) {
+  // Must match an Authorized redirect URI in Google Cloud Console
+  return (
+    process.env.GOOGLE_FIT_REDIRECT_URI ||
+    `${getCurrentUrl(req)}/api/auth/google-fit/callback`
+  );
+}
+
+function getFrontendRedirectBase() {
+  return process.env.FRONTEND_APP_URL || "http://localhost:5173";
+}
 
 router.post("/generate-plan", async (req, res) => {
   try {
@@ -1683,6 +1696,203 @@ router.delete("/diet-chart/:dietChartId", async (req, res) => {
     res.status(500).json({
       error: "Failed to delete diet chart",
       details: error.message,
+    });
+  }
+});
+
+// -----------------------------
+// Google Fit integration (steps)
+// -----------------------------
+
+// Start OAuth flow for Google Fit (links Fit account to a userId)
+router.get("/google-fit/link", async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ error: "userId is required" });
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const redirectUri = getGoogleFitRedirectUri(req);
+    const oauth2Client = new OAuth2Client(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      redirectUri
+    );
+
+    const scopes = ["https://www.googleapis.com/auth/fitness.activity.read"];
+
+    const authUrl = oauth2Client.generateAuthUrl({
+      access_type: "offline",
+      prompt: "consent",
+      scope: scopes,
+      state: String(userId),
+      include_granted_scopes: true,
+    });
+
+    return res.redirect(authUrl);
+  } catch (e) {
+    console.error("Google Fit link error:", e);
+    return res.status(500).json({ error: "Failed to start Google Fit linking" });
+  }
+});
+
+// OAuth callback: exchanges code for tokens and stores refresh token
+router.get("/google-fit/callback", async (req, res) => {
+  try {
+    const { code, state, error } = req.query;
+
+    if (error) {
+      console.error("Google Fit OAuth error:", error);
+      return res.redirect(
+        `${getFrontendRedirectBase()}/home?googleFit=error`
+      );
+    }
+    if (!code || !state) {
+      return res.status(400).send("Missing code/state");
+    }
+
+    const userId = String(state);
+    const user = await User.findById(userId).select("+googleFit.refreshToken");
+    if (!user) return res.status(404).send("User not found");
+
+    const redirectUri = getGoogleFitRedirectUri(req);
+    const oauth2Client = new OAuth2Client(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      redirectUri
+    );
+
+    const tokenResponse = await oauth2Client.getToken(String(code));
+    const tokens = tokenResponse.tokens || {};
+
+    if (!tokens.refresh_token && !user.googleFit?.refreshToken) {
+      console.warn(
+        "Google Fit: missing refresh_token (user may have previously consented)"
+      );
+    }
+
+    user.googleFitLinked = true;
+    user.googleFit = user.googleFit || {};
+    if (tokens.refresh_token) user.googleFit.refreshToken = tokens.refresh_token;
+
+    await user.save();
+
+    return res.redirect(
+      `${getFrontendRedirectBase()}/home?googleFit=linked`
+    );
+  } catch (e) {
+    console.error("Google Fit callback error:", e);
+    return res.redirect(`${getFrontendRedirectBase()}/home?googleFit=error`);
+  }
+});
+
+// Simple status endpoint for UI
+router.get("/google-fit/status", async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ error: "userId is required" });
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    return res.status(200).json({
+      linked: !!user.googleFitLinked,
+      lastSyncedSteps: user.googleFit?.lastSyncedSteps || 0,
+      lastSyncAt: user.googleFit?.lastSyncAt || null,
+    });
+  } catch (e) {
+    console.error("Google Fit status error:", e);
+    return res.status(500).json({ error: "Failed to fetch Google Fit status" });
+  }
+});
+
+// Fetch today's steps from Google Fit (requires linked account)
+router.get("/google-fit/steps/today", async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ error: "userId is required" });
+
+    const user = await User.findById(userId).select("+googleFit.refreshToken");
+    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user.googleFitLinked || !user.googleFit?.refreshToken) {
+      return res.status(400).json({
+        error:
+          "Google Fit not linked (or missing refresh token). Please link again.",
+      });
+    }
+
+    const redirectUri = getGoogleFitRedirectUri(req);
+    const oauth2Client = new OAuth2Client(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      redirectUri
+    );
+    oauth2Client.setCredentials({ refresh_token: user.googleFit.refreshToken });
+
+    const accessTokenResponse = await oauth2Client.getAccessToken();
+    const accessToken = accessTokenResponse?.token;
+    if (!accessToken) {
+      return res.status(500).json({ error: "Failed to get Google access token" });
+    }
+
+    const now = new Date();
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    const startTimeMillis = start.getTime();
+    const endTimeMillis = now.getTime();
+
+    const fitResponse = await axios.post(
+      "https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate",
+      {
+        aggregateBy: [{ dataTypeName: "com.google.step_count.delta" }],
+        bucketByTime: { durationMillis: 24 * 60 * 60 * 1000 },
+        startTimeMillis,
+        endTimeMillis,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        timeout: 20000,
+      }
+    );
+
+    const buckets = fitResponse.data?.bucket || [];
+    let totalSteps = 0;
+    for (const bucket of buckets) {
+      const datasets = bucket?.dataset || [];
+      for (const ds of datasets) {
+        const points = ds?.point || [];
+        for (const p of points) {
+          const val = p?.value?.[0];
+          const stepsVal =
+            typeof val?.intVal === "number"
+              ? val.intVal
+              : typeof val?.fpVal === "number"
+              ? Math.round(val.fpVal)
+              : 0;
+          totalSteps += stepsVal;
+        }
+      }
+    }
+
+    user.googleFit = user.googleFit || {};
+    user.googleFit.lastSyncedSteps = totalSteps;
+    user.googleFit.lastSyncAt = new Date();
+    await user.save();
+
+    return res.status(200).json({
+      steps: totalSteps,
+      date: start.toISOString().slice(0, 10),
+      source: "google_fit",
+    });
+  } catch (e) {
+    console.error("Google Fit steps error:", e?.response?.data || e);
+    return res.status(500).json({
+      error: "Failed to fetch steps from Google Fit",
+      details: e?.response?.data || e?.message,
     });
   }
 });

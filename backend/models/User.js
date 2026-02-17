@@ -67,6 +67,13 @@ const userSchema = new mongoose.Schema({
     completed: { type: Boolean, default: false },
     weekStartAt: { type: Date, default: null },
   },
+  // Google Fit integration (optional)
+  googleFitLinked: { type: Boolean, default: false },
+  googleFit: {
+    refreshToken: { type: String, select: false, default: null },
+    lastSyncedSteps: { type: Number, default: 0 },
+    lastSyncAt: { type: Date, default: null },
+  },
 });
 
 const User = mongoose.model("User", userSchema);
