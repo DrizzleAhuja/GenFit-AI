@@ -13,9 +13,9 @@ export function useStepCounter() {
   const [target] = useState(DAILY_TARGET_DEFAULT);
   const [permissionState, setPermissionState] = useState("idle"); // idle | granted | denied | unsupported
 
+  const lastMagnitudeRef = useRef(0);
   const lastStepTimeRef = useRef(0);
   const motionHandlerRef = useRef(null);
-  const stepPhaseRef = useRef("idle"); // idle | up
 
   // Load stored steps for today
   useEffect(() => {
@@ -58,44 +58,30 @@ export function useStepCounter() {
 
       // Overall magnitude including gravity (should be near ~9.8 at rest)
       const magnitude = Math.sqrt(ax * ax + ay * ay + az * az);
+      const lastMag = lastMagnitudeRef.current;
       const now = Date.now();
 
       // Heuristic: only consider reasonable walking/jogging magnitudes
-      if (magnitude < 8 || magnitude > 20) {
-        // ignore extreme noise (e.g., phone being thrown/rotated wildly)
+      if (magnitude < 8 || magnitude > 25) {
+        // ignore extreme noise (e.g., phone being thrown/rotated wildly or barely moving)
+        lastMagnitudeRef.current = magnitude;
         return;
       }
 
-      // Use vertical-like axis (ay is a decent proxy when phone is upright / in pocket)
-      const vertical = ay;
+      const STEP_THRESHOLD = 11.0; // peak magnitude threshold
+      const MIN_STEP_INTERVAL_MS = 500; // min time between steps
 
-      // Step detection using a small state machine on vertical acceleration:
-      // - When vertical goes clearly above GRAVITY + THRESH_UP, mark "up" phase
-      // - When it comes back down below GRAVITY - THRESH_DOWN, count a step
-      // This reduces false positives from just shaking the phone up/down quickly.
-      const GRAVITY = 9.8;
-      const THRESH_UP = 3.0;    // need a stronger "up" peak
-      const THRESH_DOWN = 2.0;  // and then a clear release
-      const MIN_STEP_INTERVAL_MS = 450; // min time between steps
-
-      const phase = stepPhaseRef.current;
-      const timeSinceLast = now - lastStepTimeRef.current;
-
-      if (phase === "idle") {
-        if (
-          vertical > GRAVITY + THRESH_UP &&
-          timeSinceLast > MIN_STEP_INTERVAL_MS
-        ) {
-          stepPhaseRef.current = "up";
-        }
-      } else if (phase === "up") {
-        if (vertical < GRAVITY - THRESH_DOWN) {
-          // Completed an up-down cycle -> likely one step
-          lastStepTimeRef.current = now;
-          stepPhaseRef.current = "idle";
-          setSteps((prev) => prev + 1);
-        }
+      // Detect a peak when we cross from below threshold to above threshold
+      if (
+        lastMag < STEP_THRESHOLD &&
+        magnitude >= STEP_THRESHOLD &&
+        now - lastStepTimeRef.current > MIN_STEP_INTERVAL_MS
+      ) {
+        lastStepTimeRef.current = now;
+        setSteps((prev) => prev + 1);
       }
+
+      lastMagnitudeRef.current = magnitude;
     };
 
     motionHandlerRef.current = handler;
