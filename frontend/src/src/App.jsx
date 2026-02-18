@@ -27,6 +27,7 @@ import Leaderboard from "./pages/Leaderboard/Leaderboard.jsx";
 import Dashboard from "./pages/Dashboard/Dashboard.jsx";
 import PostureCoach from "./pages/PostureCoach/PostureCoach.jsx";
 import PWAInstallBanner from "./Components/PWAInstallBanner.jsx";
+import FitBotWidget from "./pages/FitBot/Section1.jsx";
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     const savedLoginStatus = localStorage.getItem("isLoggedIn");
@@ -84,6 +85,7 @@ function App() {
           {/* Features & product overview */}
           <Route path="/features" element={<Features />} />
         </Routes>
+        <FitBotWidget />
         <ToastContainer />
       </div>
     </ThemeProvider>

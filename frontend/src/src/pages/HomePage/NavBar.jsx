@@ -144,7 +144,6 @@ export default function NavBar() {
           { path: "/leaderboard", label: "LEADERBOARD" },
         ]
       : [
-          { path: "/Aicoach", label: "AI COACH" },
           { path: "/VirtualTA", label: "VIRTUAL TRAINING ASSISTANT" },
           { path: "/CurrentBMI", label: "CURRENT BMI" },
           { path: "/calorie-tracker", label: "CALORIE TRACKER" },

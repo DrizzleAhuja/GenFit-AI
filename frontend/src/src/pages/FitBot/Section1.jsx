@@ -1,5 +1,5 @@
 // FitBot.js - Updated with professional styling
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { FiCopy, FiRefreshCw } from "react-icons/fi";
 import { FaDumbbell, FaHeartbeat, FaRunning } from "react-icons/fa";
@@ -10,7 +10,7 @@ import { selectUser } from "../../redux/userSlice";
 import { API_BASE_URL } from "../../../config/api";
 import { useTheme } from "../../context/ThemeContext";
 
-const FitBot = () => {
+const FitBot = ({ defaultOpen = false }) => {
   const user = useSelector(selectUser);
   const [messages, setMessages] = useState([
     {
@@ -26,10 +26,13 @@ const FitBot = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [activeWorkoutPlan, setActiveWorkoutPlan] = useState(null); // New state for active workout plan
+  const [isOpen, setIsOpen] = useState(Boolean(defaultOpen));
+  const chatEndRef = useRef(null);
 
   // Update initial message when user data changes
   useEffect(() => {
     const fetchActiveWorkoutPlan = async () => {
+      if (!isOpen) return;
       if (user && user._id) {
         try {
           const response = await axios.get(`${API_BASE_URL}/api/auth/workout-plan/active/${user._id}`);
@@ -44,7 +47,7 @@ const FitBot = () => {
     };
 
     fetchActiveWorkoutPlan();
-  }, [user]);
+  }, [user, isOpen]);
 
   // Update initial message when user data or activeWorkoutPlan changes
   useEffect(() => {
@@ -116,11 +119,39 @@ const FitBot = () => {
 
   const { darkMode } = useTheme();
 
+  const quickActions = useMemo(() => ([
+    { key: "workout", label: "Workout", icon: <FaDumbbell className="mr-1 text-[#22D3EE]" /> },
+    { key: "nutrition", label: "Nutrition", icon: <FaHeartbeat className="mr-1 text-[#8B5CF6]" /> },
+    { key: "cardio", label: "Cardio", icon: <FaRunning className="mr-1 text-[#22D3EE]" /> },
+  ]), []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    requestAnimationFrame(() => {
+      chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    });
+  }, [isOpen, messages.length, loading]);
+
+  const toggleOpen = () => setIsOpen((v) => !v);
+
   return (
-    <div className="w-full flex justify-center py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-4xl rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] overflow-hidden">
+    <>
+      {/* Floating widget button */}
+      {!isOpen && (
+        <button
+          onClick={toggleOpen}
+          className="fixed bottom-5 right-5 z-[9999] w-14 h-14 rounded-full bg-gradient-to-r from-[#22D3EE] via-[#0EA5E9] to-[#8B5CF6] shadow-lg hover:opacity-95 transition flex items-center justify-center"
+          aria-label="Open FitBot chat"
+        >
+          <BsRobot className="text-2xl text-white" />
+        </button>
+      )}
+
+      {/* Floating widget panel */}
+      {isOpen && (
+        <div className="fixed bottom-5 right-5 z-[9999] w-[92vw] max-w-[420px] h-[70vh] max-h-[620px] rounded-2xl border border-[#1F2937] bg-[#020617]/90 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.85)] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE] p-6 text-white">
+        <div className="bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE] p-4 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <BsRobot className="text-2xl mr-3" />
@@ -137,17 +168,35 @@ const FitBot = () => {
               </div>
             </div>
             <div className="flex space-x-2">
-              <button className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition">
+              <button
+                onClick={() => {
+                  setMessages((prev) => prev.slice(0, 1));
+                  setError(null);
+                }}
+                className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition"
+                aria-label="Reset chat"
+                type="button"
+              >
                 <FiRefreshCw className="text-lg" />
+              </button>
+              <button
+                onClick={toggleOpen}
+                className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition"
+                aria-label="Close chat"
+                type="button"
+              >
+                ✕
               </button>
             </div>
           </div>
         </div>
 
         {/* Chat Container */}
-        <div className={`h-96 md:h-[32rem] overflow-y-auto p-4 ${
-          darkMode ? 'bg-[#05010d]' : 'bg-[#020617]'
-        }`}>
+        <div
+          className={`flex-1 overflow-y-auto p-4 ${
+            darkMode ? "bg-[#05010d]" : "bg-[#020617]"
+          }`}
+        >
           {messages.map((msg, index) => (
             <div
               key={index}
@@ -195,6 +244,7 @@ const FitBot = () => {
               </div>
             </div>
           )}
+          <div ref={chatEndRef} />
         </div>
 
         {/* Input Area */}
@@ -245,16 +295,19 @@ const FitBot = () => {
               )}
             </button>
           </div>
-          <div className="mt-3 flex items-center justify-center space-x-4">
-            <button className="text-xs bg-[#020617]/80 border border-[#1F2937] hover:bg-[#020617] px-3 py-1 rounded-full flex items-center text-gray-200">
-              <FaDumbbell className="mr-1 text-[#22D3EE]" /> Workout
-            </button>
-            <button className="text-xs bg-[#020617]/80 border border-[#1F2937] hover:bg-[#020617] px-3 py-1 rounded-full flex items-center text-gray-200">
-              <FaHeartbeat className="mr-1 text-[#8B5CF6]" /> Nutrition
-            </button>
-            <button className="text-xs bg-[#020617]/80 border border-[#1F2937] hover:bg-[#020617] px-3 py-1 rounded-full flex items-center text-gray-200">
-              <FaRunning className="mr-1 text-[#22D3EE]" /> Cardio
-            </button>
+          <div className="mt-3 flex items-center justify-center space-x-3">
+            {quickActions.map((a) => (
+              <button
+                key={a.key}
+                type="button"
+                onClick={() => {
+                  setInput(`Help me with ${a.label.toLowerCase()}.`);
+                }}
+                className="text-xs bg-[#020617]/80 border border-[#1F2937] hover:bg-[#020617] px-3 py-1 rounded-full flex items-center text-gray-200"
+              >
+                {a.icon} {a.label}
+              </button>
+            ))}
           </div>
           {user && (
             <div className="mt-2 text-center">
@@ -265,8 +318,9 @@ const FitBot = () => {
             </div>
           )}
         </div>
-      </div>
-    </div>
+        </div>
+      )}
+    </>
   );
 };
 

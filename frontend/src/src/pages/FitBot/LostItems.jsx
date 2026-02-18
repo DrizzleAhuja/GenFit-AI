@@ -1,6 +1,5 @@
 import React from "react";
 import NavBar from "../HomePage/NavBar";
-import Section1 from "./Section1";
 import Footer from "../HomePage/Footer";
 import { useTheme } from '../../context/ThemeContext';
 import { Sparkles } from 'lucide-react';
@@ -44,8 +43,13 @@ export default function LostItems() {
             </header>
           </div>
         </section>
-        <div>
-          <Section1 />
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl pb-10">
+          <div className="rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-5 sm:p-6 text-center">
+            <p className="text-gray-200 text-sm sm:text-base">
+              FitBot is now available on <b>every page</b>.
+              Use the <b>bottom-right chat button</b> to open it anytime.
+            </p>
+          </div>
         </div>
       </main>
       <Footer />
