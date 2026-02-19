@@ -297,6 +297,7 @@ import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
 import { getFoodCalorie } from "../../utils/foodCalorieMap";
 import { useTheme } from "../../context/ThemeContext";
+import { Sparkles } from "lucide-react";
 
 const CHART_COLORS = ["#22D3EE", "#8B5CF6", "#FACC15", "#34D399", "#FB7185", "#38BDF8"];
 
@@ -741,19 +742,29 @@ const CalorieTracker = () => {
   return (
     <div className={`min-h-screen flex flex-col ${darkMode ? "bg-[#05010d] text-white" : "bg-[#020617] text-gray-100"}`}>
       <NavBar />
-      <main className="flex-grow max-w-5xl mx-auto px-4 pt-6 pb-4 w-full">
-        <section className="relative overflow-hidden py-6 sm:py-8">
+      <main className="flex-grow">
+        <section className="relative overflow-hidden py-6 sm:py-8 lg:py-10">
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute -top-24 -left-16 w-72 h-72 bg-[#8B5CF6] rounded-full blur-3xl opacity-30" />
             <div className="absolute -bottom-28 right-0 w-80 h-80 bg-[#22D3EE] rounded-full blur-3xl opacity-25" />
           </div>
 
-          <div className="relative z-10">
-            <header className="text-center mb-6">
-              <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]">
-                Calorie Tracker
+          <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
+            {/* Header - Features style */}
+            <header className="text-center mb-6 sm:mb-8 lg:mb-10">
+              <div className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-gradient-to-r from-[#8B5CF6]/20 to-[#22D3EE]/20 border border-[#8B5CF6]/40 backdrop-blur-xl mb-4">
+                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#FACC15]" />
+                <span className="text-xs sm:text-sm font-semibold text-gray-100">
+                  AI-Powered Nutrition
+                </span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold mb-3 sm:mb-4">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]">
+                  Calorie
+                </span>{" "}
+                Tracker
               </h1>
-              <p className="mt-2 text-sm md:text-base text-gray-300">
+              <p className="max-w-3xl mx-auto text-sm sm:text-base lg:text-lg text-gray-300">
                 Upload a photo of your food and get instant calorie estimates. AI analyzes your meal image to help you track nutrition.
               </p>
               {isModelLoading && (
@@ -761,13 +772,12 @@ const CalorieTracker = () => {
               )}
             </header>
 
-            <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <section className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
               {/* Left: Image upload & preview */}
-              <div className="space-y-4">
-                <div className="relative rounded-xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl">
-                  {/* Top gradient bar */}
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE] rounded-t-xl"></div>
-                  <div className="p-4">
+              <div className="space-y-5 sm:space-y-6">
+                <div className="relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 transition-all duration-300">
+                  <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]"></div>
+                  <div className="p-5 sm:p-6">
                     <h2 className="text-sm font-semibold text-gray-100 mb-3">
                       Upload food image
                     </h2>
@@ -791,7 +801,7 @@ const CalorieTracker = () => {
                         onChange={(e) => handleQuantityChange(e.target.value)}
                         onBlur={(e) => handleQuantityBlur(e.target.value)}
                         className="w-full rounded-md bg-[#020617]/80 border-2 border-[#8B5CF6]/50 px-3 py-2 text-sm font-medium text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] focus:border-[#8B5CF6]"
-                        placeholder="e.g. 1, 2, 0.5"
+                        placeholder="e.g. 1, 2, 3"
                       />
                       <div className="text-[10px] text-gray-500 mt-1">
                         How many servings / items (1 – 20). Total calories = detected calories × this quantity.
@@ -800,10 +810,10 @@ const CalorieTracker = () => {
                     <button
                       onClick={handleAnalyze}
                       disabled={loading || !imageBase64 || isModelLoading || Number(quantity) < 1 || Number(quantity) > 20}
-                      className={`mt-4 w-full px-4 py-2 rounded-lg text-sm font-semibold ${
+                      className={`mt-4 w-full px-4 py-3 rounded-full text-sm sm:text-base font-semibold transition-all duration-300 ${
                         loading || !imageBase64 || isModelLoading || Number(quantity) < 1 || Number(quantity) > 20
                           ? "bg-[#8B5CF6]/40 text-gray-400 cursor-not-allowed"
-                          : "bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE] text-white hover:opacity-90"
+                          : "bg-gradient-to-r from-[#22D3EE] via-[#0EA5E9] to-[#8B5CF6] text-white hover:opacity-95 shadow-lg hover:shadow-[#22D3EE]/40"
                       }`}
                     >
                       {loading ? "Analyzing..." : isModelLoading ? "Loading model..." : "Analyze Food Image"}
@@ -816,10 +826,9 @@ const CalorieTracker = () => {
                   </div>
                 </div>
 
-                <div className="relative rounded-xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl">
-                  {/* Top gradient bar */}
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE] rounded-t-xl"></div>
-                  <div className="p-4">
+                <div className="relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 transition-all duration-300">
+                  <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]"></div>
+                  <div className="p-5 sm:p-6">
                     <h2 className="text-sm font-semibold text-gray-100 mb-3">
                       Preview
                     </h2>
@@ -841,11 +850,10 @@ const CalorieTracker = () => {
               </div>
 
               {/* Right: Results & editing */}
-              <div className="space-y-4">
-                <div className="relative rounded-xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl">
-                  {/* Top gradient bar */}
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE] rounded-t-xl"></div>
-                  <div className="p-4">
+              <div className="space-y-5 sm:space-y-6">
+                <div className="relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 transition-all duration-300">
+                  <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]"></div>
+                  <div className="p-5 sm:p-6">
                     <h2 className="text-sm font-semibold text-gray-100 mb-3">
                       Estimated calories
                     </h2>
@@ -909,9 +917,9 @@ const CalorieTracker = () => {
 
                 {/* Calories breakdown chart */}
                 {items.length > 0 && totalCalories > 0 && (
-                  <div className="relative rounded-xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl">
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE] rounded-t-xl"></div>
-                    <div className="p-4">
+                  <div className="relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 transition-all duration-300">
+                    <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]"></div>
+                    <div className="p-5 sm:p-6">
                       <h2 className="text-sm font-semibold text-gray-100 mb-3">
                         Calories by item
                       </h2>
@@ -968,16 +976,15 @@ const CalorieTracker = () => {
                   </div>
                 )}
 
-                <div className="relative rounded-xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl">
-                  {/* Top gradient bar */}
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE] rounded-t-xl"></div>
-                  <div className="p-4 text-xs text-gray-300 space-y-2">
-                    <h2 className="text-sm font-semibold text-gray-100 mb-1">
+                <div className="relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 transition-all duration-300">
+                  <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]"></div>
+                  <div className="p-5 sm:p-6 text-sm sm:text-base text-gray-300 space-y-2">
+                    <h2 className="text-lg sm:text-xl font-semibold text-white mb-2">
                       How this works
                     </h2>
               <ol className="list-decimal list-inside space-y-1">
                 <li>Upload a clear photo of your food or meal (from above or at an angle).</li>
-                <li>Enter quantity (required): how many servings or items — e.g. 1, 2, or 0.5.</li>
+                <li>Enter quantity (required): how many servings or items — e.g. 1, 2, or 3.</li>
                 <li>Tap "Analyze Food Image". Calories per item are from the model (read-only).</li>
                 <li>Total calories = sum of detected calories × your quantity.</li>
                 <li>Use actual food images for best results.</li>
