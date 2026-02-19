@@ -147,6 +147,7 @@ export default function NavBar() {
           { path: "/VirtualTA", label: "VIRTUAL TRAINING ASSISTANT" },
           { path: "/CurrentBMI", label: "CURRENT BMI" },
           { path: "/calorie-tracker", label: "CALORIE TRACKER" },
+          { path: "/daily-steps", label: "DAILY STEPS" },
           { path: "/Workout", label: "WORKOUT" },
           { path: "/diet-chart", label: "DIET CHART" },
           { path: "/leaderboard", label: "LEADERBOARD" },

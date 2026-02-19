@@ -28,6 +28,7 @@ import Dashboard from "./pages/Dashboard/Dashboard.jsx";
 import PostureCoach from "./pages/PostureCoach/PostureCoach.jsx";
 import PWAInstallBanner from "./Components/PWAInstallBanner.jsx";
 import FitBotWidget from "./pages/FitBot/Section1.jsx";
+import DailyStepsTracker from "./pages/DailyStepsTracker/DailyStepsTracker.jsx";
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     const savedLoginStatus = localStorage.getItem("isLoggedIn");
@@ -66,6 +67,7 @@ function App() {
           <Route path="/diet-chart" element={<DietChartGenerator />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/daily-steps" element={<DailyStepsTracker />} />
           {/* Optional alias route for direct access */}
           <Route path="/posture-coach" element={<PostureCoach />} />
           {/* <Route path="/admin-calorie-tracker" element={<CalorieTracker />} />
