@@ -2,13 +2,14 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useSelector } from "react-redux";
 import { selectUser } from "../../redux/userSlice";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   FiEdit2,
   FiTrash2,
   FiActivity,
   FiArrowLeft,
   FiClock,
+  FiPlay,
 } from "react-icons/fi";
 import { FaDumbbell, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
@@ -23,6 +24,7 @@ const MyWorkoutPlan = () => {
   const { darkMode } = useTheme();
   const user = useSelector(selectUser);
   const navigate = useNavigate();
+  const location = useLocation();
   const [activePlan, setActivePlan] = useState(null);
   const [historyPlans, setHistoryPlans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,14 +39,42 @@ const MyWorkoutPlan = () => {
   const [missedWorkouts, setMissedWorkouts] = useState(0); // Count of missed workouts
   const [missedWorkoutDetails, setMissedWorkoutDetails] = useState([]); // Details of missed workouts
 
+  // When returning from Virtual TA with "mark complete", mark the exercise and clear state
+  const pendingMarkComplete = location.state?.markExerciseComplete && location.state?.exerciseName;
   useEffect(() => {
-    if (!user) {
-      toast.error("Please log in to view your workout plans.");
-      navigate("/signin");
-      return;
-    }
+    if (!pendingMarkComplete || !user || !activePlan) return;
+    const state = location.state;
+    let cancelled = false;
+    (async () => {
+      try {
+        await handleToggleExercise(
+          state.dayIndex,
+          state.weekNumber,
+          state.exerciseName,
+          state.sets,
+          state.reps,
+          state.weight,
+          false
+        );
+        if (!cancelled) navigate("/my-workout-plan", { replace: true, state: {} });
+      } catch (_) {
+        // handleToggleExercise already shows toast on error
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [pendingMarkComplete, user, activePlan]);
+
+  useEffect(() => {
+    if (user?._id) {
+      fetchPlans();
+      fetchTodayWorkout();
+    } else {
+      setLoading(false);
     fetchPlans();
     fetchTodayWorkout();
+    fetchPlans();
+    fetchTodayWorkout();
+    }
   }, [user, navigate]);
 
   // Fetch today's workout only
@@ -256,6 +286,7 @@ const MyWorkoutPlan = () => {
           overallNotes: existingLog?.overallNotes || "",
           perceivedExertion: existingLog?.perceivedExertion || 5,
           durationMinutes: existingLog?.durationMinutes || 0,
+          isDayCompleted: allExercisesCompletedForDay,
         }
       );
 
@@ -263,12 +294,14 @@ const MyWorkoutPlan = () => {
         toast.success(
           `Exercise '${exerciseName}' ${!isCompleted ? "completed" : "unmarked"}!`
         );
-        fetchPlans();
-        fetchTodayWorkout();
+        await fetchPlans();
+        await fetchTodayWorkout();
       }
+      return res;
     } catch (err) {
       console.error("Error toggling exercise:", err);
       toast.error("Failed to update exercise completion.");
+      throw err;
     }
   };
 
@@ -913,29 +946,55 @@ const MyWorkoutPlan = () => {
                                                 <p className="text-gray-400 text-xs mt-1 italic line-clamp-2">{exercise.notes}</p>
                                               )}
                                             </div>
-                                            <button
-                                              onClick={() => handleToggleExercise(
-                                                todayWorkout.dayIndex,
-                                                todayWorkout.weekNumber,
-                                                exercise.name,
-                                                exercise.sets,
-                                                exercise.reps,
-                                                exercise.weight,
-                                                isExerciseCompleted
+                                            <div className="flex items-center gap-2 flex-shrink-0">
+                                              {!isExerciseCompleted && !todayWorkout.isCompleted && (
+                                                <button
+                                                  onClick={() => navigate("/VirtualTA", {
+                                                    state: {
+                                                      fromWorkoutPlan: true,
+                                                      exercise: {
+                                                        name: exercise.name,
+                                                        sets: exercise.sets,
+                                                        reps: exercise.reps,
+                                                        weight: exercise.weight,
+                                                      },
+                                                      dayIndex: todayWorkout.dayIndex,
+                                                      weekNumber: todayWorkout.weekNumber,
+                                                      workoutPlanId: activePlan._id,
+                                                    },
+                                                  })}
+                                                  className="p-2 sm:p-3 rounded-xl bg-gradient-to-r from-cyan-500/80 to-blue-500/80 hover:from-cyan-500 hover:to-blue-500 text-white transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center gap-1.5"
+                                                  title="Train with Virtual Assistant until reps are done"
+                                                >
+                                                  <FiPlay className="text-lg sm:text-xl" />
+                                                  <span className="text-xs sm:text-sm font-semibold hidden sm:inline">Train</span>
+                                                </button>
                                               )}
-                                              className={`flex-shrink-0 p-2 sm:p-3 rounded-xl transition-all duration-300 transform hover:scale-110 shadow-lg ${
-                                                isExerciseCompleted
-                                                  ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
-                                                  : 'bg-[#020617]/80 hover:bg-[#1F2937] text-gray-300'
-                                              }`}
-                                              disabled={todayWorkout.isCompleted}
-                                            >
-                                              {isExerciseCompleted ? (
-                                                <FaCheckCircle className="text-lg sm:text-xl" />
-                                              ) : (
-                                                <FaTimesCircle className="text-lg sm:text-xl" />
-                                              )}
-                                            </button>
+                                              <button
+                                                onClick={() => handleToggleExercise(
+                                                  todayWorkout.dayIndex,
+                                                  todayWorkout.weekNumber,
+                                                  exercise.name,
+                                                  exercise.sets,
+                                                  exercise.reps,
+                                                  exercise.weight,
+                                                  isExerciseCompleted
+                                                )}
+                                                className={`p-2 sm:p-3 rounded-xl transition-all duration-300 transform hover:scale-110 shadow-lg ${
+                                                  isExerciseCompleted
+                                                    ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
+                                                    : 'bg-[#020617]/80 hover:bg-[#1F2937] text-gray-300'
+                                                }`}
+                                                disabled={todayWorkout.isCompleted}
+                                                title={isExerciseCompleted ? "Mark as not done" : "Mark as done"}
+                                              >
+                                                {isExerciseCompleted ? (
+                                                  <FaCheckCircle className="text-lg sm:text-xl" />
+                                                ) : (
+                                                  <FaTimesCircle className="text-lg sm:text-xl" />
+                                                )}
+                                              </button>
+                                            </div>
                                           </div>
                                         </li>
                                       );
@@ -1141,7 +1200,32 @@ const MyWorkoutPlan = () => {
                                               </a>
                                             )}
                                           </div>
-                                          {!activePlan.completed && (
+                                          <div className="flex items-center gap-2 flex-shrink-0">
+                                            {!activePlan.completed && (
+                                              <button
+                                                type="button"
+                                                onClick={() => navigate("/VirtualTA", {
+                                                  state: {
+                                                    fromWorkoutPlan: true,
+                                                    exercise: {
+                                                      name: exercise.name,
+                                                      sets: exercise.sets,
+                                                      reps: exercise.reps,
+                                                      weight: exercise.weight,
+                                                    },
+                                                    dayIndex,
+                                                    weekNumber: currentWeekNumber,
+                                                    workoutPlanId: activePlan._id,
+                                                  },
+                                                })}
+                                                className="p-2 rounded-lg bg-cyan-500/80 hover:bg-cyan-500 text-white text-xs font-semibold flex items-center gap-1"
+                                                title="Train with Virtual Assistant"
+                                              >
+                                                <FiPlay className="text-sm" />
+                                                Train
+                                              </button>
+                                            )}
+                                            {!activePlan.completed && (
                                             <input
                                               type="checkbox"
                                               checked={
@@ -1158,7 +1242,8 @@ const MyWorkoutPlan = () => {
                                               }
                                               className="h-6 w-6 text-green-600 border-gray-500 rounded focus:ring-green-500"
                                             />
-                                          )}
+                                            )}
+                                          </div>
                                         </li>
                                       );
                                     }

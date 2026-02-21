@@ -503,16 +503,15 @@ router.get("/workout-plan/today/:userId", async (req, res) => {
         const dayIndex = todaySchedule.dayIndex;
         const workoutContent = activePlan.planContent[dayIndex];
         
-        // Check if already completed today
+        // Check if already completed today (full day marked complete)
         const isCompleted = todaySchedule.status === 'completed';
-        const completedSessionLog = isCompleted 
-          ? await WorkoutSessionLog.findOne({
-              workoutPlanId: activePlan._id,
-              weekNumber: todaySchedule.weekNumber,
-              dayIndex: dayIndex,
-              date: { $gte: today, $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000) }
-            })
-          : null;
+        // Always fetch today's session log so UI can show which exercises are done (partial or full)
+        const completedSessionLog = await WorkoutSessionLog.findOne({
+          workoutPlanId: activePlan._id,
+          weekNumber: todaySchedule.weekNumber,
+          dayIndex: dayIndex,
+          date: { $gte: today, $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000) }
+        });
         
         todayWorkout = {
           scheduledDate: todaySchedule.date,

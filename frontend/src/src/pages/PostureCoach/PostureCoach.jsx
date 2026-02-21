@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import Webcam from "react-webcam";
 import * as tf from "@tensorflow/tfjs";
 import * as poseDetection from "@tensorflow-models/pose-detection";
@@ -12,6 +13,50 @@ import { useTheme } from '../../context/ThemeContext';
 import { Sparkles } from 'lucide-react';
 import { analyzePosture } from "../../utils/postureService";
 import { RepCounter, calculateCaloriesBurned } from "../../utils/repCounter";
+
+// Map workout plan exercise names to PostureCoach exercise ids
+const WORKOUT_NAME_TO_EXERCISE_ID = [
+  { keywords: ["bicep", "curl", "dumbbell curl"], id: "bicep_curl" },
+  { keywords: ["lateral raise"], id: "lateral_raise" },
+  { keywords: ["front raise", "shoulder raise"], id: "shoulder_press" },
+  { keywords: ["tricep", "triceps", "kickback", "extension"], id: "tricep_extension" },
+  { keywords: ["bench press", "push-up", "push up", "press up"], id: "pushup" },
+  { keywords: ["squat"], id: "squat" },
+  { keywords: ["deadlift"], id: "deadlift" },
+  { keywords: ["lunge"], id: "lunge" },
+  { keywords: ["plank"], id: "plank" },
+  { keywords: ["shoulder press", "overhead press"], id: "shoulder_press" },
+  { keywords: ["bent over row", "bent-over row", "row"], id: "bent_over_row" },
+  { keywords: ["high knees"], id: "high_knees" },
+  { keywords: ["jumping jack"], id: "jumping_jack" },
+  { keywords: ["mountain climber"], id: "mountain_climber" },
+  { keywords: ["side plank"], id: "side_plank" },
+];
+
+function mapWorkoutExerciseNameToId(name) {
+  if (!name || typeof name !== "string") return "squat";
+  const lower = name.toLowerCase();
+  for (const { keywords, id } of WORKOUT_NAME_TO_EXERCISE_ID) {
+    if (keywords.some((kw) => lower.includes(kw))) return id;
+  }
+  return "squat";
+}
+
+/** Parse target total reps from sets (number) and reps (string e.g. "8-12", "10", "to failure") */
+function parseTargetTotalReps(sets, repsStr) {
+  const setsNum = typeof sets === "number" ? sets : parseInt(sets, 10) || 1;
+  if (!repsStr || typeof repsStr !== "string") return setsNum * 10;
+  const s = repsStr.toLowerCase().trim();
+  if (s.includes("failure") || s.includes("max")) return null; // no numeric target
+  const rangeMatch = s.match(/(\d+)\s*-\s*(\d+)/);
+  if (rangeMatch) {
+    const high = Math.max(parseInt(rangeMatch[1], 10), parseInt(rangeMatch[2], 10));
+    return setsNum * high;
+  }
+  const single = parseInt(s.replace(/\D/g, ""), 10);
+  if (!isNaN(single)) return setsNum * single;
+  return setsNum * 10;
+}
 
 const EXERCISES = [
   { id: "posture", label: "Posture" },
@@ -33,6 +78,8 @@ const EXERCISES = [
 
 export default function PostureCoach() {
   const { darkMode } = useTheme();
+  const location = useLocation();
+  const navigate = useNavigate();
   const webcamRef = useRef(null);
   const canvasRef = useRef(null);
   const detectorRef = useRef(null);
@@ -40,6 +87,7 @@ export default function PostureCoach() {
   const sessionStartTimeRef = useRef(null);
   const lastGoodScoreRef = useRef(false);
   const user = useSelector(selectUser);
+  const workoutFromPlan = location.state?.fromWorkoutPlan ? location.state : null;
   const [exercise, setExercise] = useState("squat");
   const [isRunning, setIsRunning] = useState(false);
   const [isModelLoading, setIsModelLoading] = useState(true);
@@ -56,6 +104,14 @@ export default function PostureCoach() {
   const [sessionHistory, setSessionHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState("");
+
+  // When opened from workout plan, pre-select the matching exercise
+  useEffect(() => {
+    if (workoutFromPlan?.exercise?.name) {
+      const mappedId = mapWorkoutExerciseNameToId(workoutFromPlan.exercise.name);
+      setExercise(mappedId);
+    }
+  }, [workoutFromPlan?.exercise?.name]);
 
   // Initialize rep counter and reset when exercise changes
   useEffect(() => {
@@ -648,6 +704,18 @@ export default function PostureCoach() {
                 Real-time posture analysis and exercise form correction powered by computer vision.
               </p>
             </header>
+
+            {workoutFromPlan && workoutFromPlan.exercise && (
+              <div className="mt-4 mx-auto max-w-3xl rounded-xl bg-cyan-500/20 border border-cyan-400/50 backdrop-blur p-4 text-center">
+                <p className="text-cyan-100 font-semibold">
+                  Training: {workoutFromPlan.exercise.name}
+                </p>
+                <p className="text-cyan-200/90 text-sm mt-1">
+                  {workoutFromPlan.exercise.sets} sets × {workoutFromPlan.exercise.reps} reps — complete all reps here to mark this exercise as done in your plan.
+                </p>
+              </div>
+            )}
+
           </div>
 
           <div className="relative z-10 container mx-auto px-4 pt-6 pb-4 max-w-6xl">
@@ -799,6 +867,44 @@ export default function PostureCoach() {
                 </div>
               ) : null}
             </div>
+
+            {workoutFromPlan && workoutFromPlan.exercise && (() => {
+              const targetTotal = parseTargetTotalReps(workoutFromPlan.exercise.sets, workoutFromPlan.exercise.reps);
+              const isToFailure = targetTotal === null;
+              const canMarkComplete = isToFailure ? reps >= 1 : reps >= targetTotal;
+              return (
+                <div className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 backdrop-blur p-4 space-y-2">
+                  <p className="text-xs text-cyan-200">
+                    {isToFailure
+                      ? `Reps done: ${reps}. When finished, mark as complete below.`
+                      : `Reps: ${reps} / ${targetTotal} — ${canMarkComplete ? "Ready to mark complete!" : "Keep training until all reps are done."}`}
+                  </p>
+                  <button
+                    onClick={() => {
+                      navigate("/my-workout-plan", {
+                        state: {
+                          markExerciseComplete: true,
+                          exerciseName: workoutFromPlan.exercise.name,
+                          sets: workoutFromPlan.exercise.sets,
+                          reps: workoutFromPlan.exercise.reps,
+                          weight: workoutFromPlan.exercise.weight,
+                          dayIndex: workoutFromPlan.dayIndex,
+                          weekNumber: workoutFromPlan.weekNumber,
+                        },
+                      });
+                    }}
+                    disabled={!canMarkComplete}
+                    className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-all ${
+                      canMarkComplete
+                        ? "bg-cyan-500 hover:bg-cyan-600 text-gray-900"
+                        : "bg-gray-600 text-gray-400 cursor-not-allowed"
+                    }`}
+                  >
+                    Finish & mark exercise complete
+                  </button>
+                </div>
+              );
+            })()}
 
             <div className="relative rounded-xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-4 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
               <div className="absolute inset-x-0 top-0 h-1 rounded-t-xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
