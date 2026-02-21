@@ -11,7 +11,7 @@ import {
   FiClock,
   FiPlay,
 } from "react-icons/fi";
-import { FaDumbbell, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
+import { FaDumbbell, FaCheckCircle, FaRegCircle, FaTimesCircle } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
 import NavBar from "../HomePage/NavBar";
@@ -974,7 +974,7 @@ const MyWorkoutPlan = () => {
                                                 {isExerciseCompleted ? (
                                                   <FaCheckCircle className="text-lg sm:text-xl" />
                                                 ) : (
-                                                  <FaTimesCircle className="text-lg sm:text-xl" />
+                                                  <FaRegCircle className="text-lg sm:text-xl text-gray-400" />
                                                 )}
                                               </button>
                                             </div>
