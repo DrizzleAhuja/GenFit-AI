@@ -892,7 +892,7 @@ export default function PostureCoach() {
               </button>
             </div>
 
-            <div className="relative rounded-2xl overflow-hidden border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl aspect-video">
+            <div className="relative rounded-2xl overflow-hidden border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl aspect-video flex items-center justify-center bg-black">
               <Webcam
                 ref={webcamRef}
                 audio={false}
@@ -913,16 +913,20 @@ export default function PostureCoach() {
                 style={{
                   width: "100%",
                   height: "100%",
-                  objectFit: "cover",
+                  objectFit: "contain",
                 }}
                 videoConstraints={{
                   deviceId: selectedCameraId || undefined,
                   facingMode: selectedCameraId ? undefined : "user",
+                  width: { ideal: 1280, min: 640 },
+                  height: { ideal: 720, min: 480 },
+                  aspectRatio: { ideal: 16 / 9 },
                 }}
               />
               <canvas
                 ref={canvasRef}
                 className="absolute inset-0 w-full h-full pointer-events-none"
+                style={{ objectFit: "contain" }}
               />
               {cameraError && (
                 <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-red-500/90 text-white text-[11px] md:text-xs px-3 py-1 rounded-full shadow-lg max-w-full text-center">
