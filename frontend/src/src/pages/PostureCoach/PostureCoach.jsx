@@ -14,23 +14,38 @@ import { Sparkles } from 'lucide-react';
 import { analyzePosture } from "../../utils/postureService";
 import { RepCounter, calculateCaloriesBurned } from "../../utils/repCounter";
 
-// Map workout plan exercise names to PostureCoach exercise ids
+// Map workout plan exercise names (from Gemini) to PostureCoach exercise ids.
+// Order matters: more specific keyword sets first. Covers all common AI-generated exercises.
 const WORKOUT_NAME_TO_EXERCISE_ID = [
-  { keywords: ["bicep", "curl", "dumbbell curl"], id: "bicep_curl" },
-  { keywords: ["lateral raise"], id: "lateral_raise" },
-  { keywords: ["front raise", "shoulder raise"], id: "shoulder_press" },
-  { keywords: ["tricep", "triceps", "kickback", "extension"], id: "tricep_extension" },
-  { keywords: ["bench press", "push-up", "push up", "press up"], id: "pushup" },
-  { keywords: ["squat"], id: "squat" },
-  { keywords: ["deadlift"], id: "deadlift" },
-  { keywords: ["lunge"], id: "lunge" },
-  { keywords: ["plank"], id: "plank" },
-  { keywords: ["shoulder press", "overhead press"], id: "shoulder_press" },
-  { keywords: ["bent over row", "bent-over row", "row"], id: "bent_over_row" },
-  { keywords: ["high knees"], id: "high_knees" },
-  { keywords: ["jumping jack"], id: "jumping_jack" },
-  { keywords: ["mountain climber"], id: "mountain_climber" },
+  // Bicep
+  { keywords: ["bicep", "curl", "dumbbell curl", "hammer curl", "preacher curl", "concentration curl", "cable curl", "barbell curl"], id: "bicep_curl" },
+  // Lateral / delts
+  { keywords: ["lateral raise", "side raise", "lateral delt", "reverse fly", "face pull"], id: "lateral_raise" },
+  // Shoulder press / overhead
+  { keywords: ["shoulder press", "overhead press", "military press", "arnold press", "front raise", "shoulder raise", "push press", "strict press"], id: "shoulder_press" },
+  // Triceps
+  { keywords: ["tricep", "triceps", "kickback", "extension", "pushdown", "skull crusher", "lying tricep", "overhead extension", "dip"], id: "tricep_extension" },
+  // Push-up / chest (bench, press, fly)
+  { keywords: ["bench press", "push-up", "push up", "press up", "incline press", "decline press", "chest press", "cable fly", "pec deck", "chest fly", "dumbbell fly", "pushup", "press-up", "diamond push"], id: "pushup" },
+  // Rows / back pull
+  { keywords: ["bent over row", "bent-over row", "barbell row", "dumbbell row", "t-bar row", "lat pulldown", "cable row", "seated row", "single arm row", "pendlay row", "inverted row", "pull-up", "chin-up", "pullup", "pulldown"], id: "bent_over_row" },
+  // Deadlift variants
+  { keywords: ["romanian deadlift", "rdl", "stiff leg", "sumo deadlift", "deadlift", "hip hinge"], id: "deadlift" },
+  // Lunge variants (before squat so "split squat" matches lunge)
+  { keywords: ["bulgarian split", "split squat", "walking lunge", "reverse lunge", "lunge", "curtsy lunge", "lateral lunge"], id: "lunge" },
+  // Squat variants
+  { keywords: ["goblet squat", "front squat", "box squat", "hack squat", "leg press", "squat", "pistol squat", "jump squat", "sissy squat"], id: "squat" },
+  // Calf / legs (map to squat for lower-body pose analysis)
+  { keywords: ["calf raise", "leg extension", "leg curl", "hip thrust", "glute bridge"], id: "squat" },
+  // Plank
+  { keywords: ["plank", "front plank", "forearm plank", "hollow hold", "dead bug"], id: "plank" },
   { keywords: ["side plank"], id: "side_plank" },
+  // Cardio / bodyweight
+  { keywords: ["high knees", "knee raise", "knee up"], id: "high_knees" },
+  { keywords: ["jumping jack", "star jump", "jump jack"], id: "jumping_jack" },
+  { keywords: ["mountain climber", "mountains"], id: "mountain_climber" },
+  // Posture / standing
+  { keywords: ["posture", "standing", "stance"], id: "posture" },
 ];
 
 function mapWorkoutExerciseNameToId(name) {
@@ -58,23 +73,107 @@ function parseTargetTotalReps(sets, repsStr) {
   return setsNum * 10;
 }
 
-const EXERCISES = [
-  { id: "posture", label: "Posture" },
-  { id: "squat", label: "Squat" },
-  { id: "lunge", label: "Lunge" },
-  { id: "pushup", label: "Push-up" },
-  { id: "plank", label: "Plank" },
-  { id: "bicep_curl", label: "Bicep Curl" },
-  { id: "shoulder_press", label: "Shoulder Press" },
-  { id: "lateral_raise", label: "Lateral Raise" },
-  { id: "deadlift", label: "Deadlift" },
-  { id: "bent_over_row", label: "Bent-over Row" },
-  { id: "tricep_extension", label: "Tricep Extension" },
-  { id: "side_plank", label: "Side Plank" },
-  { id: "high_knees", label: "High Knees" },
-  { id: "jumping_jack", label: "Jumping Jack" },
-  { id: "mountain_climber", label: "Mountain Climber" },
+// At least 7 exercises per body part. Each uses an existing pose analyzer (id).
+const EXERCISE_GROUPS = [
+  {
+    bodyPart: "Chest",
+    exercises: [
+      { id: "pushup", label: "Bench Press" },
+      { id: "pushup", label: "Incline Dumbbell Press" },
+      { id: "pushup", label: "Decline Press" },
+      { id: "pushup", label: "Push-up" },
+      { id: "pushup", label: "Cable Fly" },
+      { id: "pushup", label: "Pec Deck" },
+      { id: "pushup", label: "Chest Press" },
+      { id: "pushup", label: "Diamond Push-up" },
+    ],
+  },
+  {
+    bodyPart: "Back",
+    exercises: [
+      { id: "bent_over_row", label: "Bent-over Row" },
+      { id: "bent_over_row", label: "Barbell Row" },
+      { id: "bent_over_row", label: "Lat Pulldown" },
+      { id: "bent_over_row", label: "Pull-up" },
+      { id: "bent_over_row", label: "Cable Row" },
+      { id: "bent_over_row", label: "Single-Arm Row" },
+      { id: "bent_over_row", label: "T-Bar Row" },
+      { id: "bent_over_row", label: "Chin-up" },
+    ],
+  },
+  {
+    bodyPart: "Shoulders",
+    exercises: [
+      { id: "shoulder_press", label: "Overhead Press" },
+      { id: "shoulder_press", label: "Military Press" },
+      { id: "shoulder_press", label: "Arnold Press" },
+      { id: "shoulder_press", label: "Front Raise" },
+      { id: "lateral_raise", label: "Lateral Raise" },
+      { id: "lateral_raise", label: "Reverse Fly" },
+      { id: "lateral_raise", label: "Face Pull" },
+      { id: "lateral_raise", label: "Upright Row" },
+    ],
+  },
+  {
+    bodyPart: "Biceps",
+    exercises: [
+      { id: "bicep_curl", label: "Bicep Curl" },
+      { id: "bicep_curl", label: "Hammer Curl" },
+      { id: "bicep_curl", label: "Preacher Curl" },
+      { id: "bicep_curl", label: "Concentration Curl" },
+      { id: "bicep_curl", label: "Cable Curl" },
+      { id: "bicep_curl", label: "Barbell Curl" },
+      { id: "bicep_curl", label: "Incline Curl" },
+    ],
+  },
+  {
+    bodyPart: "Triceps",
+    exercises: [
+      { id: "tricep_extension", label: "Tricep Extension" },
+      { id: "tricep_extension", label: "Tricep Pushdown" },
+      { id: "tricep_extension", label: "Skull Crusher" },
+      { id: "tricep_extension", label: "Overhead Extension" },
+      { id: "tricep_extension", label: "Kickback" },
+      { id: "tricep_extension", label: "Close-Grip Bench" },
+      { id: "tricep_extension", label: "Dips" },
+    ],
+  },
+  {
+    bodyPart: "Legs",
+    exercises: [
+      { id: "squat", label: "Back Squat" },
+      { id: "squat", label: "Front Squat" },
+      { id: "squat", label: "Leg Press" },
+      { id: "squat", label: "Goblet Squat" },
+      { id: "lunge", label: "Walking Lunge" },
+      { id: "lunge", label: "Reverse Lunge" },
+      { id: "lunge", label: "Bulgarian Split Squat" },
+      { id: "deadlift", label: "Romanian Deadlift" },
+      { id: "deadlift", label: "Deadlift" },
+      { id: "squat", label: "Calf Raise" },
+    ],
+  },
+  {
+    bodyPart: "Core",
+    exercises: [
+      { id: "plank", label: "Plank" },
+      { id: "side_plank", label: "Side Plank" },
+      { id: "mountain_climber", label: "Mountain Climber" },
+      { id: "high_knees", label: "High Knees" },
+      { id: "plank", label: "Forearm Plank" },
+      { id: "plank", label: "Hollow Hold" },
+      { id: "plank", label: "Dead Bug" },
+      { id: "jumping_jack", label: "Jumping Jack" },
+    ],
+  },
+  {
+    bodyPart: "General",
+    exercises: [{ id: "posture", label: "Posture" }],
+  },
 ];
+
+// Flat list for lookups (first occurrence per id for display fallback)
+const EXERCISES = EXERCISE_GROUPS.flatMap((g) => g.exercises);
 
 export default function PostureCoach() {
   const { darkMode } = useTheme();
@@ -87,8 +186,12 @@ export default function PostureCoach() {
   const sessionStartTimeRef = useRef(null);
   const lastGoodScoreRef = useRef(false);
   const user = useSelector(selectUser);
+  // Linkage with Workout Plan: MyWorkoutPlan passes state { fromWorkoutPlan: true, exercise: { name, sets, reps, weight }, dayIndex, weekNumber, workoutPlanId }. Keep in sync when changing either page.
   const workoutFromPlan = location.state?.fromWorkoutPlan ? location.state : null;
   const [exercise, setExercise] = useState("squat");
+  const [selectedExerciseLabel, setSelectedExerciseLabel] = useState(() =>
+    EXERCISES.find((e) => e.id === "squat")?.label || "Squat"
+  );
   const [isRunning, setIsRunning] = useState(false);
   const [isModelLoading, setIsModelLoading] = useState(true);
   const [analysis, setAnalysis] = useState(null);
@@ -105,11 +208,12 @@ export default function PostureCoach() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState("");
 
-  // When opened from workout plan, pre-select the matching exercise
+  // When opened from workout plan, pre-select the matching exercise and show its name
   useEffect(() => {
     if (workoutFromPlan?.exercise?.name) {
       const mappedId = mapWorkoutExerciseNameToId(workoutFromPlan.exercise.name);
       setExercise(mappedId);
+      setSelectedExerciseLabel(workoutFromPlan.exercise.name);
     }
   }, [workoutFromPlan?.exercise?.name]);
 
@@ -723,19 +827,31 @@ export default function PostureCoach() {
           <div className="lg:col-span-2 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                <div className="flex flex-wrap gap-2">
-                  {EXERCISES.map((ex) => (
-                    <button
-                      key={ex.id}
-                      onClick={() => setExercise(ex.id)}
-                      className={`px-3 py-1.5 rounded-full text-xs md:text-sm border ${
-                        exercise === ex.id
-                          ? "bg-emerald-500 text-gray-900 border-emerald-400"
-                          : "border-[#1F2937] text-gray-200 hover:bg-[#020617]/60"
-                      }`}
-                    >
-                      {ex.label}
-                    </button>
+                <div className="flex flex-col gap-3 max-h-[280px] overflow-y-auto pr-1">
+                  {EXERCISE_GROUPS.map((group) => (
+                    <div key={group.bodyPart}>
+                      <p className="text-[10px] md:text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5 sticky top-0 bg-[#020617]/95 backdrop-blur py-0.5">
+                        {group.bodyPart}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {group.exercises.map((ex) => (
+                          <button
+                            key={`${group.bodyPart}-${ex.label}`}
+                            onClick={() => {
+                              setExercise(ex.id);
+                              setSelectedExerciseLabel(ex.label);
+                            }}
+                            className={`px-3 py-1.5 rounded-full text-xs md:text-sm border ${
+                              exercise === ex.id && selectedExerciseLabel === ex.label
+                                ? "bg-emerald-500 text-gray-900 border-emerald-400"
+                                : "border-[#1F2937] text-gray-200 hover:bg-[#020617]/60"
+                            }`}
+                          >
+                            {ex.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
                 {cameras.length > 0 && (
@@ -964,7 +1080,7 @@ export default function PostureCoach() {
                 </div>
               ) : (
                 <p className="text-xs text-gray-400">
-                  Start the camera and perform a {EXERCISES.find((e) => e.id === exercise)?.label} to see feedback here.
+                  Start the camera and perform a {selectedExerciseLabel} to see feedback here.
                 </p>
               )}
             </div>
