@@ -39,26 +39,6 @@ const WorkoutPlanGenerator = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // If user already has an active plan, go directly to My Plan instead of Generate Plan
-  useEffect(() => {
-    if (!user?._id) return;
-    let cancelled = false;
-    const checkActivePlan = async () => {
-      try {
-        const activeRes = await axios.get(
-          `${API_BASE_URL}${API_ENDPOINTS.ACTIVE_WORKOUT_PLAN}/${user._id}`
-        );
-        if (!cancelled && activeRes.data?.plan) {
-          navigate("/my-workout-plan", { replace: true });
-        }
-      } catch {
-        // No active plan or error – stay on generate plan
-      }
-    };
-    checkActivePlan();
-    return () => { cancelled = true; };
-  }, [user?._id, navigate]);
-
   useEffect(() => {
     if (location.state?.bmiData && location.state?.bmiResult) {
       setBmiData(location.state.bmiData);

@@ -12,8 +12,7 @@ import {
   FiPlay,
 } from "react-icons/fi";
 import { FaDumbbell, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
 import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
@@ -70,10 +69,6 @@ const MyWorkoutPlan = () => {
       fetchTodayWorkout();
     } else {
       setLoading(false);
-    fetchPlans();
-    fetchTodayWorkout();
-    fetchPlans();
-    fetchTodayWorkout();
     }
   }, [user, navigate]);
 
@@ -100,6 +95,7 @@ const MyWorkoutPlan = () => {
   };
 
   const fetchPlans = async () => {
+    if (!user?._id) return;
     setLoading(true);
     setError(null);
     try {
@@ -538,19 +534,6 @@ const MyWorkoutPlan = () => {
           </div>
 
           <div className="relative z-10 container mx-auto py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
-        <ToastContainer
-          position="bottom-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="dark"
-        />
-
         <div className="max-w-7xl mx-auto">
           <button
             onClick={() => navigate("/workout")}

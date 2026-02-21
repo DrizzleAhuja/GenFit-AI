@@ -5,8 +5,7 @@ import './src/index.css';
 import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './src/store.js';
-import { ToastContainer } from 'react-toastify'; // Import ToastContainer
-import 'react-toastify/dist/ReactToastify.css'; // Import Toastify CSS
+import 'react-toastify/dist/ReactToastify.css';
 import { registerSW } from 'virtual:pwa-register';
 
 // Register service worker (required for install prompt to appear reliably)
@@ -28,23 +27,4 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 		</Provider>
 	</React.StrictMode>
 );
-
-// Render ToastContainer separately to ensure it's always available early
-ReactDOM.createRoot(document.getElementById('toast-root')).render(
-  <React.StrictMode>
-    <ToastContainer
-      theme="dark"
-      position="bottom-right"
-      autoClose={3000}
-      hideProgressBar={false}
-      newestOnTop={false}
-      closeOnClick
-      rtl={false}
-      pauseOnFocusLoss
-      draggable
-      pauseOnHover
-    />
-  </React.StrictMode>
-);
-
 
