@@ -37,6 +37,17 @@ function getFrontendRedirectBase() {
   return process.env.FRONTEND_APP_URL || "http://localhost:5173";
 }
 
+// Exercises supported by the Virtual Training Assistant (posture coach). Gemini must only use these names so users can train with the assistant.
+const VTA_ALLOWED_EXERCISES = [
+  "Bench Press", "Incline Dumbbell Press", "Decline Press", "Push-up", "Cable Fly", "Pec Deck", "Chest Press", "Diamond Push-up",
+  "Bent-over Row", "Barbell Row", "Lat Pulldown", "Pull-up", "Cable Row", "Single-Arm Row", "T-Bar Row", "Chin-up",
+  "Overhead Press", "Military Press", "Arnold Press", "Front Raise", "Lateral Raise", "Reverse Fly", "Face Pull", "Upright Row",
+  "Bicep Curl", "Hammer Curl", "Preacher Curl", "Concentration Curl", "Cable Curl", "Barbell Curl", "Incline Curl",
+  "Tricep Extension", "Tricep Pushdown", "Skull Crusher", "Overhead Extension", "Kickback", "Close-Grip Bench", "Dips",
+  "Back Squat", "Front Squat", "Leg Press", "Goblet Squat", "Walking Lunge", "Reverse Lunge", "Bulgarian Split Squat", "Romanian Deadlift", "Deadlift", "Calf Raise",
+  "Plank", "Side Plank", "Mountain Climber", "High Knees", "Forearm Plank", "Hollow Hold", "Dead Bug", "Jumping Jack",
+];
+
 router.post("/generate-plan", async (req, res) => {
   try {
     const {
@@ -117,6 +128,10 @@ router.post("/generate-plan", async (req, res) => {
             - optional 'demonstrationLink' (URL)
         - optional 'warmup' (string)
         - optional 'cooldown' (string)
+
+    VIRTUAL TRAINING ASSISTANT (CRITICAL): Our app has a Virtual Training Assistant that gives form feedback. You MUST use ONLY exercises from this list for the 'name' field (use these names exactly or very close variants like "Push-up" or "Push up"):
+    ${VTA_ALLOWED_EXERCISES.join(", ")}
+    Do not invent other exercise names. If you need a similar movement, pick the closest match from the list above so users can practice with the assistant.
 
     IMPORTANT: Return ONLY valid JSON (no markdown/code fences, no extra text).`;
 
