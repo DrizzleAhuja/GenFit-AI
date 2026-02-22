@@ -1523,6 +1523,9 @@ router.post("/generate-diet-chart", async (req, res) => {
       response.data?.candidates?.[0]?.content?.parts?.[0]?.text ||
       "Failed to generate diet chart.";
 
+    // Remove markdown # headers from Gemini response (e.g. ## Week 1 -> Week 1)
+    dietChartContent = dietChartContent.replace(/^#+\s*/gm, "").trim();
+
     console.log(
       "🤖 [DIET CHART GENERATE] Generated content length:",
       dietChartContent.length
