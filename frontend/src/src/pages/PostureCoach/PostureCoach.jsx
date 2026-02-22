@@ -672,7 +672,8 @@ export default function PostureCoach() {
 
             const repResult = repCounterRef.current.update(keypoints);
             if (repResult.newRep) {
-              setReps(repResult.reps);
+              // Always increment; never set to repResult.reps so count can't jump down if counter resets
+              setReps((prev) => prev + 1);
               // Trigger animation
               setNewRepAnimation(true);
               setTimeout(() => setNewRepAnimation(false), 500);
@@ -692,24 +693,14 @@ export default function PostureCoach() {
               .then((res) => {
                 if (res?.success && res.analysis) {
                   setAnalysis(res.analysis);
-
-                  // Score-based rep counting: if score > 60 and it just crossed that threshold,
-                  // treat it as a "good rep" for rep-based exercises.
+                  // Reps are counted only by RepCounter (pose-based) to avoid double count or count jumping down
                   const score = res.analysis.score || 0;
                   const isTimeBased =
                     exercise === "plank" ||
                     exercise === "posture" ||
                     exercise === "side_plank";
-
                   if (!isTimeBased) {
-                    const isGoodNow = score > 60;
-                    if (isGoodNow && !lastGoodScoreRef.current) {
-                      setReps((prev) => prev + 1);
-                      // Trigger animation
-                      setNewRepAnimation(true);
-                      setTimeout(() => setNewRepAnimation(false), 500);
-                    }
-                    lastGoodScoreRef.current = isGoodNow;
+                    lastGoodScoreRef.current = score > 60;
                   } else {
                     lastGoodScoreRef.current = false;
                   }

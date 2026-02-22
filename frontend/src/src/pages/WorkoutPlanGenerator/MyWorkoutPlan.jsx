@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useSelector } from "react-redux";
 import { selectUser } from "../../redux/userSlice";
@@ -37,11 +37,18 @@ const MyWorkoutPlan = () => {
   const [nextWorkoutDate, setNextWorkoutDate] = useState(null); // Next workout date
   const [missedWorkouts, setMissedWorkouts] = useState(0); // Count of missed workouts
   const [missedWorkoutDetails, setMissedWorkoutDetails] = useState([]); // Details of missed workouts
+  const processedMarkCompleteRef = useRef(false);
 
-  // When returning from Virtual TA with "mark complete", mark the exercise and clear state
+  // When returning from Virtual TA with "mark complete", mark the exercise once and clear state
   const pendingMarkComplete = location.state?.markExerciseComplete && location.state?.exerciseName;
   useEffect(() => {
-    if (!pendingMarkComplete || !user || !activePlan) return;
+    if (!pendingMarkComplete) {
+      processedMarkCompleteRef.current = false;
+      return;
+    }
+    if (!user || !activePlan) return;
+    if (processedMarkCompleteRef.current) return;
+    processedMarkCompleteRef.current = true;
     const state = location.state;
     let cancelled = false;
     (async () => {
@@ -53,16 +60,19 @@ const MyWorkoutPlan = () => {
           state.sets,
           state.reps,
           state.weight,
-          false
+          false,
+          true // silentRefresh: no loading blink, single refresh
         );
         if (!cancelled) navigate("/my-workout-plan", { replace: true, state: {} });
       } catch (_) {
+        processedMarkCompleteRef.current = false;
         // handleToggleExercise already shows toast on error
       }
     })();
     return () => { cancelled = true; };
   }, [pendingMarkComplete, user, activePlan]);
 
+  // Fetch plans only when user id changes (not on every location/navigate change)
   useEffect(() => {
     if (user?._id) {
       fetchPlans();
@@ -70,7 +80,7 @@ const MyWorkoutPlan = () => {
     } else {
       setLoading(false);
     }
-  }, [user, navigate]);
+  }, [user?._id]);
 
   // Fetch today's workout only
   const fetchTodayWorkout = async () => {
@@ -94,9 +104,9 @@ const MyWorkoutPlan = () => {
     }
   };
 
-  const fetchPlans = async () => {
+  const fetchPlans = async (silent = false) => {
     if (!user?._id) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     setError(null);
     try {
       const activeRes = await axios.get(
@@ -125,7 +135,7 @@ const MyWorkoutPlan = () => {
       setError((prev) => prev || "Failed to load workout plan history."); // Only set if not already set
       toast.error("Failed to load workout plan history.");
     }
-    setLoading(false);
+    if (!silent) setLoading(false);
   };
 
   const handleEditClick = (plan) => {
@@ -209,7 +219,7 @@ const MyWorkoutPlan = () => {
     }
   };
 
-  // Handle toggle exercise for today's workout
+  // Handle toggle exercise for today's workout. silentRefresh = true when returning from VTA to avoid loading blink and duplicate fetches.
   const handleToggleExercise = async (
     dayIndex,
     weekNumber,
@@ -217,7 +227,8 @@ const MyWorkoutPlan = () => {
     sets,
     reps,
     weight,
-    isCompleted
+    isCompleted,
+    silentRefresh = false
   ) => {
     if (!user || !activePlan) {
       toast.error("Please log in and have an active plan to mark exercises.");
@@ -290,8 +301,13 @@ const MyWorkoutPlan = () => {
         toast.success(
           `Exercise '${exerciseName}' ${!isCompleted ? "completed" : "unmarked"}!`
         );
-        await fetchPlans();
-        await fetchTodayWorkout();
+        if (silentRefresh) {
+          await fetchPlans(true);
+          await fetchTodayWorkout();
+        } else {
+          await fetchPlans();
+          await fetchTodayWorkout();
+        }
       }
       return res;
     } catch (err) {
