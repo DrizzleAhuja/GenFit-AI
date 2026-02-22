@@ -10,7 +10,7 @@ import { API_BASE_URL } from "../../../config/api";
 import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
 import { useTheme } from '../../context/ThemeContext';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, ChevronDown, ChevronRight, Video, Activity } from 'lucide-react';
 import { analyzePosture } from "../../utils/postureService";
 import { RepCounter, calculateCaloriesBurned } from "../../utils/repCounter";
 
@@ -227,6 +227,9 @@ export default function PostureCoach() {
   const [sessionHistory, setSessionHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState("");
+  const [expandedGroups, setExpandedGroups] = useState(() =>
+    EXERCISE_GROUPS.reduce((acc, g) => ({ ...acc, [g.bodyPart]: ["Chest", "Back", "Legs"].includes(g.bodyPart) }), {})
+  );
 
   // When opened from workout plan, pre-select the matching exercise so the correct option is highlighted (e.g. Lat Pulldown, not Bent-over Row)
   useEffect(() => {
@@ -755,6 +758,10 @@ export default function PostureCoach() {
       if (loopRef.current) cancelAnimationFrame(loopRef.current);
     };
   }, [isRunning, captureLoop]);
+  const toggleGroup = (bodyPart) => {
+    setExpandedGroups((prev) => ({ ...prev, [bodyPart]: !prev[bodyPart] }));
+  };
+
   const toggleRunning = () => {
     if (isRunning) {
       const snapshot = {
@@ -834,77 +841,103 @@ export default function PostureCoach() {
 
           </div>
 
-          <div className="relative z-10 container mx-auto px-4 pt-6 pb-4 max-w-6xl">
-            <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                <div className="flex flex-col gap-3 max-h-[280px] overflow-y-auto pr-1">
-                  {EXERCISE_GROUPS.map((group) => (
-                    <div key={group.bodyPart}>
-                      <p className="text-[10px] md:text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5 sticky top-0 bg-[#020617]/95 backdrop-blur py-0.5">
-                        {group.bodyPart}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {group.exercises.map((ex) => (
-                          <button
-                            key={`${group.bodyPart}-${ex.label}`}
-                            onClick={() => {
-                              setExercise(ex.id);
-                              setSelectedExerciseLabel(ex.label);
-                            }}
-                            className={`px-3 py-1.5 rounded-full text-xs md:text-sm border ${
-                              exercise === ex.id && selectedExerciseLabel === ex.label
-                                ? "bg-emerald-500 text-gray-900 border-emerald-400"
-                                : "border-[#1F2937] text-gray-200 hover:bg-[#020617]/60"
-                            }`}
+          <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl pt-4 pb-8 lg:pb-12">
+            {/* Full-page grid: Exercises sidebar + Main camera area */}
+            <section className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8">
+              {/* Left: Exercise selector - Features-style card with collapsible groups */}
+              <aside className="xl:col-span-4 order-2 xl:order-1">
+                <div className="relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] overflow-hidden hover:border-[#22D3EE]/60 transition-all duration-300">
+                  <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
+                  <div className="p-4 sm:p-5">
+                    <h2 className="flex items-center gap-2 text-base sm:text-lg font-semibold text-white mb-4">
+                      <Activity className="w-5 h-5 text-[#22D3EE]" />
+                      Select Exercise
+                    </h2>
+                    <div className="space-y-2 max-h-[50vh] xl:max-h-[65vh] overflow-y-auto pr-1 custom-scrollbar">
+                      {EXERCISE_GROUPS.map((group) => {
+                        const isExpanded = expandedGroups[group.bodyPart];
+                        return (
+                          <div
+                            key={group.bodyPart}
+                            className="rounded-xl border border-[#1F2937] bg-[#020617]/40 overflow-hidden"
                           >
-                            {ex.label}
-                          </button>
-                        ))}
-                      </div>
+                            <button
+                              onClick={() => toggleGroup(group.bodyPart)}
+                              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-[#020617]/60 transition-colors"
+                            >
+                              <span className="text-sm font-semibold text-gray-100">{group.bodyPart}</span>
+                              {isExpanded ? (
+                                <ChevronDown className="w-4 h-4 text-gray-400" />
+                              ) : (
+                                <ChevronRight className="w-4 h-4 text-gray-400" />
+                              )}
+                            </button>
+                            {isExpanded && (
+                              <div className="px-3 pb-3 pt-0 flex flex-wrap gap-2 border-t border-[#1F2937]">
+                                {group.exercises.map((ex) => (
+                                  <button
+                                    key={`${group.bodyPart}-${ex.label}`}
+                                    onClick={() => {
+                                      setExercise(ex.id);
+                                      setSelectedExerciseLabel(ex.label);
+                                    }}
+                                    className={`px-3 py-2 rounded-lg text-xs sm:text-sm border transition-all ${
+                                      exercise === ex.id && selectedExerciseLabel === ex.label
+                                        ? "bg-emerald-500 text-gray-900 border-emerald-400 shadow-lg shadow-emerald-500/20"
+                                        : "border-[#1F2937] text-gray-200 hover:bg-[#020617]/80 hover:border-[#22D3EE]/40"
+                                    }`}
+                                  >
+                                    {ex.label}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
-                </div>
-                {cameras.length > 0 && (
-                  <div className="flex items-center gap-2 text-xs md:text-sm">
-                    <span className="text-gray-400 whitespace-nowrap">
-                      Camera:
-                    </span>
-                    <select
-                      className="bg-[#020617]/80 backdrop-blur-sm border border-[#1F2937] rounded-lg px-2 py-1 text-gray-100"
-                      value={selectedCameraId || ""}
-                      onChange={(e) =>
-                        setSelectedCameraId(e.target.value || null)
-                      }
-                    >
-                      {cameras.map((cam, idx) => (
-                        <option key={cam.deviceId || idx} value={cam.deviceId}>
-                          {cam.label || `Camera ${idx + 1}`}
-                        </option>
-                      ))}
-                    </select>
+                    {cameras.length > 0 && (
+                      <div className="mt-4 flex items-center gap-2">
+                        <Video className="w-4 h-4 text-gray-400" />
+                        <select
+                          className="flex-1 bg-[#020617]/80 backdrop-blur-sm border border-[#1F2937] rounded-lg px-3 py-2 text-sm text-gray-100"
+                          value={selectedCameraId || ""}
+                          onChange={(e) => setSelectedCameraId(e.target.value || null)}
+                        >
+                          {cameras.map((cam, idx) => (
+                            <option key={cam.deviceId || idx} value={cam.deviceId}>
+                              {cam.label || `Camera ${idx + 1}`}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              <button
-                onClick={toggleRunning}
-                disabled={isModelLoading || !!lastError}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold ${
-                  isRunning
-                    ? "bg-red-500 text-white hover:bg-red-600"
-                    : "bg-emerald-500 text-gray-900 hover:bg-emerald-400"
-                } ${isModelLoading || lastError ? "opacity-60 cursor-not-allowed" : ""}`}
-              >
-                {isModelLoading
-                  ? "Loading AI model..."
-                  : isRunning
-                  ? "Stop Coaching"
-                  : "Start Coaching"}
-              </button>
-            </div>
+                </div>
+              </aside>
 
-            <div className="relative rounded-2xl overflow-hidden border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl aspect-video flex items-center justify-center bg-black">
+              {/* Right: Camera + controls + stats + feedback */}
+              <div className="xl:col-span-8 order-1 xl:order-2 space-y-6">
+                {/* Controls + Camera */}
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <p className="text-sm text-gray-300">
+                      Selected: <span className="font-semibold text-emerald-400">{selectedExerciseLabel}</span>
+                    </p>
+                    <button
+                      onClick={toggleRunning}
+                      disabled={isModelLoading || !!lastError}
+                      className={`px-6 py-3 rounded-full text-sm font-semibold transition-all shadow-lg ${
+                        isRunning
+                          ? "bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700"
+                          : "bg-gradient-to-r from-[#22D3EE] via-[#0EA5E9] to-[#8B5CF6] text-white hover:opacity-95"
+                      } ${isModelLoading || lastError ? "opacity-60 cursor-not-allowed" : ""}`}
+                    >
+                      {isModelLoading ? "Loading AI model..." : isRunning ? "Stop Coaching" : "Start Coaching"}
+                    </button>
+                  </div>
+
+                  <div className="relative rounded-2xl overflow-hidden border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] aspect-video flex items-center justify-center bg-black hover:border-[#22D3EE]/60 transition-all duration-300">
               <Webcam
                 ref={webcamRef}
                 audio={false}
@@ -961,162 +994,157 @@ export default function PostureCoach() {
                   Press <span className="mx-1 font-semibold">Start Coaching</span> to begin.
                 </div>
               )}
-            </div>
-            {lastError && (
-              <p className="text-xs text-red-400 mt-1">{lastError}</p>
-            )}
-          </div>
-
-          <aside className="space-y-4">
-            {/* Stats Card */}
-            <div className="bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 rounded-xl p-4">
-              <h2 className="text-sm font-semibold text-gray-100 mb-3">
-                Workout Stats
-              </h2>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="text-center">
-                  <div 
-                    className={`text-2xl font-bold text-emerald-400 transition-all duration-300 ${
-                      newRepAnimation ? 'scale-150 text-emerald-300' : ''
-                    }`}
-                  >
-                    {reps}
                   </div>
-                  <div className="text-[10px] text-gray-400 uppercase tracking-wide mt-1">Reps</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-cyan-400">{calories.toFixed(1)}</div>
-                  <div className="text-[10px] text-gray-400 uppercase tracking-wide mt-1">Calories</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-400">{formatTime(sessionDuration)}</div>
-                  <div className="text-[10px] text-gray-400 uppercase tracking-wide mt-1">Time</div>
-                </div>
-              </div>
-              {exercise === 'plank' || exercise === 'posture' ? (
-                <div className="mt-2 text-xs text-gray-400 text-center">
-                  {exercise === 'plank' ? 'Time-based exercise' : 'Posture monitoring'}
-                </div>
-              ) : null}
-            </div>
-
-            {workoutFromPlan && workoutFromPlan.exercise && (() => {
-              const targetTotal = parseTargetTotalReps(workoutFromPlan.exercise.sets, workoutFromPlan.exercise.reps);
-              const isToFailure = targetTotal === null;
-              const canMarkComplete = isToFailure ? reps >= 1 : reps >= targetTotal;
-              return (
-                <div className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 backdrop-blur p-4 space-y-2">
-                  <p className="text-xs text-cyan-200">
-                    {isToFailure
-                      ? `Reps done: ${reps}. When finished, mark as complete below.`
-                      : `Reps: ${reps} / ${targetTotal} — ${canMarkComplete ? "Ready to mark complete!" : "Keep training until all reps are done."}`}
-                  </p>
-                  <button
-                    onClick={() => {
-                      navigate("/my-workout-plan", {
-                        state: {
-                          markExerciseComplete: true,
-                          exerciseName: workoutFromPlan.exercise.name,
-                          sets: workoutFromPlan.exercise.sets,
-                          reps: workoutFromPlan.exercise.reps,
-                          weight: workoutFromPlan.exercise.weight,
-                          dayIndex: workoutFromPlan.dayIndex,
-                          weekNumber: workoutFromPlan.weekNumber,
-                        },
-                      });
-                    }}
-                    disabled={!canMarkComplete}
-                    className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-all ${
-                      canMarkComplete
-                        ? "bg-cyan-500 hover:bg-cyan-600 text-gray-900"
-                        : "bg-gray-600 text-gray-400 cursor-not-allowed"
-                    }`}
-                  >
-                    Finish & mark exercise complete
-                  </button>
-                </div>
-              );
-            })()}
-
-            <div className="relative rounded-xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-4 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
-              <div className="absolute inset-x-0 top-0 h-1 rounded-t-xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
-              <h2 className="text-sm font-semibold text-white mb-2">
-                Live Feedback
-              </h2>
-              {analysis ? (
-                <div className="space-y-2 text-xs text-gray-200">
-                  <div className="flex items-center justify-between">
-                    <span className="uppercase tracking-wide text-[11px] text-gray-400">
-                      {analysis.exerciseType}
-                    </span>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[11px] ${
-                        analysis.isCorrect
-                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                          : "bg-amber-500/20 text-amber-300 border border-amber-500/40"
-                      }`}
-                    >
-                      {analysis.isCorrect ? "Good form" : "Needs adjustment"}
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-gray-400">
-                    Score:{" "}
-                    <span className="font-semibold text-gray-100">
-                      {Math.round(analysis.score || 0)}/100
-                    </span>
-                  </div>
-                  {analysis.issues?.length ? (
-                    <div className="mt-2">
-                      <p className="font-semibold text-[11px] text-amber-300 mb-1">
-                        Issues detected:
-                      </p>
-                      <ul className="list-disc list-inside space-y-1">
-                        {analysis.issues.map((msg, idx) => (
-                          <li key={idx}>{msg}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : (
-                    <p className="mt-2 text-[11px] text-emerald-300">
-                      Looking solid! Keep repeating reps with the same control.
-                    </p>
-                  )}
-                  {analysis.tips?.length && (
-                    <div className="mt-3 border-t border-gray-700 pt-2">
-                      <p className="font-semibold text-[11px] text-gray-300 mb-1">
-                        Coaching tips:
-                      </p>
-                      <ul className="list-disc list-inside space-y-1 text-[11px]">
-                        {analysis.tips.map((tip, idx) => (
-                          <li key={idx}>{tip}</li>
-                        ))}
-                      </ul>
-                    </div>
+                  {lastError && (
+                    <p className="text-xs text-red-400 mt-1">{lastError}</p>
                   )}
                 </div>
-              ) : (
-                <p className="text-xs text-gray-400">
-                  Start the camera and perform a {selectedExerciseLabel} to see feedback here.
-                </p>
-              )}
-            </div>
 
-            <div className="relative rounded-xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-4 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
-              <div className="absolute inset-x-0 top-0 h-1 rounded-t-xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
-              <h2 className="text-sm font-semibold text-white mb-2">
-                Last 15 Days History
-              </h2>
-              {!user && (
-                <p className="text-xs text-gray-400">
-                  Sign in to save your coaching sessions and see history here.
-                </p>
-              )}
-              {user && historyLoading && (
-                <p className="text-xs text-gray-400">Loading history…</p>
-              )}
-              {user && !historyLoading && historyError && (
-                <p className="text-xs text-red-400">{historyError}</p>
-              )}
+                {/* Stats strip - horizontal, sleek, right below camera */}
+                <div className="rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl overflow-hidden shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
+                  <div className="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5">
+                    <div className="flex items-center gap-6 sm:gap-10">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
+                          <span className={`text-lg font-bold text-emerald-400 ${newRepAnimation ? 'scale-110' : ''}`}>{reps}</span>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-gray-400 uppercase tracking-wider">Reps</div>
+                          <div className="text-sm font-semibold text-white">Count</div>
+                        </div>
+                      </div>
+                      <div className="w-px h-10 bg-[#1F2937]" />
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center">
+                          <span className="text-lg font-bold text-cyan-400">{calories.toFixed(1)}</span>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-gray-400 uppercase tracking-wider">Calories</div>
+                          <div className="text-sm font-semibold text-white">Burned</div>
+                        </div>
+                      </div>
+                      <div className="w-px h-10 bg-[#1F2937]" />
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center">
+                          <span className="text-sm font-bold text-blue-400">{formatTime(sessionDuration)}</span>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-gray-400 uppercase tracking-wider">Time</div>
+                          <div className="text-sm font-semibold text-white">Session</div>
+                        </div>
+                      </div>
+                    </div>
+                    {(exercise === 'plank' || exercise === 'posture') && (
+                      <span className="text-xs text-gray-400 px-3 py-1 rounded-full bg-white/5">Time-based</span>
+                    )}
+                  </div>
+                  {workoutFromPlan && workoutFromPlan.exercise && (() => {
+                    const targetTotal = parseTargetTotalReps(workoutFromPlan.exercise.sets, workoutFromPlan.exercise.reps);
+                    const isToFailure = targetTotal === null;
+                    const canMarkComplete = isToFailure ? reps >= 1 : reps >= targetTotal;
+                    return (
+                      <div className="border-t border-[#1F2937] px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <p className="text-sm text-cyan-200">
+                          {isToFailure
+                            ? `Reps done: ${reps}. When finished, mark complete below.`
+                            : `Reps: ${reps} / ${targetTotal} — ${canMarkComplete ? "Ready!" : "Keep training."}`}
+                        </p>
+                        <button
+                          onClick={() => {
+                            navigate("/my-workout-plan", {
+                              state: {
+                                markExerciseComplete: true,
+                                exerciseName: workoutFromPlan.exercise.name,
+                                sets: workoutFromPlan.exercise.sets,
+                                reps: workoutFromPlan.exercise.reps,
+                                weight: workoutFromPlan.exercise.weight,
+                                dayIndex: workoutFromPlan.dayIndex,
+                                weekNumber: workoutFromPlan.weekNumber,
+                              },
+                            });
+                          }}
+                          disabled={!canMarkComplete}
+                          className={`shrink-0 py-2.5 px-5 rounded-xl font-semibold text-sm transition-all ${
+                            canMarkComplete
+                              ? "bg-cyan-500 hover:bg-cyan-600 text-gray-900"
+                              : "bg-gray-600/60 text-gray-400 cursor-not-allowed"
+                          }`}
+                        >
+                          Mark exercise complete
+                        </button>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Feedback + History + How to use - clean 2-column layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* Live Feedback - primary */}
+                  <div className="relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-5 shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 transition-all">
+                    <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
+                    <h2 className="text-sm font-semibold text-white mb-2">Live Feedback</h2>
+                    {analysis ? (
+                      <div className="space-y-2 text-xs text-gray-200">
+                        <div className="flex items-center justify-between">
+                          <span className="uppercase tracking-wide text-[11px] text-gray-400">
+                            {analysis.exerciseType}
+                          </span>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[11px] ${
+                            analysis.isCorrect
+                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                              : "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                          }`}
+                        >
+                          {analysis.isCorrect ? "Good form" : "Needs adjustment"}
+                        </span>
+                        </div>
+                        <div className="text-[11px] text-gray-400">
+                          Score: <span className="font-semibold text-gray-100">{Math.round(analysis.score || 0)}/100</span>
+                        </div>
+                        {analysis.issues?.length ? (
+                          <div className="mt-2">
+                            <p className="font-semibold text-[11px] text-amber-300 mb-1">Issues detected:</p>
+                            <ul className="list-disc list-inside space-y-1">
+                              {analysis.issues.map((msg, idx) => (
+                                <li key={idx}>{msg}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : (
+                          <p className="mt-2 text-[11px] text-emerald-300">
+                            Looking solid! Keep repeating reps with the same control.
+                          </p>
+                        )}
+                        {analysis.tips?.length && (
+                          <div className="mt-3 border-t border-gray-700 pt-2">
+                            <p className="font-semibold text-[11px] text-gray-300 mb-1">Coaching tips:</p>
+                            <ul className="list-disc list-inside space-y-1 text-[11px]">
+                              {analysis.tips.map((tip, idx) => (
+                                <li key={idx}>{tip}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400">
+                        Start the camera and perform a {selectedExerciseLabel} to see feedback here.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Right column: History + How to use stacked */}
+                  <div className="space-y-4">
+                    {/* History Card */}
+                    <div className="relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-5 shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 transition-all h-fit">
+                    <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
+                      <h2 className="text-sm font-semibold text-white mb-3">Session History</h2>
+                    {!user && (
+                      <p className="text-xs text-gray-400">Sign in to save your coaching sessions and see history here.</p>
+                    )}
+                    {user && historyLoading && <p className="text-xs text-gray-400">Loading history…</p>}
+                    {user && !historyLoading && historyError && <p className="text-xs text-red-400">{historyError}</p>}
               {user &&
                 !historyLoading &&
                 !historyError &&
@@ -1126,74 +1154,57 @@ export default function PostureCoach() {
                     “Stop Coaching” to save it.
                   </p>
                 )}
-              {user &&
-                !historyLoading &&
-                !historyError &&
-                sessionHistory.length > 0 && (
-                  <ul className="mt-2 space-y-2 max-h-60 overflow-y-auto pr-1">
-                    {sessionHistory.map((s) => {
-                      const d = new Date(s.date);
-                      return (
-                        <li
-                          key={s._id}
-                          className="text-[11px] text-gray-200 border border-[#1F2937] rounded-lg px-3 py-2 bg-[#020617]/60 backdrop-blur-sm"
-                        >
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="font-semibold capitalize">
-                              {s.exerciseType.replace(/_/g, " ")}
-                            </span>
-                            <span className="text-gray-400">
-                              {d.toLocaleDateString()}{" "}
-                              {d.toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
-                          </div>
-                          <div className="flex flex-wrap gap-3 text-[10px] text-gray-300">
-                            <span>
-                              Reps:{" "}
-                              <span className="font-semibold">
-                                {s.reps ?? 0}
-                              </span>
-                            </span>
-                            <span>
-                              Calories:{" "}
-                              <span className="font-semibold">
-                                {typeof s.calories === "number"
-                                  ? s.calories.toFixed(1)
-                                  : "0.0"}
-                              </span>
-                            </span>
-                            <span>
-                              Time:{" "}
-                              <span className="font-semibold">
-                                {formatTime(s.durationSeconds || 0)}
-                              </span>
-                            </span>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
+                    {user &&
+                      !historyLoading &&
+                      !historyError &&
+                      sessionHistory.length > 0 && (
+                        <ul className="mt-2 space-y-2 max-h-52 overflow-y-auto pr-1 custom-scrollbar">
+                          {sessionHistory.map((s) => {
+                            const d = new Date(s.date);
+                            return (
+                              <li
+                                key={s._id}
+                                className="text-[11px] text-gray-200 border border-[#1F2937] rounded-lg px-3 py-2 bg-[#020617]/60 backdrop-blur-sm"
+                              >
+                                <div className="flex justify-between items-center mb-1">
+                                  <span className="font-semibold capitalize">
+                                    {s.exerciseType.replace(/_/g, " ")}
+                                  </span>
+                                  <span className="text-gray-400">
+                                    {d.toLocaleDateString()}{" "}
+                                    {d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                  </span>
+                                </div>
+                                <div className="flex flex-wrap gap-3 text-[10px] text-gray-300">
+                                  <span>Reps: <span className="font-semibold">{s.reps ?? 0}</span></span>
+                                  <span>Calories: <span className="font-semibold">{typeof s.calories === "number" ? s.calories.toFixed(1) : "0.0"}</span></span>
+                                  <span>Time: <span className="font-semibold">{formatTime(s.durationSeconds || 0)}</span></span>
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
             </div>
 
-            <div className="relative rounded-xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-4 text-xs text-gray-300 space-y-2 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
-              <div className="absolute inset-x-0 top-0 h-1 rounded-t-xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
-              <h2 className="text-sm font-semibold text-white mb-1">
+            <div className="relative rounded-2xl border border-[#1F2937] bg-gradient-to-br from-[#8B5CF6]/10 to-[#22D3EE]/10 backdrop-blur-xl p-5 shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 transition-all">
+              <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
+              <h2 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-[#22D3EE]/20 flex items-center justify-center text-[#22D3EE] text-xs font-bold">?</span>
                 How to use
               </h2>
-              <ol className="list-decimal list-inside space-y-1">
-                <li>Stand or place your phone so your full body is visible.</li>
-                <li>Select an exercise, then tap “Start Coaching”.</li>
-                <li>Perform slow, controlled reps and follow the feedback.</li>
+              <ol className="space-y-2 text-sm text-gray-300">
+                <li className="flex gap-2"><span className="text-[#22D3EE] font-semibold shrink-0">1.</span>Position your phone so your full body is visible.</li>
+                <li className="flex gap-2"><span className="text-[#22D3EE] font-semibold shrink-0">2.</span>Pick an exercise, tap “Start Coaching”.</li>
+                <li className="flex gap-2"><span className="text-[#22D3EE] font-semibold shrink-0">3.</span>Perform reps and follow the live feedback.</li>
               </ol>
-              <p className="text-[11px] text-gray-400 mt-1">
-                Works in modern mobile and desktop browsers with camera access enabled.
+              <p className="text-xs text-gray-400 mt-3 pt-3 border-t border-[#1F2937]">
+                Works in modern browsers with camera access.
               </p>
             </div>
-          </aside>
+                  </div>
+                </div>
+              </div>
             </section>
           </div>
         </section>
