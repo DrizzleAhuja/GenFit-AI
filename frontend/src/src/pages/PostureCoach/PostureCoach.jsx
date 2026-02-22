@@ -844,8 +844,8 @@ export default function PostureCoach() {
           <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl pt-4 pb-8 lg:pb-12">
             {/* Full-page grid: Exercises sidebar + Main camera area */}
             <section className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8">
-              {/* Left: Exercise selector - Features-style card with collapsible groups */}
-              <aside className="xl:col-span-4 order-2 xl:order-1">
+              {/* Exercise selector - show FIRST on mobile, left sidebar on desktop */}
+              <aside className="xl:col-span-4 order-1">
                 <div className="relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] overflow-hidden hover:border-[#22D3EE]/60 transition-all duration-300">
                   <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
                   <div className="p-4 sm:p-5">
@@ -916,8 +916,8 @@ export default function PostureCoach() {
                 </div>
               </aside>
 
-              {/* Right: Camera + controls + stats + feedback */}
-              <div className="xl:col-span-8 order-1 xl:order-2 space-y-6">
+              {/* Camera + controls + stats + feedback - show AFTER exercises on mobile */}
+              <div className="xl:col-span-8 order-2 space-y-6">
                 {/* Controls + Camera */}
                 <div className="space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-4">
