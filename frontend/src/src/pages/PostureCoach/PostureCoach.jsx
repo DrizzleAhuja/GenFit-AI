@@ -57,6 +57,26 @@ function mapWorkoutExerciseNameToId(name) {
   return "squat";
 }
 
+/** Find the best-matching option label for a plan exercise name so the correct option is highlighted (e.g. "Lat Pulldown" not "Bent-over Row"). */
+function getBestMatchingLabel(planName, mappedId, exercisesFlat) {
+  if (!planName || !mappedId || !exercisesFlat?.length) return null;
+  const planLower = planName.toLowerCase().trim();
+  const sameId = exercisesFlat.filter((e) => e.id === mappedId);
+  // Prefer exact label match, then plan name contains label, then label contains plan name
+  const exact = sameId.find((e) => e.label.toLowerCase() === planLower);
+  if (exact) return exact.label;
+  const planContainsLabel = sameId.filter((e) =>
+    planLower.includes(e.label.toLowerCase())
+  );
+  if (planContainsLabel.length > 0)
+    return planContainsLabel.sort((a, b) => b.label.length - a.label.length)[0].label;
+  const labelContainsPlan = sameId.filter((e) =>
+    e.label.toLowerCase().includes(planLower)
+  );
+  if (labelContainsPlan.length > 0) return labelContainsPlan[0].label;
+  return sameId[0]?.label ?? null;
+}
+
 /** Parse target total reps from sets (number) and reps (string e.g. "8-12", "10", "to failure") */
 function parseTargetTotalReps(sets, repsStr) {
   const setsNum = typeof sets === "number" ? sets : parseInt(sets, 10) || 1;
@@ -208,12 +228,13 @@ export default function PostureCoach() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState("");
 
-  // When opened from workout plan, pre-select the matching exercise and show its name
+  // When opened from workout plan, pre-select the matching exercise so the correct option is highlighted (e.g. Lat Pulldown, not Bent-over Row)
   useEffect(() => {
     if (workoutFromPlan?.exercise?.name) {
       const mappedId = mapWorkoutExerciseNameToId(workoutFromPlan.exercise.name);
       setExercise(mappedId);
-      setSelectedExerciseLabel(workoutFromPlan.exercise.name);
+      const bestLabel = getBestMatchingLabel(workoutFromPlan.exercise.name, mappedId, EXERCISES);
+      setSelectedExerciseLabel(bestLabel || workoutFromPlan.exercise.name);
     }
   }, [workoutFromPlan?.exercise?.name]);
 
