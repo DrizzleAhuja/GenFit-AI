@@ -2,12 +2,25 @@ import React, { useState, useEffect, useRef } from "react";
 import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
 import { useTheme } from "../../context/ThemeContext";
-import { Footprints, Flame, MapPin, Activity, Play, Square, Sparkles } from "lucide-react";
+import {
+  Footprints,
+  Flame,
+  MapPin,
+  Activity as ActivityIcon,
+  Play,
+  Square,
+  Sparkles,
+} from "lucide-react";
+import axios from "axios";
+import { useSelector } from "react-redux";
+import { selectUser } from "../../redux/userSlice";
+import { API_BASE_URL } from "../../../config/api";
 
 const DAILY_STEPS_KEY = "dailySteps_v2";
 
 const ActivityTracker = () => {
   const { darkMode } = useTheme();
+  const user = useSelector(selectUser);
   const [isTracking, setIsTracking] = useState(false);
   const [steps, setSteps] = useState(() => {
     try {
@@ -26,6 +39,10 @@ const ActivityTracker = () => {
   const [calories, setCalories] = useState(0);
   const [distance, setDistance] = useState(0);
   const [activity, setActivity] = useState("Idle");
+  const [googleFitLinked, setGoogleFitLinked] = useState(false);
+  const [googleStatusLoading, setGoogleStatusLoading] = useState(false);
+  const [googleError, setGoogleError] = useState("");
+  const [syncingFit, setSyncingFit] = useState(false);
   const lastAccel = useRef(0);
   const stepCountRef = useRef(steps);
   const motionHandlerRef = useRef(null);
@@ -53,6 +70,64 @@ const ActivityTracker = () => {
     if (accelMagnitude > 18) return "Running";
     if (accelMagnitude > 12) return "Walking";
     return "Idle";
+  };
+
+  // Prefer Google Fit steps when available for best accuracy
+  useEffect(() => {
+    const loadStatus = async () => {
+      if (!user?._id) {
+        setGoogleFitLinked(false);
+        return;
+      }
+      setGoogleStatusLoading(true);
+      setGoogleError("");
+      try {
+        const res = await axios.get(
+          `${API_BASE_URL}/api/auth/google-fit/status`,
+          { params: { userId: user._id } }
+        );
+        if (res.data?.linked) {
+          setGoogleFitLinked(true);
+          const last = res.data.lastSyncedSteps || 0;
+          if (typeof last === "number" && last >= 0) {
+            setSteps(last);
+          }
+        } else {
+          setGoogleFitLinked(false);
+        }
+      } catch (err) {
+        console.error("Google Fit status error:", err);
+        setGoogleError("Failed to load Google Fit status");
+      } finally {
+        setGoogleStatusLoading(false);
+      }
+    };
+
+    loadStatus();
+  }, [user?._id]);
+
+  const syncFromGoogleFit = async () => {
+    if (!user?._id) return;
+    setSyncingFit(true);
+    setGoogleError("");
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/auth/google-fit/steps/today`,
+        { params: { userId: user._id } }
+      );
+      const s = res.data?.steps ?? 0;
+      if (typeof s === "number" && s >= 0) {
+        setSteps(s);
+      }
+    } catch (err) {
+      console.error("Google Fit steps error:", err?.response?.data || err);
+      setGoogleError(
+        err?.response?.data?.error ||
+          "Failed to sync from Google Fit. Check link status."
+      );
+    } finally {
+      setSyncingFit(false);
+    }
   };
 
   const startTracking = async () => {
@@ -143,29 +218,64 @@ const ActivityTracker = () => {
             </header>
 
             {/* Control Buttons */}
-            <div className="flex justify-center gap-3 flex-wrap mb-6 sm:mb-8">
-              <button
-                onClick={startTracking}
-                disabled={isTracking}
-                className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-full bg-gradient-to-r from-[#22D3EE] via-[#0EA5E9] to-[#8B5CF6] text-white font-semibold hover:opacity-95 disabled:opacity-50 transition-all duration-300 shadow-lg hover:shadow-[#22D3EE]/40"
-              >
-                <Play size={18} /> Start Tracking
-              </button>
+            <div className="flex flex-col items-center gap-4 mb-6 sm:mb-8">
+              {user && (
+                <div className="flex flex-wrap justify-center gap-3">
+                  <button
+                    onClick={syncFromGoogleFit}
+                    disabled={syncingFit}
+                    className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-full bg-[#22C55E]/90 hover:bg-[#22C55E] text-white font-semibold disabled:opacity-50 transition border border-white/10"
+                  >
+                    {syncingFit ? "Syncing…" : "Sync from Google Fit"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!user?._id) return;
+                      window.location.href = `${API_BASE_URL}/api/auth/google-fit/link?userId=${user._id}`;
+                    }}
+                    className="px-5 sm:px-6 py-2.5 sm:py-3 rounded-full bg-white/5 text-gray-200 font-semibold hover:bg-white/10 transition border border-white/10"
+                  >
+                    {googleFitLinked ? "Relink Google Fit" : "Connect Google Fit"}
+                  </button>
+                </div>
+              )}
 
-              <button
-                onClick={stopTracking}
-                disabled={!isTracking}
-                className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-full bg-red-500/90 hover:bg-red-500 text-white font-semibold disabled:opacity-50 transition border border-white/10"
-              >
-                <Square size={18} /> Stop Tracking
-              </button>
+              <div className="flex justify-center gap-3 flex-wrap">
+                <button
+                  onClick={startTracking}
+                  disabled={isTracking}
+                  className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-full bg-gradient-to-r from-[#22D3EE] via-[#0EA5E9] to-[#8B5CF6] text-white font-semibold hover:opacity-95 disabled:opacity-50 transition-all duration-300 shadow-lg hover:shadow-[#22D3EE]/40"
+                >
+                  <Play size={18} /> Phone Sensor Tracking
+                </button>
 
-              <button
-                onClick={resetSteps}
-                className="px-5 sm:px-6 py-2.5 sm:py-3 rounded-full bg-white/5 text-gray-200 font-semibold hover:bg-white/10 transition border border-white/10"
-              >
-                Reset
-              </button>
+                <button
+                  onClick={stopTracking}
+                  disabled={!isTracking}
+                  className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-full bg-red-500/90 hover:bg-red-500 text-white font-semibold disabled:opacity-50 transition border border-white/10"
+                >
+                  <Square size={18} /> Stop
+                </button>
+
+                <button
+                  onClick={resetSteps}
+                  className="px-5 sm:px-6 py-2.5 sm:py-3 rounded-full bg-white/5 text-gray-200 font-semibold hover:bg-white/10 transition border border-white/10"
+                >
+                  Reset
+                </button>
+              </div>
+
+              {(googleStatusLoading || googleError || googleFitLinked) && (
+                <p className="text-xs text-gray-400 text-center max-w-md">
+                  {googleStatusLoading
+                    ? "Checking Google Fit status…"
+                    : googleError
+                    ? googleError
+                    : googleFitLinked
+                    ? "Google Fit linked – using synced steps for best accuracy. You can still use phone sensor tracking as a backup."
+                    : null}
+                </p>
+              )}
             </div>
 
             {/* Stats Cards - Features style */}
@@ -189,7 +299,7 @@ const ActivityTracker = () => {
                 color="text-[#8B5CF6]"
               />
               <Card
-                icon={<Activity size={24} />}
+                icon={<ActivityIcon size={24} />}
                 title="Activity Status"
                 value={activity}
                 color="text-[#34D399]"
