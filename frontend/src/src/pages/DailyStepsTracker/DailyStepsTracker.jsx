@@ -1,133 +1,328 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from "react";
+import NavBar from "../HomePage/NavBar";
+import Footer from "../HomePage/Footer";
+import { useTheme } from "../../context/ThemeContext";
+import { Footprints, Flame, MapPin, Timer as TimerIcon, Sparkles, Play, Square } from "lucide-react";
 
-const StepCounter = () => {
-  const [steps, setSteps] = useState(0);
+// Simple PWA-friendly step tracker:
+// - Uses phone accelerometer (DeviceMotion) in browser
+// - Tracks walking-only steps, duration, distance, calories
+// - Persists today's steps + duration in localStorage and auto-resets each new day
+
+const STORAGE_KEY = "daily_steps_tracker_v1";
+const STEP_LENGTH_M = 0.78; // average stride length in meters
+const CALORIES_PER_STEP = 0.04; // approx kcal per step for walking
+
+const loadTodayState = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { steps: 0, durationSeconds: 0 };
+    const parsed = JSON.parse(raw);
+    const todayKey = new Date().toISOString().slice(0, 10);
+    if (parsed?.date === todayKey) {
+      return {
+        steps: typeof parsed.steps === "number" ? parsed.steps : 0,
+        durationSeconds:
+          typeof parsed.durationSeconds === "number" ? parsed.durationSeconds : 0,
+      };
+    }
+    return { steps: 0, durationSeconds: 0 };
+  } catch {
+    return { steps: 0, durationSeconds: 0 };
+  }
+};
+
+const saveTodayState = (steps, durationSeconds) => {
+  const todayKey = new Date().toISOString().slice(0, 10);
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ date: todayKey, steps, durationSeconds })
+    );
+  } catch {
+    // ignore storage errors (private / full storage)
+  }
+};
+
+const formatDuration = (seconds) => {
+  const s = Math.max(0, Math.floor(seconds));
+  const mins = Math.floor(s / 60);
+  const secs = s % 60;
+  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+};
+
+const DailyStepsTracker = () => {
+  const { darkMode } = useTheme();
+  const initial = loadTodayState();
+
   const [isTracking, setIsTracking] = useState(false);
-  const [error, setError] = useState(null);
+  const [steps, setSteps] = useState(initial.steps);
+  const [durationSeconds, setDurationSeconds] = useState(initial.durationSeconds);
+  const [activity, setActivity] = useState("Idle");
+  const [sensorError, setSensorError] = useState("");
 
-  // Load steps from local storage on mount
+  const lastAccelMagRef = useRef(0);
+  const lastStepTimeRef = useRef(0);
+  const timerIdRef = useRef(null);
+  const motionHandlerRef = useRef(null);
+
+  const distanceKm = Number(((steps * STEP_LENGTH_M) / 1000).toFixed(2));
+  const calories = Number((steps * CALORIES_PER_STEP).toFixed(1));
+
+  // Persist today's state whenever steps or duration change
   useEffect(() => {
-    const savedSteps = localStorage.getItem('genfit_daily_steps');
-    if (savedSteps) setSteps(parseInt(savedSteps));
-  }, []);
+    saveTodayState(steps, durationSeconds);
+  }, [steps, durationSeconds]);
 
-  // Save steps to local storage whenever they change
-  useEffect(() => {
-    localStorage.setItem('genfit_daily_steps', steps.toString());
-  }, [steps]);
+  const startTimer = () => {
+    if (timerIdRef.current) return;
+    timerIdRef.current = setInterval(() => {
+      setDurationSeconds((prev) => prev + 1);
+    }, 1000);
+  };
 
-  const startTracking = async () => {
-    // Check if DeviceMotionEvent is available
-    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-      try {
-        const permission = await DeviceMotionEvent.requestPermission();
-        if (permission === 'granted') {
-          initSensor();
-        } else {
-          setError("Permission denied. GenFit AI needs motion access to count steps.");
-        }
-      } catch (err) {
-        setError("Error requesting permission.");
-      }
-    } else {
-      // For non-iOS or older browsers
-      initSensor();
+  const stopTimer = () => {
+    if (timerIdRef.current) {
+      clearInterval(timerIdRef.current);
+      timerIdRef.current = null;
     }
   };
 
-  const initSensor = () => {
-    setIsTracking(true);
-    let lastAcceleration = { x: 0, y: 0, z: 0 };
-    let shakeThreshold = 12; // Adjust this for sensitivity (higher = harder to trigger)
+  const startTracking = async () => {
+    setSensorError("");
+    if (typeof window === "undefined" || typeof window.addEventListener === "undefined") {
+      setSensorError("Motion sensors are not available in this environment.");
+      return;
+    }
 
-    const handleMotion = (event) => {
+    const DeviceMotion = window.DeviceMotionEvent || window.webkitDeviceMotionEvent;
+    if (typeof DeviceMotion === "undefined") {
+      setSensorError("Motion sensors not supported on this device.");
+      return;
+    }
+
+    // iOS permission flow
+    if (typeof DeviceMotion.requestPermission === "function") {
+      try {
+        const permission = await DeviceMotion.requestPermission();
+        if (permission !== "granted") {
+          setSensorError("Motion permission denied.");
+          return;
+        }
+      } catch (error) {
+        console.error("Motion permission error:", error);
+        setSensorError("Failed to request motion permission.");
+        return;
+      }
+    }
+
+    lastAccelMagRef.current = 0;
+    lastStepTimeRef.current = 0;
+    setIsTracking(true);
+    setActivity("Walking");
+    startTimer();
+
+    motionHandlerRef.current = (event) => {
       const acc = event.accelerationIncludingGravity;
       if (!acc) return;
 
-      const deltaX = Math.abs(acc.x - lastAcceleration.x);
-      const deltaY = Math.abs(acc.y - lastAcceleration.y);
-      const deltaZ = Math.abs(acc.z - lastAcceleration.z);
+      const mag = Math.sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
+      const diff = Math.abs(mag - lastAccelMagRef.current);
+      lastAccelMagRef.current = mag;
 
-      // Simple logic: If change in movement is above threshold, count as a step
-      if ((deltaX + deltaY + deltaZ) > shakeThreshold) {
+      const now = event.timeStamp || Date.now();
+      const sinceLast = now - lastStepTimeRef.current;
+
+      // Heuristic tuned for walking:
+      // - diff > 2.2: noticeable impact
+      // - 300ms < interval < 2000ms: realistic step timing
+      if (diff > 2.2 && sinceLast > 300 && sinceLast < 2000) {
+        lastStepTimeRef.current = now;
         setSteps((prev) => prev + 1);
       }
-
-      lastAcceleration = { x: acc.x, y: acc.y, z: acc.z };
     };
 
-    window.addEventListener('devicemotion', handleMotion);
-    
-    // Cleanup on stop
-    return () => window.removeEventListener('devicemotion', handleMotion);
+    window.addEventListener("devicemotion", motionHandlerRef.current);
   };
 
-  const resetSteps = () => {
-    if (window.confirm("Are you sure you want to reset today's steps?")) {
-      setSteps(0);
+  const stopTracking = () => {
+    setIsTracking(false);
+    setActivity("Idle");
+    stopTimer();
+    if (motionHandlerRef.current) {
+      window.removeEventListener("devicemotion", motionHandlerRef.current);
+      motionHandlerRef.current = null;
     }
   };
 
+  const resetToday = () => {
+    setSteps(0);
+    setDurationSeconds(0);
+    setActivity("Idle");
+    setSensorError("");
+    stopTracking();
+    saveTodayState(0, 0);
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopTimer();
+      if (motionHandlerRef.current) {
+        window.removeEventListener("devicemotion", motionHandlerRef.current);
+      }
+    };
+  }, []);
+
   return (
-    <div style={styles.container}>
-      <h2 style={styles.title}>GenFit AI Step Tracker</h2>
-      
-      <div style={styles.counterCircle}>
-        <span style={styles.stepCount}>{steps}</span>
-        <p style={styles.label}>STEPS</p>
-      </div>
+    <div
+      className={`min-h-screen flex flex-col ${
+        darkMode ? "bg-[#05010d] text-white" : "bg-[#020617] text-gray-100"
+      }`}
+    >
+      <NavBar />
 
-      {error && <p style={styles.error}>{error}</p>}
+      <main className="flex-grow">
+        <section className="relative overflow-hidden py-6 sm:py-8 lg:py-10">
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute -top-24 -left-16 w-72 h-72 bg-[#8B5CF6] rounded-full blur-3xl opacity-30" />
+            <div className="absolute -bottom-28 right-0 w-80 h-80 bg-[#22D3EE] rounded-full blur-3xl opacity-25" />
+          </div>
 
-      <div style={styles.buttonGroup}>
-        {!isTracking ? (
-          <button onClick={startTracking} style={styles.buttonStart}>Start Tracking</button>
-        ) : (
-          <button disabled style={styles.buttonActive}>Tracking Active...</button>
-        )}
-        <button onClick={resetSteps} style={styles.buttonReset}>Reset</button>
-      </div>
+          <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
+            {/* Header */}
+            <header className="text-center mb-6 sm:mb-8 lg:mb-10">
+              <div className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-gradient-to-r from-[#8B5CF6]/20 to-[#22D3EE]/20 border border-[#8B5CF6]/40 backdrop-blur-xl mb-4">
+                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#FACC15]" />
+                <span className="text-xs sm:text-sm font-semibold text-gray-100">
+                  PWA Daily Walking Tracker
+                </span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold mb-3 sm:mb-4">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]">
+                  Daily Steps
+                </span>{" "}
+                (Walking)
+              </h1>
+              <p className="max-w-3xl mx-auto text-sm sm:text-base lg:text-lg text-gray-300">
+                Start tracking and walk with your phone in your pocket. Designed for{" "}
+                <span className="font-semibold text-[#22D3EE]">PWA</span> use on mobile.
+              </p>
+            </header>
 
-      <p style={styles.note}>
-        Keep your phone in your hand or pocket while walking.
-      </p>
+            {/* Controls */}
+            <div className="flex justify-center gap-3 flex-wrap mb-6 sm:mb-8">
+              <button
+                onClick={startTracking}
+                disabled={isTracking}
+                className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-full bg-gradient-to-r from-[#22D3EE] via-[#0EA5E9] to-[#8B5CF6] text-white font-semibold hover:opacity-95 disabled:opacity-50 transition-all duration-300 shadow-lg hover:shadow-[#22D3EE]/40"
+              >
+                <Play size={18} /> {isTracking ? "Tracking…" : "Start Walking"}
+              </button>
+
+              <button
+                onClick={stopTracking}
+                disabled={!isTracking}
+                className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-full bg-red-500/90 hover:bg-red-500 text-white font-semibold disabled:opacity-50 transition border border-white/10"
+              >
+                <Square size={18} /> Stop
+              </button>
+
+              <button
+                onClick={resetToday}
+                className="px-5 sm:px-6 py-2.5 sm:py-3 rounded-full bg-white/5 text-gray-200 font-semibold hover:bg:white/10 transition border border-white/10"
+              >
+                Reset Today
+              </button>
+            </div>
+
+            {sensorError && (
+              <div className="mb-4 text-center text-xs text-red-400 max-w-xl mx-auto">
+                {sensorError}
+              </div>
+            )}
+
+            {isTracking && (
+              <div className="relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-5 sm:p-6 text-center shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 mb-6">
+                <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
+                <p className="text-emerald-400 font-semibold animate-pulse text-sm sm:text-base">
+                  Tracking walking steps in real time…
+                </p>
+              </div>
+            )}
+
+            {/* Stats cards */}
+            <div className="grid gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-4 mb-10 sm:mb-12">
+              <StatCard
+                icon={<Footprints size={24} />}
+                title="Steps Today"
+                value={steps}
+                color="text-[#22D3EE]"
+              />
+              <StatCard
+                icon={<TimerIcon size={24} />}
+                title="Active Time"
+                value={formatDuration(durationSeconds)}
+                color="text-[#FACC15]"
+              />
+              <StatCard
+                icon={<MapPin size={24} />}
+                title="Distance"
+                value={`${distanceKm} km`}
+                color="text-[#8B5CF6]"
+              />
+              <StatCard
+                icon={<Flame size={24} />}
+                title="Calories Burned"
+                value={`${calories} kcal`}
+                color="text-[#F97316]"
+              />
+            </div>
+
+            {/* Activity info */}
+            <div className="relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-5 sm:p-6 shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 transition-all duration-300">
+              <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
+              <h2 className="text-lg sm:text-xl font-semibold text-white mb-2">
+                Walking activity only
+              </h2>
+              <p className="text-sm sm:text-base text-gray-300 mb-2">
+                This tracker is tuned for <span className="font-semibold">walking</span> with
+                your phone in your hand or pocket. It ignores most tiny shakes and counts only
+                realistic step impacts.
+              </p>
+              <ul className="text-sm sm:text-base text-gray-300 space-y-2 list-disc list-inside">
+                <li>For best accuracy, keep the phone near your body while walking.</li>
+                <li>Short tests (1–2 minutes) may vary; longer walks give more accurate counts.</li>
+                <li>Steps, time, distance, and calories are saved for today and reset each day.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <Footer />
     </div>
   );
 };
 
-const styles = {
-  container: {
-    padding: '20px',
-    textAlign: 'center',
-    backgroundColor: '#1a1a1a',
-    borderRadius: '20px',
-    color: '#fff',
-    maxWidth: '350px',
-    margin: '20px auto',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
-    fontFamily: 'Arial, sans-serif'
-  },
-  title: { color: '#00d4ff', marginBottom: '20px' },
-  counterCircle: {
-    width: '180px',
-    height: '180px',
-    borderRadius: '50%',
-    border: '8px solid #00d4ff',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    margin: '0 auto 20px',
-    backgroundColor: '#252525'
-  },
-  stepCount: { fontSize: '48px', fontWeight: 'bold', margin: 0 },
-  label: { margin: 0, letterSpacing: '2px', color: '#aaa' },
-  buttonGroup: { display: 'flex', gap: '10px', justifyContent: 'center' },
-  buttonStart: { backgroundColor: '#00d4ff', color: '#000', border: 'none', padding: '10px 20px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' },
-  buttonActive: { backgroundColor: '#333', color: '#888', border: 'none', padding: '10px 20px', borderRadius: '10px' },
-  buttonReset: { backgroundColor: 'transparent', color: '#ff4d4d', border: '1px solid #ff4d4d', padding: '10px 20px', borderRadius: '10px', cursor: 'pointer' },
-  error: { color: '#ff4d4d', fontSize: '12px', marginTop: '10px' },
-  note: { fontSize: '12px', color: '#666', marginTop: '15px' }
-};
+const StatCard = ({ icon, title, value, color }) => (
+  <article className="relative h-full rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-5 sm:p-6 flex flex-col shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 transition-transform duration-300 hover:-translate-y-1.5">
+    <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
+    <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center gap-3">
+        <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-[#020617] border border-[#1F2937]">
+          <div className={color || "text-[#22D3EE]"}>{icon}</div>
+        </div>
+        <span className="text-xs uppercase tracking-[0.18em] text-gray-400">
+          {title}
+        </span>
+      </div>
+    </div>
+    <p className="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]">
+      {value}
+    </p>
+  </article>
+);
 
-export default StepCounter;
+export default DailyStepsTracker;
+
