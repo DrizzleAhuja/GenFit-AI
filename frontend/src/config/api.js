@@ -30,4 +30,5 @@ export const API_ENDPOINTS = {
   WORKOUT_PLAN_HISTORY: "/api/auth/workout-plan/history",
   UPDATE_WORKOUT_PLAN: "/api/auth/workout-plan/update",
   LOG_WORKOUT_SESSION: "/api/auth/workout-session/log",
+  CALORIE_INTAKE: "/api/auth/calorie-intake",
 };

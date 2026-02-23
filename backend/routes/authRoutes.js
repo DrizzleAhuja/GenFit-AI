@@ -6,6 +6,7 @@ const BMI = require("../models/BMI");
 const WorkoutPlan = require("../models/WorkoutPlan").default; // Correct import for default export
 const WorkoutSessionLog = require("../models/WorkoutSessionLog").default; // Correct import for default export
 const DietChart = require("../models/DietChart");
+const CalorieIntakeLog = require("../models/CalorieIntakeLog").default;
 const axios = require("axios");
 const { OAuth2Client } = require("google-auth-library");
 const { login } = require("../controllers/authController");
@@ -1399,6 +1400,114 @@ ${userNote ? `User note / context: ${userNote}` : ""}
       success: false,
       error: "Failed to analyze food image",
       details: error.message,
+    });
+  }
+});
+// Log daily calorie intake (aggregated per day per user)
+router.post("/calorie-intake/log", async (req, res) => {
+  try {
+    const { userId, totalCalories, date, source, notes, items } = req.body || {};
+
+    if (!userId || typeof totalCalories !== "number") {
+      return res.status(400).json({
+        success: false,
+        error: "userId and numeric totalCalories are required",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+    }
+
+    const logDate = date ? new Date(date) : new Date();
+
+    const safeItems =
+      Array.isArray(items) && items.length > 0
+        ? items
+            .filter(
+              (it) =>
+                it &&
+                typeof it.name === "string" &&
+                typeof it.caloriesPerItem === "number" &&
+                typeof it.totalCalories === "number"
+            )
+            .map((it) => ({
+              name: it.name,
+              caloriesPerItem: it.caloriesPerItem,
+              quantity: typeof it.quantity === "number" ? it.quantity : 1,
+              totalCalories: it.totalCalories,
+            }))
+        : [];
+
+    const log = await CalorieIntakeLog.create({
+      userId: user._id,
+      totalCalories,
+      source: source || "image",
+      notes: notes || undefined,
+      date: logDate,
+      items: safeItems,
+    });
+
+    return res.status(201).json({
+      success: true,
+      log,
+    });
+  } catch (err) {
+    console.error("Calorie intake log error:", err);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to log calorie intake",
+      details: err.message,
+    });
+  }
+});
+
+// Get calorie intake history for last N days (default 15)
+router.get("/calorie-intake/history/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const days = parseInt(req.query.days, 10) || 15;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: "userId is required",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+    }
+
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    cutoff.setHours(0, 0, 0, 0);
+
+    const logs = await CalorieIntakeLog.find({
+      userId: userId,
+      date: { $gte: cutoff },
+    })
+      .sort({ date: 1 })
+      .lean();
+
+    return res.json({
+      success: true,
+      logs,
+    });
+  } catch (err) {
+    console.error("Calorie intake history error:", err);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to fetch calorie intake history",
+      details: err.message,
     });
   }
 });

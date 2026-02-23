@@ -4,12 +4,25 @@ import Footer from "../HomePage/Footer";
 import { useTheme } from "../../context/ThemeContext";
 import { Footprints, Flame, MapPin, Activity, Play, Square, Sparkles } from "lucide-react";
 
+const DAILY_STEPS_KEY = "dailySteps_v2";
+
 const ActivityTracker = () => {
   const { darkMode } = useTheme();
   const [isTracking, setIsTracking] = useState(false);
-  const [steps, setSteps] = useState(
-    Number(localStorage.getItem("dailySteps")) || 0
-  );
+  const [steps, setSteps] = useState(() => {
+    try {
+      const raw = localStorage.getItem(DAILY_STEPS_KEY);
+      if (!raw) return 0;
+      const parsed = JSON.parse(raw);
+      const todayKey = new Date().toISOString().slice(0, 10);
+      if (parsed?.date === todayKey && typeof parsed.steps === "number") {
+        return parsed.steps;
+      }
+      return 0;
+    } catch {
+      return 0;
+    }
+  });
   const [calories, setCalories] = useState(0);
   const [distance, setDistance] = useState(0);
   const [activity, setActivity] = useState("Idle");
@@ -22,7 +35,15 @@ const ActivityTracker = () => {
 
   useEffect(() => {
     stepCountRef.current = steps;
-    localStorage.setItem("dailySteps", steps);
+    const todayKey = new Date().toISOString().slice(0, 10);
+    try {
+      localStorage.setItem(
+        DAILY_STEPS_KEY,
+        JSON.stringify({ date: todayKey, steps })
+      );
+    } catch {
+      // ignore storage errors (private mode, etc.)
+    }
     const distKm = (steps * STEP_LENGTH) / 1000;
     setDistance(Number(distKm.toFixed(2)));
     setCalories(Number((steps * CALORIES_PER_STEP).toFixed(1)));
@@ -82,7 +103,11 @@ const ActivityTracker = () => {
 
   const resetSteps = () => {
     setSteps(0);
-    localStorage.removeItem("dailySteps");
+    try {
+      localStorage.removeItem(DAILY_STEPS_KEY);
+    } catch {
+      // ignore
+    }
   };
 
   return (
