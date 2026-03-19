@@ -103,23 +103,23 @@ export default function NavBar() {
 
   const handleLoginError = (error) => {
     console.error("Google login error:", error);
-    
+
     const errorInfo = getOAuthErrorMessage(error);
-    
-    toast.error(`${errorInfo.title}: ${errorInfo.message}`, { 
-      autoClose: 5000 
+
+    toast.error(`${errorInfo.title}: ${errorInfo.message}`, {
+      autoClose: 5000
     });
-    
+
     setTimeout(() => {
-      toast.info(errorInfo.action, { 
-        autoClose: 6000 
+      toast.info(errorInfo.action, {
+        autoClose: 6000
       });
     }, 2500);
-    
+
     if (isPWAMode() && error?.error !== "popup_closed_by_user") {
       setTimeout(() => {
         toast.info(
-          "💡 Tip: For better sign-in experience, open this site in Chrome browser", 
+          "💡 Tip: For better sign-in experience, open this site in Chrome browser",
           { autoClose: 7000 }
         );
       }, 4000);
@@ -135,33 +135,33 @@ export default function NavBar() {
   }, [dispatch]);
 
   const navLinks = [
-    { path: "/", label: "HOME" },
+    ...(user ? [{ path: "/", label: "DASHBOARD" }] : []),
     ...(!user
       ? [
-          { path: "/about", label: "ABOUT US" },
-          { path: "/features", label: "FEATURES" },
-          { path: "/Contactus", label: "CONTACT US" },
-          { path: "/leaderboard", label: "LEADERBOARD" },
-        ]
+        { path: "/about", label: "ABOUT US" },
+        { path: "/features", label: "FEATURES" },
+        { path: "/Contactus", label: "CONTACT US" },
+        { path: "/leaderboard", label: "LEADERBOARD" },
+      ]
       : [
-          { path: "/VirtualTA", label: "VIRTUAL TRAINING ASSISTANT" },
-          { path: "/CurrentBMI", label: "CURRENT BMI" },
-          { path: "/calorie-tracker", label: "CALORIE TRACKER" },
-          { path: "/daily-steps", label: "DAILY STEPS" },
-          { path: "/Workout", label: "WORKOUT" },
-          { path: "/diet-chart", label: "DIET CHART" },
-          { path: "/leaderboard", label: "LEADERBOARD" },
-        ]),
+        { path: "/VirtualTA", label: "VIRTUAL TRAINING ASSISTANT" },
+        { path: "/CurrentBMI", label: "CURRENT BMI" },
+        { path: "/calorie-tracker", label: "CALORIE TRACKER" },
+        { path: "/daily-steps", label: "DAILY STEPS" },
+        { path: "/Workout", label: "WORKOUT" },
+        { path: "/diet-chart", label: "DIET CHART" },
+        { path: "/leaderboard", label: "LEADERBOARD" },
+      ]),
   ];
 
   return (
     <>
-      <GoogleOAuthProvider 
+      <GoogleOAuthProvider
         clientId="702465560392-1mu8j4kqafadep516m62oa5vf5klt7pu.apps.googleusercontent.com"
         onScriptLoadError={() => {
           console.error("Google OAuth script failed to load");
-          toast.error("Google sign-in unavailable. Please check your connection.", { 
-            autoClose: 3000 
+          toast.error("Google sign-in unavailable. Please check your connection.", {
+            autoClose: 3000
           });
         }}
         onScriptLoadSuccess={() => {
@@ -181,10 +181,9 @@ export default function NavBar() {
                   key={link.path}
                   to={link.path}
                   className={({ isActive }) =>
-                    `px-3 py-2 rounded-md text-sm font-medium transition-colors border-b-2 border-transparent ${
-                      isActive
-                        ? "text-[#22D3EE] border-[#22D3EE] bg-[#22D3EE]/10"
-                        : "text-gray-300 hover:text-white hover:bg-white/5 hover:border-[#22D3EE]/60"
+                    `px-3 py-2 rounded-md text-sm font-medium transition-colors border-b-2 border-transparent ${isActive
+                      ? "text-[#22D3EE] border-[#22D3EE] bg-[#22D3EE]/10"
+                      : "text-gray-300 hover:text-white hover:bg-white/5 hover:border-[#22D3EE]/60"
                     }`
                   }
                 >
@@ -253,7 +252,7 @@ export default function NavBar() {
             >
               {mobileMenuOpen ? <FiX size={28} /> : <FiMenu size={28} />}
             </button>
-            
+
             <GenFitLogo size="small" />
 
             {user && (
@@ -269,9 +268,8 @@ export default function NavBar() {
 
         {/* Mobile Sidebar */}
         <div
-          className={`lg:hidden fixed top-0 left-0 h-full w-72 bg-[#040011] shadow-2xl border-r border-purple-500/30 transform transition-transform duration-300 ease-in-out z-50 ${
-            mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
+          className={`lg:hidden fixed top-0 left-0 h-full w-72 bg-[#040011] shadow-2xl border-r border-purple-500/30 transform transition-transform duration-300 ease-in-out z-50 ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+            }`}
         >
           <div className="flex flex-col h-full">
             {/* Sidebar Header */}
@@ -311,10 +309,9 @@ export default function NavBar() {
                   key={link.path}
                   to={link.path}
                   className={({ isActive }) =>
-                    `block px-6 py-3 text-base font-medium transition-colors ${
-                      isActive
-                        ? "bg-gray-700 text-white border-l-4 border-[#22D3EE]"
-                        : "text-gray-300 hover:bg-[#020617]/60 hover:text-white"
+                    `block px-6 py-3 text-base font-medium transition-colors ${isActive
+                      ? "bg-gray-700 text-white border-l-4 border-[#22D3EE]"
+                      : "text-gray-300 hover:bg-[#020617]/60 hover:text-white"
                     }`
                   }
                   onClick={() => setMobileMenuOpen(false)}
