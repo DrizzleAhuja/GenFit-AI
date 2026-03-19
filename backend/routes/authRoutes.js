@@ -6,6 +6,7 @@ const BMI = require("../models/BMI");
 const WorkoutPlan = require("../models/WorkoutPlan").default; // Correct import for default export
 const WorkoutSessionLog = require("../models/WorkoutSessionLog").default; // Correct import for default export
 const DietChart = require("../models/DietChart");
+const CalorieIntakeLog = require("../models/CalorieIntakeLog").default;
 const axios = require("axios");
 const { OAuth2Client } = require("google-auth-library");
 const { login } = require("../controllers/authController");
@@ -1402,6 +1403,125 @@ ${userNote ? `User note / context: ${userNote}` : ""}
     });
   }
 });
+// Log daily calorie intake (aggregated per day per user)
+router.post("/calorie-intake/log", async (req, res) => {
+  try {
+    const { userId, totalCalories, date, source, notes, items } = req.body || {};
+
+    if (!userId || typeof totalCalories !== "number") {
+      return res.status(400).json({
+        success: false,
+        error: "userId and numeric totalCalories are required",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+    }
+
+    const logDate = date ? new Date(date) : new Date();
+
+    const safeItems =
+      Array.isArray(items) && items.length > 0
+        ? items
+            .filter(
+              (it) =>
+                it &&
+                typeof it.name === "string" &&
+                typeof it.caloriesPerItem === "number" &&
+                typeof it.totalCalories === "number"
+            )
+            .map((it) => ({
+              name: it.name,
+              caloriesPerItem: it.caloriesPerItem,
+              quantity: typeof it.quantity === "number" ? it.quantity : 1,
+              totalCalories: it.totalCalories,
+            }))
+        : [];
+
+    const log = await CalorieIntakeLog.create({
+      userId: user._id,
+      totalCalories,
+      source: source || "image",
+      notes: notes || undefined,
+      date: logDate,
+      items: safeItems,
+    });
+
+    return res.status(201).json({
+      success: true,
+      log,
+    });
+  } catch (err) {
+    console.error("Calorie intake log error:", err);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to log calorie intake",
+      details: err.message,
+    });
+  }
+});
+
+// Get calorie intake history for last N days (default 15)
+router.get("/calorie-intake/history/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const days = parseInt(req.query.days, 10) || 15;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: "userId is required",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+    }
+
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    cutoff.setHours(0, 0, 0, 0);
+
+    const logs = await CalorieIntakeLog.find({
+      userId: userId,
+      date: { $gte: cutoff },
+    })
+      .sort({ date: 1 })
+      .lean();
+
+    return res.json({
+      success: true,
+      logs,
+    });
+  } catch (err) {
+    console.error("Calorie intake history error:", err);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to fetch calorie intake history",
+      details: err.message,
+    });
+  }
+});
+
+// Cuisine type mapping for Indian regional cuisines
+const CUISINE_DESCRIPTIONS = {
+  north_indian: "North Indian cuisine (dal, roti, paneer dishes, curries, parathas, chole, rajma)",
+  south_indian: "South Indian cuisine (idli, dosa, sambar, rasam, upma, uttapam, coconut-based dishes)",
+  punjabi: "Punjabi cuisine (makki di roti, sarson da saag, lassi, butter chicken/paneer, paratha, chole bhature)",
+  gujarati: "Gujarati cuisine (dhokla, thepla, khakhra, undhiyu, dal-bhat-shaak-roti, kadhi)",
+  bengali: "Bengali cuisine (macher jhol, shorshe dishes, mishti doi, luchi, kosha mangsho, cholar dal)",
+  maharashtrian: "Maharashtrian cuisine (vada pav, puran poli, thalipeeth, misal pav, pitla bhakri)",
+  indian_mix: "Mixed Indian cuisine (variety from all regions - rotis, rice, dal, sabzi, curries)"
+};
 
 // New endpoint to generate a diet chart
 router.post("/generate-diet-chart", async (req, res) => {
@@ -1415,6 +1535,11 @@ router.post("/generate-diet-chart", async (req, res) => {
       diseases,
       allergies,
       activeWorkoutPlan,
+      // New preferences
+      dietType,
+      cuisineType,
+      singleDayPlan,
+      meals,
     } = req.body;
 
     console.log("🤖 [DIET CHART GENERATE] Request received:", {
@@ -1423,14 +1548,16 @@ router.post("/generate-diet-chart", async (req, res) => {
       fitnessGoal,
       currentWeight,
       targetWeight,
+      dietType,
+      cuisineType,
+      singleDayPlan,
       hasActiveWorkoutPlan: !!activeWorkoutPlan,
       activeWorkoutPlanId: activeWorkoutPlan?._id,
     });
 
-    if (!userId || !durationWeeks || !fitnessGoal || !currentWeight) {
+    if (!userId || !fitnessGoal || !currentWeight) {
       console.log("❌ [DIET CHART GENERATE] Missing required fields:", {
         hasUserId: !!userId,
-        hasDurationWeeks: !!durationWeeks,
         hasFitnessGoal: !!fitnessGoal,
         hasCurrentWeight: !!currentWeight,
       });
@@ -1454,7 +1581,83 @@ router.post("/generate-diet-chart", async (req, res) => {
       latestBMI ? "Found" : "Not found"
     );
 
-    let dietChartPrompt = `Generate a ${durationWeeks}-week diet chart for a user with the following details:
+    // Determine diet type label
+    const dietTypeLabel = dietType === "vegetarian" ? "Pure Vegetarian (No eggs, no meat)" 
+      : dietType === "eggetarian" ? "Eggetarian (Vegetarian + Eggs allowed)"
+      : "Non-Vegetarian (Chicken, fish, eggs, mutton allowed)";
+    
+    // Get cuisine description
+    const cuisineDesc = CUISINE_DESCRIPTIONS[cuisineType] || "Indian cuisine";
+    
+    // Get today's day name for variety
+    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const todayName = dayNames[new Date().getDay()];
+
+    let dietChartPrompt;
+    
+    if (singleDayPlan) {
+      // Generate 1-day diet chart with 4 meals
+      dietChartPrompt = `Generate a SINGLE DAY diet chart for TODAY (${todayName}) with EXACTLY 4 meals.
+
+USER DETAILS:
+- Diet Type: ${dietTypeLabel}
+- Cuisine Preference: ${cuisineDesc}
+- Fitness Goal: ${fitnessGoal.replace(/_/g, " ")}
+- Current Weight: ${currentWeight}kg
+- Target Weight: ${targetWeight || "Not specified"}kg
+- Health Conditions: ${diseases?.length > 0 ? diseases.join(", ") : "None"}
+- Allergies: ${allergies?.length > 0 ? allergies.join(", ") : "None"}`;
+
+      if (latestBMI) {
+        dietChartPrompt += `
+- BMI: ${latestBMI.bmi} (${latestBMI.category})
+- Age: ${latestBMI.age} years`;
+      }
+
+      if (activeWorkoutPlan) {
+        dietChartPrompt += `
+- Active Workout: ${activeWorkoutPlan.name} (${activeWorkoutPlan.generatedParams?.intensity || "moderate"} intensity)`;
+      }
+
+      dietChartPrompt += `
+
+GENERATE EXACTLY THESE 4 MEALS:
+
+BREAKFAST (7:00 - 9:00 AM)
+- Provide 2-3 food items with portion sizes
+- Include approximate calories
+- Must be ${cuisineDesc} style
+
+LUNCH (12:30 - 2:00 PM)
+- Provide 3-4 food items with portion sizes (main dish, side, accompaniment)
+- Include approximate calories
+- Must be ${cuisineDesc} style
+
+EVENING SNACK (4:30 - 6:00 PM)
+- Provide 1-2 healthy snack items
+- Include approximate calories
+- Light and energizing options
+
+DINNER (7:30 - 9:00 PM)
+- Provide 2-3 food items with portion sizes (lighter than lunch)
+- Include approximate calories
+- Must be ${cuisineDesc} style
+
+IMPORTANT RULES:
+1. ${dietType === "vegetarian" ? "NO meat, NO eggs, NO fish - PURE VEG only" : dietType === "eggetarian" ? "Eggs allowed, but NO meat or fish" : "Include chicken/fish/eggs as protein sources"}
+2. All dishes must be authentic ${cuisineDesc}
+3. Consider the user's ${fitnessGoal.replace(/_/g, " ")} goal when calculating portions
+4. Keep total daily calories appropriate for ${fitnessGoal.replace(/_/g, " ")}
+5. Include a small hydration tip at the end
+6. Make it practical and easy to prepare at home
+
+Format each meal clearly with the meal name as a header, followed by food items with portions and calories.`;
+
+    } else {
+      // Original multi-week logic
+      dietChartPrompt = `Generate a ${durationWeeks}-week diet chart for a user with the following details:
+    - Diet Type: ${dietTypeLabel}
+    - Cuisine Preference: ${cuisineDesc}
     - Fitness Goal: ${fitnessGoal}
     - Current Weight: ${currentWeight}kg
     - Target Weight: ${targetWeight || "Not specified"}kg
@@ -1462,26 +1665,27 @@ router.post("/generate-diet-chart", async (req, res) => {
     - Allergies: ${allergies?.join(", ") || "None"}
     `;
 
-    if (latestBMI) {
-      dietChartPrompt += `\n- BMI: ${latestBMI.bmi} (${latestBMI.category})\n- Age: ${latestBMI.age}\n- Height: ${latestBMI.heightFeet}'${latestBMI.heightInches}"`;
-    }
+      if (latestBMI) {
+        dietChartPrompt += `\n- BMI: ${latestBMI.bmi} (${latestBMI.category})\n- Age: ${latestBMI.age}\n- Height: ${latestBMI.heightFeet}'${latestBMI.heightInches}"`;
+      }
 
-    if (activeWorkoutPlan) {
-      dietChartPrompt += `\n\nUser's Current Active Workout Plan (ID: ${activeWorkoutPlan._id
-        }):\n- Name: ${activeWorkoutPlan.name}\n- Goal: ${activeWorkoutPlan.generatedParams.fitnessGoal
-          ?.replace(/_/g, " ")
-          .split(" ")
-          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(" ") || "N/A"
-        }\n- Days Per Week: ${activeWorkoutPlan.generatedParams.daysPerWeek || "N/A"
-        }\n- Workout Type: ${activeWorkoutPlan.generatedParams.workoutType || "N/A"
-        }\n- Intensity: ${activeWorkoutPlan.generatedParams.intensity || "N/A"
-        }\n- Time Commitment: ${activeWorkoutPlan.generatedParams.timeCommitment || "N/A"
-        } minutes\n- Current Week: ${activeWorkoutPlan.currentWeek || "N/A"} of ${activeWorkoutPlan.durationWeeks || "N/A"
-        } weeks`;
-    }
+      if (activeWorkoutPlan) {
+        dietChartPrompt += `\n\nUser's Current Active Workout Plan (ID: ${activeWorkoutPlan._id
+          }):\n- Name: ${activeWorkoutPlan.name}\n- Goal: ${activeWorkoutPlan.generatedParams?.fitnessGoal
+            ?.replace(/_/g, " ")
+            .split(" ")
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" ") || "N/A"
+          }\n- Days Per Week: ${activeWorkoutPlan.generatedParams?.daysPerWeek || "N/A"
+          }\n- Workout Type: ${activeWorkoutPlan.generatedParams?.workoutType || "N/A"
+          }\n- Intensity: ${activeWorkoutPlan.generatedParams?.intensity || "N/A"
+          }\n- Time Commitment: ${activeWorkoutPlan.generatedParams?.timeCommitment || "N/A"
+          } minutes\n- Current Week: ${activeWorkoutPlan.currentWeek || "N/A"} of ${activeWorkoutPlan.durationWeeks || "N/A"
+          } weeks`;
+      }
 
-    dietChartPrompt += `\n\nProvide a detailed meal plan for each day of the week, including breakfast, lunch, dinner, and snacks. Specify portion sizes and calorie estimates. Ensure the plan is healthy, balanced, and considers the user's health conditions, fitness goal, and active workout plan. The diet chart should be suitable for the entire ${durationWeeks}-week duration, with general guidelines for variation week-to-week.`;
+      dietChartPrompt += `\n\nProvide a detailed meal plan for each day of the week, including breakfast, lunch, dinner, and snacks. Specify portion sizes and calorie estimates. Ensure the plan is healthy, balanced, and considers the user's health conditions, fitness goal, and active workout plan. The diet chart should be suitable for the entire ${durationWeeks}-week duration, with general guidelines for variation week-to-week.`;
+    }
 
     console.log("🤖 [DIET CHART GENERATE] Calling Gemini API...");
     console.log(
@@ -1502,17 +1706,17 @@ router.post("/generate-diet-chart", async (req, res) => {
           },
         ],
         generationConfig: {
-          temperature: 0.8,
-          maxOutputTokens: 8000,
+          temperature: 0.9,
+          maxOutputTokens: singleDayPlan ? 2000 : 8000,
           topP: 0.9,
-          topK: 20,
+          topK: 30,
         },
       },
       {
         headers: {
           "Content-Type": "application/json",
         },
-        timeout: 25000,
+        timeout: 60000,
       }
     );
 
@@ -1543,6 +1747,12 @@ router.post("/generate-diet-chart", async (req, res) => {
       success: true,
       dietChart: {
         dietChart: dietChartContent,
+        generatedAt: new Date().toISOString(),
+        preferences: {
+          dietType,
+          cuisineType,
+          singleDayPlan
+        }
       },
     });
   } catch (error) {

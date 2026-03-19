@@ -298,11 +298,15 @@ import Footer from "../HomePage/Footer";
 import { getFoodCalorie } from "../../utils/foodCalorieMap";
 import { useTheme } from "../../context/ThemeContext";
 import { Sparkles } from "lucide-react";
+import { useSelector } from "react-redux";
+import { selectUser } from "../../redux/userSlice";
+import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
 
 const CHART_COLORS = ["#22D3EE", "#8B5CF6", "#FACC15", "#34D399", "#FB7185", "#38BDF8"];
 
 const CalorieTracker = () => {
   const { darkMode } = useTheme();
+  const user = useSelector(selectUser);
   const [imagePreview, setImagePreview] = useState(null);
   const [imageBase64, setImageBase64] = useState(null);
   const [imageFileName, setImageFileName] = useState("");
@@ -314,6 +318,9 @@ const CalorieTracker = () => {
   const [aiNotes, setAiNotes] = useState("");
   const [isModelLoading, setIsModelLoading] = useState(true);
   const modelRef = useRef(null);
+  const [history, setHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState("");
 
   // Load MobileNet once (like Posture Coach loads pose model) — no API, runs in browser
   useEffect(() => {
@@ -362,7 +369,41 @@ const CalorieTracker = () => {
       (acc, it) => acc + (Number(it.caloriesPerItem) || Number(it.calories) || 0),
       0
     );
-    setTotalCalories(sumPerServing * q);
+    const total = sumPerServing * q;
+    setTotalCalories(total);
+
+    // Build items payload with per-item and total calories
+    const itemsPayload = (updatedItems || []).map((it) => {
+      const perItem = Number(it.caloriesPerItem) || Number(it.calories) || 0;
+      return {
+        name: it.name,
+        caloriesPerItem: perItem,
+        quantity: q,
+        totalCalories: perItem * q,
+      };
+    });
+
+    // If user is logged in, also log this day's intake to backend for dashboard/history
+    if (user?._id && total > 0) {
+      fetch(`${API_BASE_URL}${API_ENDPOINTS.CALORIE_INTAKE}/log`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user._id,
+          totalCalories: Math.round(total),
+          source: "image",
+          items: itemsPayload,
+        }),
+      })
+        .then(() => {
+          // Refresh local 15-day history
+          loadHistory(user._id);
+        })
+        .catch((err) => {
+          // Non-blocking; just log error in console
+          console.error("Failed to log calorie intake:", err);
+        });
+    }
   };
 
   const handleQuantityChange = (value) => {
@@ -739,6 +780,39 @@ const CalorieTracker = () => {
     }
   };
 
+  // Fetch last 15 days of calorie intake history for logged-in user
+  const loadHistory = async (userId) => {
+    if (!userId) {
+      setHistory([]);
+      return;
+    }
+    setHistoryLoading(true);
+    setHistoryError("");
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}${API_ENDPOINTS.CALORIE_INTAKE}/history/${userId}?days=15`
+      );
+      if (!res.ok) {
+        throw new Error("Failed to load calorie history");
+      }
+      const data = await res.json();
+      setHistory(data?.logs || []);
+    } catch (err) {
+      console.error("Calorie history fetch error:", err);
+      setHistoryError(err.message || "Failed to load calorie history");
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user?._id) {
+      loadHistory(user._id);
+    } else {
+      setHistory([]);
+    }
+  }, [user?._id]);
+
   return (
     <div className={`min-h-screen flex flex-col ${darkMode ? "bg-[#05010d] text-white" : "bg-[#020617] text-gray-100"}`}>
       <NavBar />
@@ -849,7 +923,7 @@ const CalorieTracker = () => {
                 </div>
               </div>
 
-              {/* Right: Results & editing */}
+              {/* Right: Results, history & charts */}
               <div className="space-y-5 sm:space-y-6">
                 <div className="relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 transition-all duration-300">
                   <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]"></div>
@@ -975,6 +1049,77 @@ const CalorieTracker = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Last 15 days history */}
+                <div className="relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 transition-all duration-300">
+                  <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]"></div>
+                  <div className="p-5 sm:p-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <h2 className="text-sm font-semibold text-gray-100">
+                        Last 15 days history
+                      </h2>
+                      {historyLoading && (
+                        <span className="text-[10px] text-gray-400">
+                          Loading…
+                        </span>
+                      )}
+                    </div>
+                    {historyError && (
+                      <p className="text-[11px] text-red-400 mb-2">
+                        {historyError}
+                      </p>
+                    )}
+                    {history.length === 0 && !historyLoading ? (
+                      <p className="text-xs text-gray-400">
+                        No calorie logs yet. Analyze a meal to start your
+                        15-day history.
+                      </p>
+                    ) : (
+                      <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                        {[...history]
+                          .sort(
+                            (a, b) =>
+                              new Date(b.date) - new Date(a.date)
+                          )
+                          .map((entry) => {
+                            const d = new Date(entry.date);
+                            return (
+                              <div
+                                key={entry._id}
+                                className="flex items-center justify-between rounded-lg bg-[#020617]/60 border border-[#1F2937] px-3 py-2"
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-xs text-gray-300">
+                                    {d.toLocaleDateString("en-IN", {
+                                      day: "2-digit",
+                                      month: "short",
+                                    })}
+                                  </div>
+                                  {Array.isArray(entry.items) &&
+                                  entry.items.length > 0 ? (
+                                    <div className="text-[10px] text-gray-500 truncate">
+                                      {entry.items
+                                        .slice(0, 2)
+                                        .map((it) => it.name)
+                                        .join(", ")}
+                                      {entry.items.length > 2 && " …"}
+                                    </div>
+                                  ) : (
+                                    <div className="text-[10px] text-gray-500">
+                                      {entry.source || "image"}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="text-sm font-semibold text-gray-100 ml-3 shrink-0">
+                                  {Math.round(entry.totalCalories || 0)} kcal
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 <div className="relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 transition-all duration-300">
                   <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]"></div>

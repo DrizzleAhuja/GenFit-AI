@@ -13,6 +13,22 @@ import Footer from "../HomePage/Footer";
 import { useTheme } from '../../context/ThemeContext';
 import { Sparkles } from 'lucide-react';
 
+const CUISINE_OPTIONS = [
+  { id: "north_indian", label: "North Indian", icon: "🍛" },
+  { id: "south_indian", label: "South Indian", icon: "🥘" },
+  { id: "punjabi", label: "Punjabi", icon: "🫓" },
+  { id: "gujarati", label: "Gujarati", icon: "🥗" },
+  { id: "bengali", label: "Bengali", icon: "🍚" },
+  { id: "maharashtrian", label: "Maharashtrian", icon: "🥙" },
+  { id: "indian_mix", label: "Mixed Indian", icon: "🇮🇳" },
+];
+
+const DIET_TYPE_OPTIONS = [
+  { id: "vegetarian", label: "Vegetarian", icon: "🥬", color: "from-green-500 to-emerald-500" },
+  { id: "non_vegetarian", label: "Non-Vegetarian", icon: "🍗", color: "from-red-500 to-orange-500" },
+  { id: "eggetarian", label: "Eggetarian", icon: "🥚", color: "from-yellow-500 to-amber-500" },
+];
+
 export default function DietChartGenerator() {
   const { darkMode } = useTheme();
   const [bmiData, setBmiData] = useState(null);
@@ -21,10 +37,19 @@ export default function DietChartGenerator() {
   const [loading, setLoading] = useState(false);
   const [savedDietChart, setSavedDietChart] = useState(null);
   const [bmiResult, setBmiResult] = useState(null);
+  
+  // New: Diet preferences
+  const [dietType, setDietType] = useState(() => localStorage.getItem("diet_preference_type") || "");
+  const [cuisineType, setCuisineType] = useState(() => localStorage.getItem("diet_preference_cuisine") || "");
+  const [lastGeneratedDate, setLastGeneratedDate] = useState(() => localStorage.getItem("diet_last_generated") || "");
 
   const user = useSelector(selectUser);
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Check if we need to auto-refresh (new day)
+  const todayDate = new Date().toDateString();
+  const needsRefresh = lastGeneratedDate && lastGeneratedDate !== todayDate;
 
   // Fetch BMI data
   useEffect(() => {
@@ -81,6 +106,24 @@ export default function DietChartGenerator() {
   useEffect(() => {
     setSavedDietChart(null);
   }, [activeWorkoutPlan]);
+  
+  // Save preferences to localStorage whenever they change
+  useEffect(() => {
+    if (dietType) localStorage.setItem("diet_preference_type", dietType);
+  }, [dietType]);
+  
+  useEffect(() => {
+    if (cuisineType) localStorage.setItem("diet_preference_cuisine", cuisineType);
+  }, [cuisineType]);
+  
+  // Auto-refresh diet chart if it's a new day
+  useEffect(() => {
+    if (needsRefresh && dietType && cuisineType && user && bmiData && activeWorkoutPlan) {
+      console.log("🔄 New day detected! Auto-refreshing diet chart...");
+      setDietChart(null);
+      setSavedDietChart(null);
+    }
+  }, [needsRefresh, dietType, cuisineType, user, bmiData, activeWorkoutPlan]);
 
   // Check for existing diet chart
   useEffect(() => {
@@ -152,6 +195,16 @@ export default function DietChartGenerator() {
   const generateDietChart = async () => {
     console.log("🤖 [FRONTEND] Starting diet chart generation...");
 
+    if (!dietType) {
+      toast.error("Please select your diet type (Veg / Non-Veg)");
+      return;
+    }
+    
+    if (!cuisineType) {
+      toast.error("Please select your preferred cuisine");
+      return;
+    }
+
     if (!user || !bmiData) {
       console.log("❌ [FRONTEND] Missing user or BMI data:", {
         hasUser: !!user,
@@ -195,23 +248,27 @@ export default function DietChartGenerator() {
         activeWorkoutPlan?.generatedParams?.targetWeight ||
         bmiData.targetWeight;
 
-      const durationWeeks = activeWorkoutPlan.durationWeeks;
-
       const requestData = {
         userId: user._id,
-        durationWeeks: durationWeeks,
+        durationWeeks: 1,
         fitnessGoal: fitnessGoal,
         currentWeight:
-          activeWorkoutPlan.generatedParams.currentWeight || bmiData.weight,
+          activeWorkoutPlan.generatedParams?.currentWeight || bmiData.weight,
         targetWeight: targetWeight,
         diseases: user.diseases || [],
         allergies: user.allergies || [],
         activeWorkoutPlan: activeWorkoutPlan,
+        // New preferences
+        dietType: dietType,
+        cuisineType: cuisineType,
+        singleDayPlan: true,
+        meals: ["Breakfast", "Lunch", "Evening Snack", "Dinner"],
       };
 
       console.log("🤖 [FRONTEND] Request data prepared:", {
         userId: requestData.userId,
-        durationWeeks: requestData.durationWeeks,
+        dietType: requestData.dietType,
+        cuisineType: requestData.cuisineType,
         fitnessGoal: requestData.fitnessGoal,
         currentWeight: requestData.currentWeight,
         targetWeight: requestData.targetWeight,
@@ -238,7 +295,11 @@ export default function DietChartGenerator() {
         );
         setSavedDietChart(null);
         setDietChart(response.data.dietChart.dietChart);
-        toast.success("Diet chart generated successfully!");
+        // Save the generation date
+        const today = new Date().toDateString();
+        setLastGeneratedDate(today);
+        localStorage.setItem("diet_last_generated", today);
+        toast.success("Today's diet chart generated successfully!");
       } else {
         console.error(
           "❌ [FRONTEND] Diet chart generation failed:",
@@ -448,15 +509,22 @@ export default function DietChartGenerator() {
               </div>
 
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold mb-3 sm:mb-4">
-                Diet{" "}
+                Today's{" "}
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]">
-                  Chart Generator
+                  Diet Chart
                 </span>
               </h1>
 
-              <p className="max-w-3xl mx-auto text-sm sm:text-base lg:text-lg text-gray-300">
-                Generate personalized meal plans based on your BMI, goals, and workout schedule.
+              <p className="max-w-3xl mx-auto text-sm sm:text-base lg:text-lg text-gray-300 mb-3">
+                Personalized Indian meals: Breakfast, Lunch, Evening Snack & Dinner
               </p>
+              
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#020617]/60 border border-[#1F2937]">
+                <span className="text-lg">📅</span>
+                <span className="text-sm font-medium text-gray-300">
+                  {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                </span>
+              </div>
             </header>
           </div>
 
@@ -634,6 +702,88 @@ export default function DietChartGenerator() {
               </div>
             )}
 
+            {/* Diet Preferences Card - NEW */}
+            <div className="group relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] overflow-hidden transition-all duration-500 hover:border-[#22D3EE]/60 hover:-translate-y-1 animate-slide-in-left" style={{ animationDelay: '300ms' }}>
+              <div className="relative bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600 p-5 sm:p-6 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
+                <div className="relative flex items-center gap-3">
+                  <div className="p-2.5 bg-white/15 rounded-xl backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
+                    <span className="text-2xl">🍽️</span>
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-white">
+                    Your Preferences
+                  </h2>
+                </div>
+              </div>
+              <div className="p-5 sm:p-6 space-y-5">
+                {/* Diet Type Selection */}
+                <div>
+                  <label className="text-sm font-semibold text-gray-300 mb-3 block flex items-center gap-2">
+                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                    Diet Type
+                  </label>
+                  <div className="grid grid-cols-1 gap-2">
+                    {DIET_TYPE_OPTIONS.map((option) => (
+                      <button
+                        key={option.id}
+                        onClick={() => setDietType(option.id)}
+                        className={`relative p-3 rounded-xl border-2 transition-all duration-300 flex items-center gap-3 ${
+                          dietType === option.id
+                            ? `border-transparent bg-gradient-to-r ${option.color} text-white shadow-lg scale-[1.02]`
+                            : "border-[#1F2937] bg-[#020617]/60 hover:border-[#22D3EE]/40 text-gray-300 hover:text-white"
+                        }`}
+                      >
+                        <span className="text-2xl">{option.icon}</span>
+                        <span className="font-semibold text-sm">{option.label}</span>
+                        {dietType === option.id && (
+                          <span className="ml-auto text-white">✓</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Cuisine Type Selection */}
+                <div>
+                  <label className="text-sm font-semibold text-gray-300 mb-3 block flex items-center gap-2">
+                    <span className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></span>
+                    Cuisine Preference
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {CUISINE_OPTIONS.map((option) => (
+                      <button
+                        key={option.id}
+                        onClick={() => setCuisineType(option.id)}
+                        className={`relative p-3 rounded-xl border-2 transition-all duration-300 flex flex-col items-center gap-1 ${
+                          cuisineType === option.id
+                            ? "border-[#22D3EE] bg-gradient-to-br from-cyan-500/20 to-blue-500/20 text-white shadow-lg scale-[1.02]"
+                            : "border-[#1F2937] bg-[#020617]/60 hover:border-[#22D3EE]/40 text-gray-300 hover:text-white"
+                        }`}
+                      >
+                        <span className="text-xl">{option.icon}</span>
+                        <span className="font-medium text-xs text-center">{option.label}</span>
+                        {cuisineType === option.id && (
+                          <span className="absolute top-1 right-1 text-[#22D3EE] text-xs">✓</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Show selected preferences summary */}
+                {(dietType || cuisineType) && (
+                  <div className="p-3 bg-gradient-to-r from-purple-500/10 to-indigo-500/10 rounded-xl border border-purple-500/20">
+                    <p className="text-xs text-gray-400 mb-1">Selected:</p>
+                    <p className="text-sm font-semibold text-white">
+                      {dietType && DIET_TYPE_OPTIONS.find(o => o.id === dietType)?.label}
+                      {dietType && cuisineType && " • "}
+                      {cuisineType && CUISINE_OPTIONS.find(o => o.id === cuisineType)?.label}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Action Buttons Card - Enhanced */}
             <div className="group relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] overflow-hidden transition-all duration-500 hover:border-[#22D3EE]/60 hover:-translate-y-1 animate-slide-in-left" style={{ animationDelay: '400ms' }}>
               <div className="relative bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 p-5 sm:p-6 overflow-hidden">
@@ -643,12 +793,29 @@ export default function DietChartGenerator() {
                     <FaUtensils className="text-2xl text-white drop-shadow-lg" />
                   </div>
                   <h2 className="text-xl sm:text-2xl font-bold text-white">
-                    Generate Diet Chart
+                    Generate Today's Diet
                   </h2>
                 </div>
               </div>
               <div className="p-5 sm:p-6">
-                {savedDietChart && (
+                {/* New Day Refresh Notice */}
+                {needsRefresh && (
+                  <div className="mb-4 p-4 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-500/50 rounded-xl backdrop-blur-sm animate-fade-in">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-shrink-0">
+                        <div className="p-2 bg-blue-500/30 rounded-lg animate-pulse">
+                          <FiRefreshCw className="w-5 h-5 text-blue-300" />
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-blue-200 text-sm font-semibold">New Day!</p>
+                        <p className="text-blue-300 text-xs">Generate a fresh diet chart for today</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {savedDietChart && !needsRefresh && (
                   <div className="mb-4 p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/50 rounded-xl backdrop-blur-sm animate-fade-in">
                     <div className="flex items-center gap-3">
                       <div className="flex-shrink-0">
@@ -659,27 +826,42 @@ export default function DietChartGenerator() {
                         </div>
                       </div>
                       <p className="text-green-200 text-sm leading-relaxed flex-1">
-                        You already have a saved diet chart for this workout plan
+                        Today's diet chart is ready!
                       </p>
                     </div>
                   </div>
                 )}
 
                 <div className="space-y-3">
+                  {/* Check if preferences are selected */}
+                  {(!dietType || !cuisineType) && (
+                    <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
+                      <p className="text-yellow-300 text-xs flex items-center gap-2">
+                        <span>⚠️</span>
+                        <span>Please select your diet type & cuisine preference above</span>
+                      </p>
+                    </div>
+                  )}
+                  
                   <button
                     onClick={generateDietChart}
-                    disabled={loading || !user || !bmiData || !activeWorkoutPlan}
+                    disabled={loading || !user || !bmiData || !activeWorkoutPlan || !dietType || !cuisineType}
                     className="w-full bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 text-white py-4 px-6 rounded-xl font-bold hover:from-orange-700 hover:to-pink-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-lg hover:shadow-orange-500/50 transform hover:scale-105 active:scale-95 min-h-[56px] group"
                   >
                     {loading ? (
                       <>
                         <FiRefreshCw className="animate-spin text-xl" />
-                        <span>Generating Diet Chart...</span>
+                        <span>Generating Today's Diet...</span>
+                      </>
+                    ) : needsRefresh ? (
+                      <>
+                        <FiRefreshCw className="text-xl group-hover:rotate-180 transition-transform duration-500" />
+                        <span>Generate New Day's Diet</span>
                       </>
                     ) : (
                       <>
                         <FaUtensils className="text-xl group-hover:rotate-12 transition-transform" />
-                        <span>Generate Diet Chart</span>
+                        <span>Generate Today's Diet</span>
                       </>
                     )}
                   </button>
@@ -698,7 +880,7 @@ export default function DietChartGenerator() {
                       ) : (
                         <>
                           <FiSave className="text-xl group-hover:scale-110 transition-transform" />
-                          <span>Save Diet Chart</span>
+                          <span>Save Today's Diet</span>
                         </>
                       )}
                     </button>
@@ -708,7 +890,7 @@ export default function DietChartGenerator() {
                 <div className="mt-4 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-xl border border-blue-500/20">
                   <p className="text-gray-300 text-xs leading-relaxed flex items-start gap-2">
                     <span className="text-blue-400 text-sm mt-0.5">💡</span>
-                    <span>The diet chart will be personalized based on your BMI data, health conditions, and active workout plan.</span>
+                    <span>A new diet chart will be generated for each day! 4 meals: Breakfast, Lunch, Evening Snack & Dinner.</span>
                   </p>
                 </div>
               </div>
@@ -727,26 +909,32 @@ export default function DietChartGenerator() {
                       <div className="p-2.5 bg-white/15 rounded-xl backdrop-blur-sm">
                         <FaUtensils className="text-2xl text-white drop-shadow-lg" />
                       </div>
-                      <h2 className="text-2xl sm:text-3xl font-bold text-white">
-                        Your Personalized Diet Chart
-                      </h2>
-                    </div>
-                    {activeWorkoutPlan && (
-                      <div className="flex flex-wrap gap-2">
-                        {[
-                          activeWorkoutPlan.generatedParams?.fitnessGoal?.replace(/_/g, " ").toUpperCase() || "FITNESS GOAL",
-                          `${activeWorkoutPlan.generatedParams?.daysPerWeek || 0} days/week`,
-                          `${activeWorkoutPlan.generatedParams?.timeCommitment || 0} min sessions`
-                        ].map((badge, idx) => (
-                          <span 
-                            key={idx}
-                            className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-xs font-bold border border-white/30 shadow-lg hover:bg-white/30 transition-all duration-300 hover:scale-105"
-                          >
-                            {badge}
-                          </span>
-                        ))}
+                      <div>
+                        <h2 className="text-2xl sm:text-3xl font-bold text-white">
+                          Today's Meal Plan
+                        </h2>
+                        <p className="text-white/70 text-sm">
+                          {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}
+                        </p>
                       </div>
-                    )}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {dietType && (
+                        <span className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-xs font-bold border border-white/30 shadow-lg">
+                          {DIET_TYPE_OPTIONS.find(o => o.id === dietType)?.icon} {DIET_TYPE_OPTIONS.find(o => o.id === dietType)?.label}
+                        </span>
+                      )}
+                      {cuisineType && (
+                        <span className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-xs font-bold border border-white/30 shadow-lg">
+                          {CUISINE_OPTIONS.find(o => o.id === cuisineType)?.icon} {CUISINE_OPTIONS.find(o => o.id === cuisineType)?.label}
+                        </span>
+                      )}
+                      {activeWorkoutPlan?.generatedParams?.fitnessGoal && (
+                        <span className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-xs font-bold border border-white/30 shadow-lg">
+                          🎯 {activeWorkoutPlan.generatedParams.fitnessGoal.replace(/_/g, " ").toUpperCase()}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   {displayDietChart && (
                     <div className="flex gap-2 sm:gap-3">
