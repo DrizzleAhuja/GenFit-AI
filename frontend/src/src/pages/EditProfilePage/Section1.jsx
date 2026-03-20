@@ -5,8 +5,18 @@ import "react-toastify/dist/ReactToastify.css";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { selectUser, setUser } from "../../redux/userSlice";
-import { FiUser, FiMail, FiSave, FiArrowLeft } from "react-icons/fi";
+import { FiUser, FiMail, FiSave, FiArrowLeft, FiUpload } from "react-icons/fi";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
+import GamifyBadge from "../../Components/GamifyBadge";
+
+const AVATARS = [
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Mimi",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Oscar",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Chloe",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Leo"
+];
 
 export default function EditProfile() {
   const dispatch = useDispatch();
@@ -16,12 +26,15 @@ export default function EditProfile() {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
-    diseasesAndAllergies: "", // Combined field for diseases and allergies
+    diseasesAndAllergies: "", 
+    avatar: "",
   });
+
+  const [stats, setStats] = useState({ points: 0, weeklyPoints: 0, streakCount: 0 });
+  const [rank, setRank] = useState(null);
 
   useEffect(() => {
     if (user) {
-      // Combine diseases and allergies into one field
       const diseases = user.diseases ? user.diseases.join(', ') : '';
       const allergies = user.allergies ? user.allergies.join(', ') : '';
       const combined = [diseases, allergies].filter(item => item !== '').join(', ');
@@ -30,8 +43,28 @@ export default function EditProfile() {
         firstName: user.firstName,
         lastName: user.lastName,
         diseasesAndAllergies: combined,
+        avatar: user.avatar || "",
       });
     }
+  }, [user]);
+
+  useEffect(() => {
+    async function fetchStats() {
+      if (user?.email) {
+        try {
+           const s = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.GAMIFY}/stats`, { params: { email: user.email } });
+           setStats(s.data || {});
+           
+           const l = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.GAMIFY}/leaderboard`, { params: { period: 'all' } });
+           const allusers = l.data.users || [];
+           const r = allusers.findIndex(u => u.email === user.email);
+           if (r !== -1) setRank(r + 1);
+        } catch (e) {
+           console.error("Failed to fetch gamify stats", e);
+        }
+      }
+    }
+    fetchStats();
   }, [user]);
 
   const handleChange = (e) => {
@@ -42,10 +75,20 @@ export default function EditProfile() {
     }));
   };
 
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, avatar: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Split combined field back into diseases and allergies arrays
       const items = formData.diseasesAndAllergies.split(',').map(item => item.trim()).filter(item => item !== '');
       
       const res = await axios.put(
@@ -53,18 +96,15 @@ export default function EditProfile() {
         { 
           firstName: formData.firstName,
           lastName: formData.lastName,
-          diseases: items, // Store all items in diseases
-          allergies: items, // Store all items in allergies (same for now)
+          diseases: items, 
+          allergies: items, 
+          avatar: formData.avatar,
         }
       );
 
-      // Update Redux store
       dispatch(setUser(res.data));
-
-      // Update localStorage
       localStorage.setItem("user", JSON.stringify(res.data));
 
-      console.log("Profile updated successfully:", res.data);
       toast.success("Profile updated successfully", {
         autoClose: 1000,
       });
@@ -88,7 +128,7 @@ export default function EditProfile() {
   }
 
   return (
-    <div className="min-h-screen bg-[#020617]">
+    <div className="min-h-screen bg-[#020617] pb-12">
       <ToastContainer position="top-center" autoClose={2000} theme="dark" />
       {/* Background blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -96,7 +136,7 @@ export default function EditProfile() {
         <div className="absolute -bottom-28 right-0 w-80 h-80 bg-[#22D3EE] rounded-full blur-3xl opacity-25" />
       </div>
 
-      <div className="relative z-10 max-w-2xl mx-auto py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 max-w-2xl mx-auto pt-8 px-4 sm:px-6 lg:px-8">
         <div className="relative rounded-xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl overflow-hidden shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
           {/* Top gradient bar */}
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
@@ -111,14 +151,94 @@ export default function EditProfile() {
                 <FiArrowLeft size={20} />
               </button>
               <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]">
-                Edit Profile
+                My Profile
               </h2>
             </div>
+          </div>
+
+          {/* New Profile & Gamification Section */}
+          <div className="px-6 py-8 border-b border-[#1F2937] flex flex-col items-center relative overflow-hidden">
+             
+             {/* Gamification Background Effects */}
+             <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
+               <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#020617]"></div>
+             </div>
+
+             <div className="relative mb-4">
+               {formData.avatar ? (
+                 <img src={formData.avatar} alt="Avatar" className="w-24 h-24 rounded-full border-4 border-[#8B5CF6] object-cover shadow-[0_0_20px_rgba(139,92,246,0.3)] bg-[#0f172a]" />
+               ) : (
+                 <div className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold bg-[#8B5CF6] text-white border-4 border-[#8B5CF6] shadow-[0_0_20px_rgba(139,92,246,0.3)]">
+                   {user.firstName?.[0]}{user.lastName?.[0]}
+                 </div>
+               )}
+             </div>
+             
+             <h3 className="text-2xl font-bold text-white mb-1">{user.firstName} {user.lastName}</h3>
+             <p className="text-sm text-gray-400 mb-5">{user.email}</p>
+
+             {/* Badges Display */}
+             <div className="flex flex-wrap items-center justify-center gap-3 mb-8 min-h-[40px]">
+                {rank === 1 && <GamifyBadge type="top1" />}
+                {rank > 1 && rank <= 10 && <GamifyBadge type="top10" />}
+                {rank > 10 && rank <= 50 && <GamifyBadge type="top50" />}
+                {stats.streakCount >= 7 && <GamifyBadge type="beast" />}
+                {/* Fallback badge if no accomplishments */}
+                {(!rank || rank > 50) && stats.streakCount < 7 && (
+                  <span className="text-xs text-gray-500 italic mt-2">Complete workouts to earn badges!</span>
+                )}
+             </div>
+
+             {/* Stats Display */}
+             <div className="flex gap-8 text-center bg-[#020617]/50 px-8 py-4 rounded-xl border border-white/5">
+               <div>
+                 <span className="block text-2xl font-black bg-gradient-to-r from-[#22D3EE] to-[#8B5CF6] bg-clip-text text-transparent">{stats.points || 0}</span>
+                 <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Points</span>
+               </div>
+               <div className="w-px bg-white/10"></div>
+               <div>
+                 <span className="block text-2xl font-black bg-gradient-to-r from-[#8B5CF6] to-[#A855F7] bg-clip-text text-transparent">{rank ? `#${rank}` : '-'}</span>
+                 <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Rank</span>
+               </div>
+               <div className="w-px bg-white/10"></div>
+               <div>
+                 <span className="block text-2xl font-black bg-gradient-to-r from-[#FACC15] to-[#F97316] bg-clip-text text-transparent">{stats.streakCount || 0}</span>
+                 <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Day Streak</span>
+               </div>
+             </div>
           </div>
 
           {/* Form */}
           <div className="px-6 py-8">
             <form onSubmit={handleSubmit} className="space-y-6">
+
+              {/* Avatar Selection */}
+              <div>
+                <label className="block text-sm font-medium mb-3 text-gray-300">
+                  Select an Avatar
+                </label>
+                <div className="flex flex-wrap gap-4 mb-2">
+                  {AVATARS.map((src, idx) => (
+                    <img 
+                      key={idx} 
+                      src={src} 
+                      alt={`Avatar ${idx+1}`} 
+                      onClick={() => setFormData({...formData, avatar: src})}
+                      className={`w-14 h-14 bg-[#0f172a] rounded-full cursor-pointer transition-all duration-200 border-2 
+                        ${formData.avatar === src 
+                          ? 'border-[#22D3EE] scale-110 shadow-[0_0_15px_rgba(34,211,238,0.4)]' 
+                          : 'border-transparent hover:border-gray-500 hover:scale-105'
+                        }`}
+                    />
+                  ))}
+                  <div className="relative w-14 h-14 rounded-full border-2 border-dashed border-gray-500 flex items-center justify-center cursor-pointer hover:border-[#22D3EE] hover:text-[#22D3EE] text-gray-400 transition-all">
+                    <FiUpload size={20} />
+                    <input type="file" accept="image/*" onChange={handleImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" title="Upload custom avatar" />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Choose a preset avatar or click the plus button to upload your own profile picture.</p>
+              </div>
+
               <div>
                 <label
                   htmlFor="firstName"
@@ -218,7 +338,7 @@ export default function EditProfile() {
               <div className="pt-4">
                 <button
                   type="submit"
-                  className="w-full flex justify-center items-center py-3 px-4 rounded-md text-sm font-medium text-white bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE] hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#020617] focus:ring-[#8B5CF6] shadow-lg hover:shadow-[#8B5CF6]/30 transition-all"
+                  className="w-full flex justify-center items-center py-3 px-4 rounded-md text-sm font-medium text-white bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE] hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#020617] focus:ring-[#8B5CF6] shadow-lg hover:shadow-[#8B5CF6]/30 transition-all font-bold"
                 >
                   <FiSave className="mr-2" />
                   Save Changes

@@ -257,9 +257,13 @@ export default function NavBar() {
                         setNotificationsOpen(false);
                       }}
                   >
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center font-medium bg-[#8B5CF6] text-white">
-                      {getUserInitials(user)}
-                    </div>
+                    {user.avatar ? (
+                      <img src={user.avatar} alt="Avatar" className="w-10 h-10 rounded-full object-cover border border-[#8B5CF6]/50 shadow-[0_0_10px_rgba(139,92,246,0.3)] bg-[#0f172a]" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center font-medium bg-[#8B5CF6] text-white">
+                        {getUserInitials(user)}
+                      </div>
+                    )}
                     <span className="text-gray-200">
                       <b>
                         {user.firstName} {user.lastName ? user.lastName : ""}
@@ -273,7 +277,7 @@ export default function NavBar() {
                         className="flex px-4 py-2 text-sm items-center text-gray-200 hover:bg-gray-700"
                         onClick={() => setDropdownOpen(false)}
                       >
-                        <FiEdit2 className="mr-2" /> Edit Profile
+                        <FiUser className="mr-2" /> My Profile
                       </NavLink>
                       <button
                         onClick={handleLogout}
@@ -315,10 +319,14 @@ export default function NavBar() {
 
             {user && (
               <div
-                className="w-9 h-9 rounded-full flex items-center justify-center font-medium bg-[#8B5CF6] text-white text-sm cursor-pointer"
+                className="w-9 h-9 rounded-full flex items-center justify-center font-medium bg-[#8B5CF6] text-white text-sm cursor-pointer shadow-[0_0_8px_rgba(139,92,246,0.3)]"
                 onClick={() => setDropdownOpen(!dropdownOpen)}
               >
-                {getUserInitials(user)}
+                {user.avatar ? (
+                  <img src={user.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover bg-[#0f172a]" />
+                ) : (
+                  getUserInitials(user)
+                )}
               </div>
             )}
           </div>
@@ -347,8 +355,12 @@ export default function NavBar() {
             {user && (
               <div className="p-4 border-b border-gray-700">
                 <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center font-medium bg-[#8B5CF6] text-white">
-                    {getUserInitials(user)}
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center font-medium bg-[#8B5CF6] text-white shadow-[0_0_10px_rgba(139,92,246,0.3)]">
+                    {user.avatar ? (
+                      <img src={user.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover bg-[#0f172a]" />
+                    ) : (
+                      getUserInitials(user)
+                    )}
                   </div>
                   <div>
                     <p className="text-white font-semibold">
@@ -388,7 +400,7 @@ export default function NavBar() {
                     className="flex items-center px-4 py-2 text-gray-200 hover:bg-[#020617]/60 rounded-md transition-colors"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <FiEdit2 className="mr-3" /> Edit Profile
+                    <FiUser className="mr-3" /> My Profile
                   </NavLink>
                   <button
                     onClick={() => {
@@ -434,7 +446,7 @@ export default function NavBar() {
               className="flex px-4 py-2 text-sm items-center text-gray-200 hover:bg-gray-700"
               onClick={() => setDropdownOpen(false)}
             >
-              <FiEdit2 className="mr-2" /> Edit Profile
+              <FiUser className="mr-2" /> My Profile
             </NavLink>
             <button
               onClick={handleLogout}

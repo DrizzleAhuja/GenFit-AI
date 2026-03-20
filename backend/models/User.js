@@ -74,6 +74,7 @@ const userSchema = new mongoose.Schema({
     lastSyncedSteps: { type: Number, default: 0 },
     lastSyncAt: { type: Date, default: null },
   },
+  avatar: { type: String, default: "" },
 });
 
 const User = mongoose.model("User", userSchema);

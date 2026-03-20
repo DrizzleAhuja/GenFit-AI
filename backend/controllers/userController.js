@@ -2,7 +2,7 @@ const User = require("../models/User");
 
 const updateUser = async (req, res) => {
   const { id } = req.params;
-  const { firstName, lastName } = req.body;
+  const { firstName, lastName, diseases, allergies, avatar } = req.body;
 
   try {
     // Check if user exists
@@ -12,9 +12,14 @@ const updateUser = async (req, res) => {
     }
 
     // Update user
+    const updateData = { firstName, lastName };
+    if (diseases !== undefined) updateData.diseases = diseases;
+    if (allergies !== undefined) updateData.allergies = allergies;
+    if (avatar !== undefined) updateData.avatar = avatar;
+
     const user = await User.findByIdAndUpdate(
       id,
-      { firstName, lastName },
+      updateData,
       { new: true, runValidators: true }
     );
 

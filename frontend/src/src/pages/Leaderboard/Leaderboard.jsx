@@ -6,6 +6,7 @@ import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
 import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
 import { useTheme } from '../../context/ThemeContext';
+import GamifyBadge from "../../Components/GamifyBadge";
 
 export default function Leaderboard() {
   const { darkMode } = useTheme();
@@ -59,6 +60,17 @@ export default function Leaderboard() {
           }`}>
             {i === 0 ? '👑' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
           </div>
+
+          {/* Avatar */}
+          <div className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-full overflow-hidden border border-[#22D3EE]/30 bg-[#0f172a] flex items-center justify-center shadow-[0_0_10px_rgba(34,211,238,0.1)]">
+            {u.avatar ? (
+              <img src={u.avatar} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-sm font-bold text-gray-400">
+                {u.firstName?.[0]}{u.lastName?.[0]}
+              </span>
+            )}
+          </div>
           
           {/* User Info */}
           <div className="flex-1 min-w-0">
@@ -73,27 +85,11 @@ export default function Leaderboard() {
               )}
 
               {/* Badges Section */}
-              <div className="flex flex-wrap items-center gap-1.5 ml-1">
-                {i === 0 && (
-                  <span className="flexitems-center gap-1 text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/50 shadow-[0_0_10px_rgba(234,179,8,0.2)]" title="Top Performer">
-                    🥇 Top
-                  </span>
-                )}
-                {i > 0 && i < 10 && (
-                  <span className="flex items-center gap-1 text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-gray-300/20 text-gray-200 border border-gray-400/50" title="Elite Squad (Top 10)">
-                    🥈 Top 10
-                  </span>
-                )}
-                {i >= 10 && i < 50 && (
-                  <span className="flex items-center gap-1 text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-amber-700/20 text-amber-500 border border-amber-700/50" title="Rising Star (Top 50)">
-                    🥉 Top 50
-                  </span>
-                )}
-                {userStreak >= 7 && (
-                  <span className="flex items-center gap-1 text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/50 shadow-[0_0_10px_rgba(249,115,22,0.2)]" title="Consistent Beast (7+ Day Streak)">
-                    🔥 Beast
-                  </span>
-                )}
+              <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0 sm:ml-4">
+                {i === 0 && <GamifyBadge type="top1" />}
+                {i > 0 && i < 10 && <GamifyBadge type="top10" />}
+                {i >= 10 && i < 50 && <GamifyBadge type="top50" />}
+                {userStreak >= 7 && <GamifyBadge type="beast" />}
               </div>
             </div>
             <div className="text-xs text-gray-400 truncate">{u.email}</div>
@@ -571,49 +567,94 @@ export default function Leaderboard() {
           </div>
 
           {/* Rewards & Badges Info */}
-          <div className="info-card mb-12 border-t-4 border-t-yellow-500/50">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="text-3xl">🏅</div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-yellow-400 via-yellow-500 to-amber-600 bg-clip-text text-transparent drop-shadow-sm">
-                Rank-Based Rewards & Badges
-              </h2>
+          <div className="info-card mb-12 border-t border-t-purple-500/30">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#22D3EE] p-[1px]">
+                <div className="w-full h-full bg-[#020617] rounded-xl flex items-center justify-center text-2xl">
+                  🏅
+                </div>
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
+                  Awards & Badges
+                </h2>
+                <p className="text-sm text-gray-400">Unlock these prestigious badges by dominating the leaderboards.</p>
+              </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="info-item relative overflow-hidden group border border-yellow-500/30 bg-yellow-500/10 hover:border-yellow-500/60 transition-colors">
-                <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/20 to-transparent opacity-50"></div>
-                <div className="relative flex flex-col gap-2 p-1">
-                  <div className="text-4xl mb-1 drop-shadow-lg group-hover:scale-110 transition-transform origin-left">🥇</div>
-                  <span className="text-white font-bold text-lg">Top Performer</span>
-                  <p className="text-sm text-yellow-200/80 leading-snug">Rank #1 • Gold Badge + Bonus Points</p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Badge 1 */}
+              <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#020617] to-yellow-900/10 border border-yellow-500/20 p-6 hover:border-yellow-500/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(234,179,8,0.15)] flex flex-col items-center text-center">
+                <div className="absolute inset-0 bg-gradient-to-b from-yellow-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-0"></div>
+                
+                <div className="w-full py-6 mb-2 relative z-10 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-yellow-500/20 rounded-full blur-2xl animate-pulse"></div>
+                  <div className="scale-125 transform transition-transform group-hover:scale-150 duration-500">
+                    <GamifyBadge type="top1" />
+                  </div>
+                </div>
+                
+                <div className="relative z-10 space-y-2 mt-2 w-full">
+                  <h3 className="text-white font-bold text-lg">Top Performer</h3>
+                  <p className="text-xs text-gray-400/90 font-medium pb-2 border-b border-gray-800">Rank #1 Overall</p>
+                  <p className="text-[10px] text-yellow-400 font-bold bg-yellow-400/10 px-3 py-1.5 rounded-full w-max mx-auto border border-yellow-500/20 uppercase tracking-wider">+ Bonus Points</p>
                 </div>
               </div>
               
-              <div className="info-item relative overflow-hidden group border border-gray-400/30 bg-gray-400/10 hover:border-gray-400/60 transition-colors">
-                <div className="absolute inset-0 bg-gradient-to-br from-gray-300/20 to-transparent opacity-50"></div>
-                <div className="relative flex flex-col gap-2 p-1">
-                  <div className="text-4xl mb-1 drop-shadow-lg group-hover:scale-110 transition-transform origin-left">🥈</div>
-                  <span className="text-white font-bold text-lg">Elite Squad</span>
-                  <p className="text-sm text-gray-300/80 leading-snug">Rank #2-10 • Silver Badge</p>
+              {/* Badge 2 */}
+              <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#020617] to-gray-500/10 border border-gray-400/20 p-6 hover:border-gray-400/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(156,163,175,0.15)] flex flex-col items-center text-center">
+                <div className="absolute inset-0 bg-gradient-to-b from-gray-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-0"></div>
+                
+                <div className="w-full py-6 mb-2 relative z-10 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-gray-400/20 rounded-full blur-2xl"></div>
+                  <div className="scale-125 transform transition-transform group-hover:scale-150 duration-500">
+                    <GamifyBadge type="top10" />
+                  </div>
+                </div>
+                
+                <div className="relative z-10 space-y-2 mt-2 w-full">
+                  <h3 className="text-white font-bold text-lg">Elite Squad</h3>
+                  <p className="text-xs text-gray-400/90 font-medium pb-2 border-b border-gray-800">Rank #2 to #10</p>
+                  <p className="text-[10px] text-gray-300 font-bold bg-gray-500/20 px-3 py-1.5 rounded-full w-max mx-auto border border-gray-400/20 uppercase tracking-wider">Highly Exclusive</p>
                 </div>
               </div>
               
-              <div className="info-item relative overflow-hidden group border border-amber-700/40 bg-amber-700/10 hover:border-amber-600/60 transition-colors">
-                <div className="absolute inset-0 bg-gradient-to-br from-amber-600/20 to-transparent opacity-50"></div>
-                <div className="relative flex flex-col gap-2 p-1">
-                  <div className="text-4xl mb-1 drop-shadow-lg group-hover:scale-110 transition-transform origin-left">🥉</div>
-                  <span className="text-white font-bold text-lg">Rising Star</span>
-                  <p className="text-sm text-amber-500/90 leading-snug">Top 50 • Bronze Badge</p>
+              {/* Badge 3 */}
+              <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#020617] to-amber-700/10 border border-amber-600/20 p-6 hover:border-amber-500/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(217,119,6,0.15)] flex flex-col items-center text-center">
+                <div className="absolute inset-0 bg-gradient-to-b from-amber-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-0"></div>
+                
+                <div className="w-full py-6 mb-2 relative z-10 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-amber-600/20 rounded-full blur-2xl"></div>
+                  <div className="scale-125 transform transition-transform group-hover:scale-150 duration-500">
+                    <GamifyBadge type="top50" />
+                  </div>
+                </div>
+                
+                <div className="relative z-10 space-y-2 mt-2 w-full">
+                  <h3 className="text-white font-bold text-lg">Rising Star</h3>
+                  <p className="text-xs text-gray-400/90 font-medium pb-2 border-b border-gray-800">Rank #11 to #50</p>
+                  <p className="text-[10px] text-amber-500 font-bold bg-amber-600/10 px-3 py-1.5 rounded-full w-max mx-auto border border-amber-600/20 uppercase tracking-wider">Top Tier Dedication</p>
                 </div>
               </div>
               
-              <div className="info-item relative overflow-hidden group border border-orange-500/30 bg-orange-500/10 hover:border-orange-500/60 transition-colors">
-                <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-transparent opacity-50"></div>
-                <div className="relative flex flex-col gap-2 p-1">
-                  <div className="text-4xl mb-1 drop-shadow-lg group-hover:scale-110 transition-transform origin-left">🔥</div>
-                  <span className="text-white font-bold text-lg">Consistent Beast</span>
-                  <p className="text-sm text-orange-300/80 leading-snug">7-Day Active Streak Maintained</p>
+              {/* Badge 4 */}
+              <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#020617] to-red-600/10 border border-orange-500/20 p-6 hover:border-orange-500/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(239,68,68,0.15)] flex flex-col items-center text-center">
+                <div className="absolute inset-0 bg-gradient-to-b from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-0"></div>
+                
+                <div className="w-full py-6 mb-2 relative z-10 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-orange-500/20 rounded-full blur-2xl animate-pulse"></div>
+                  <div className="scale-125 transform transition-transform group-hover:scale-150 duration-500">
+                    <GamifyBadge type="beast" />
+                  </div>
+                </div>
+                
+                <div className="relative z-10 space-y-2 mt-2 w-full">
+                  <h3 className="text-white font-bold text-lg">Consistent Beast</h3>
+                  <p className="text-xs text-gray-400/90 font-medium pb-2 border-b border-gray-800">7-Day Active Streak</p>
+                  <p className="text-[10px] text-orange-400 font-bold bg-orange-500/10 px-3 py-1.5 rounded-full w-max mx-auto border border-orange-500/20 uppercase tracking-wider">Never Give Up</p>
                 </div>
               </div>
+
             </div>
           </div>
 

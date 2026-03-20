@@ -23,7 +23,7 @@ exports.getStats = async (req, res) => {
 exports.getLeaderboard = async (req, res) => {
     try {
         const { period = "week" } = req.query;
-        const projection = { firstName: 1, lastName: 1, email: 1, points: 1, weeklyPoints: 1 };
+        const projection = { firstName: 1, lastName: 1, email: 1, points: 1, weeklyPoints: 1, streakCount: 1, avatar: 1 };
         let users;
         if (period === "all") {
             users = await User.find({}, projection).sort({ points: -1 }).limit(50).lean();
