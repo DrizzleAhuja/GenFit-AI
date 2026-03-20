@@ -6,7 +6,8 @@ import { GoogleOAuthProvider, GoogleLogin, useGoogleLogin } from "@react-oauth/g
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
-import { FiMenu, FiX, FiUser, FiEdit2, FiLogOut } from "react-icons/fi";
+import { FiMenu, FiX, FiUser, FiEdit2, FiLogOut, FiBell, FiCheck } from "react-icons/fi";
+import { io } from "socket.io-client";
 import { useTheme } from "../../context/ThemeContext";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
 import { isPWAInstalled } from "../../utils/pwaInstall";
@@ -21,6 +22,8 @@ export default function NavBar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [role, setRole] = useState("user");
   const [isStandalone, setIsStandalone] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   const { darkMode } = useTheme();
 
@@ -134,6 +137,37 @@ export default function NavBar() {
     }
   }, [dispatch]);
 
+  useEffect(() => {
+    if (user && user._id) {
+      const fetchNotifications = async () => {
+        try {
+          const res = await axios.get(`${API_BASE_URL}/api/notifications`, {
+            withCredentials: true,
+            headers: { email: user.email }
+          });
+          setNotifications(res.data);
+        } catch (error) {
+          console.error("Error fetching notifications", error);
+        }
+      };
+
+      fetchNotifications();
+
+      const socket = io(API_BASE_URL, {
+        query: { userId: user._id }
+      });
+
+      socket.on("newNotification", (notification) => {
+        setNotifications((prev) => [notification, ...prev]);
+        toast.info(`🔔 ${notification.title}`, { autoClose: 4000 });
+      });
+
+      return () => socket.disconnect();
+    }
+  }, [user]);
+
+
+
   const navLinks = [
     ...(user ? [{ path: "/", label: "DASHBOARD" }] : []),
     ...(!user
@@ -195,10 +229,33 @@ export default function NavBar() {
             {/* User Section */}
             <div className="flex items-center space-x-4">
               {user ? (
-                <div className="relative">
-                  <div
-                    className="flex items-center space-x-2 cursor-pointer group"
-                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                <div className="flex items-center space-x-6">
+                  {/* Notifications Bell */}
+                  <div className="relative">
+                    <div
+                      className="relative cursor-pointer text-gray-300 hover:text-white transition-colors"
+                      onClick={() => {
+                        navigate("/notifications");
+                        setDropdownOpen(false);
+                      }}
+                    >
+                      <FiBell size={22} />
+                      {unreadCount > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-lg">
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Profile Dropdown */}
+                  <div className="relative">
+                    <div
+                      className="flex items-center space-x-2 cursor-pointer group"
+                      onClick={() => {
+                        setDropdownOpen(!dropdownOpen);
+                        setNotificationsOpen(false);
+                      }}
                   >
                     <div className="w-10 h-10 rounded-full flex items-center justify-center font-medium bg-[#8B5CF6] text-white">
                       {getUserInitials(user)}
@@ -226,6 +283,7 @@ export default function NavBar() {
                       </button>
                     </div>
                   )}
+                  </div>
                 </div>
               ) : (
                 <GoogleLogin

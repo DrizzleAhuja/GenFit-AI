@@ -11,9 +11,18 @@ const userRoutes = require("./routes/userRoutes");
 const bmiRoutes = require("./routes/bmiRoutes");
 const gamifyRoutes = require("./routes/gamifyRoutes");
 const postureRoutes = require("./routes/postureRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 // const messageRoutes = require("./routes/messageRoutes");
 
+const http = require("http");
+const { init } = require("./utils/socket");
+const { startCronJobs } = require("./services/cronService");
+
 const app = express();
+const server = http.createServer(app);
+
+// Start cron jobs
+startCronJobs();
 
 // For Vercel serverless: ensure DB is connected before hitting routes.
 // This uses a cached connection so it won't reconnect every request after warm-up.
@@ -71,7 +80,7 @@ app.use((req, res, next) => {
       res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
       res.header(
         "Access-Control-Allow-Headers",
-        "Content-Type, Authorization, X-Requested-With, X-CSRF-Token, Accept, Origin"
+        "Content-Type, Authorization, X-Requested-With, X-CSRF-Token, Accept, Origin, email"
       );
       res.header("Access-Control-Max-Age", "86400");
       console.log("✅ OPTIONS request allowed for origin:", allowedOrigin);
@@ -120,6 +129,7 @@ const corsOptions = {
     "X-CSRF-Token",
     "Accept",
     "Origin",
+    "email"
   ],
   credentials: true,
   preflightContinue: false,
@@ -145,7 +155,7 @@ app.use((req, res, next) => {
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
   res.header(
     "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, X-Requested-With, X-CSRF-Token, Accept, Origin"
+    "Content-Type, Authorization, X-Requested-With, X-CSRF-Token, Accept, Origin, email"
   );
 
   next();
@@ -173,6 +183,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/bmi", bmiRoutes);
 app.use("/api/gamify", gamifyRoutes);
 app.use("/api/posture", postureRoutes);
+app.use("/api/notifications", notificationRoutes);
 // app.use("/api", messageRoutes);
 
 // ✅ Error handling middleware
@@ -207,9 +218,13 @@ app.use((err, req, res, next) => {
 
 // ✅ Start server locally, but export handler on Vercel
 const isVercel = !!process.env.VERCEL;
+
+// initialize socket
+init(server, allowedOrigins);
+
 if (!isVercel) {
   const PORT = process.env.PORT || 8000;
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }
 
-module.exports = app;
+module.exports = isVercel ? app : server;

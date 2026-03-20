@@ -48,22 +48,7 @@ export default defineConfig({
             purpose: 'maskable'
           }
         ],
-        screenshots: [
-          {
-            src: '/screenshots/desktop-wide.png',
-            sizes: '1280x720',
-            type: 'image/png',
-            form_factor: 'wide',
-            label: 'GenFit AI Desktop View'
-          },
-          {
-            src: '/screenshots/mobile-narrow.png',
-            sizes: '750x1334',
-            type: 'image/png',
-            form_factor: 'narrow',
-            label: 'GenFit AI Mobile View'
-          }
-        ]
+
       }
     })
   ]

@@ -3,230 +3,138 @@ import { useSelector } from "react-redux";
 import axios from "axios";
 import { selectUser } from "../../redux/userSlice";
 import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import { FaSpinner } from "react-icons/fa";
-import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
+import { FiCheck, FiBell } from "react-icons/fi";
+import { io } from "socket.io-client";
+import { API_BASE_URL } from "../../../config/api";
 
-const NotificationsPage = () => {
+const Section1 = () => {
   const user = useSelector(selectUser);
   const [notifications, setNotifications] = useState([]);
-  const [sortOrder, setSortOrder] = useState("latest"); // Default is 'latest'
-  const [loading, setLoading] = useState(true); // Loading state
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     const fetchNotifications = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
       try {
-        const response = await axios.get(
-          `${API_BASE_URL}${API_ENDPOINTS.REPORTS}`,
-          {
-            headers: {
-              Authorization: `Bearer ${user.token}`,
-              email: user.email,
-            },
-          }
-        );
-
-        let userNotifications;
-        if (user.role === "admin") {
-          userNotifications = response.data.filter(
-            (notification) => notification.claimedBy
-          );
-        } else {
-          userNotifications = response.data.filter(
-            (report) =>
-              (report.reportType === "lost" &&
-                report.user.email === user.email &&
-                report.claimedBy) ||
-              (report.reportType === "found" && report.claimedBy === user.email)
-          );
-        }
-
-        // Sort notifications based on the selected sortOrder
-        if (sortOrder === "latest") {
-          userNotifications.sort(
-            (a, b) => new Date(b.claimedAt) - new Date(a.claimedAt)
-          );
-        } else if (sortOrder === "oldest") {
-          userNotifications.sort(
-            (a, b) => new Date(a.claimedAt) - new Date(b.claimedAt)
-          );
-        }
-
-        setNotifications(userNotifications);
-
-        // Mark notifications as read
-        const markAsReadPromises = userNotifications.map((notification) => {
-          if (!notification.read) {
-            return axios.put(
-              `${API_BASE_URL}${API_ENDPOINTS.REPORTS}/notification/${notification._id}/read`,
-              {},
-              {
-                headers: {
-                  Authorization: `Bearer ${user.token}`,
-                  email: user.email,
-                },
-              }
-            );
-          }
-          return null;
+        const res = await axios.get(`${API_BASE_URL}/api/notifications`, {
+          withCredentials: true,
+          headers: { email: user.email }
         });
-
-        await Promise.all(markAsReadPromises);
+        setNotifications(res.data);
       } catch (error) {
         console.error("Error fetching notifications:", error);
       } finally {
-        setLoading(false); // Set loading to false after data is fetched
+        setLoading(false);
       }
     };
-
     fetchNotifications();
-  }, [user, sortOrder]); // Depend on sortOrder to refetch and resort notifications
 
-  const handleSortChange = (order) => {
-    setSortOrder(order);
+    const socket = io(API_BASE_URL, {
+      query: { userId: user._id }
+    });
+
+    socket.on("newNotification", (notification) => {
+      setNotifications((prev) => [notification, ...prev]);
+    });
+
+    return () => socket.disconnect();
+  }, [user]);
+
+  const markAllAsRead = async () => {
+    try {
+      await axios.put(`${API_BASE_URL}/api/notifications/mark-read`, {}, { 
+        withCredentials: true,
+        headers: { email: user.email }
+      });
+      setNotifications(prev => prev.map(n => ({...n, isRead: true})));
+    } catch (error) {
+      console.error("Error marking all read", error);
+    }
   };
 
-  return (
-    <div className="flex flex-col min-h-screen bg-gray-900 text-white">
-      <div className="container mx-auto py-6 px-4">
-        <h2 className="text-xl lg:text-2xl font-semibold mb-4 text-white">
-          Notifications
-        </h2>
-        <ToastContainer />
+  const markAsRead = async (id) => {
+    try {
+      await axios.put(`${API_BASE_URL}/api/notifications/${id}/mark-read`, {}, { 
+        withCredentials: true,
+        headers: { email: user.email }
+      });
+      setNotifications(prev => prev.map(n => n._id === id ? {...n, isRead: true} : n));
+    } catch (error) {
+      console.error("Error marking specific notification as read", error);
+    }
+  };
 
-        {notifications.length > 0 && (
-          <div className="mb-4">
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  return (
+    <div className="flex flex-col min-h-screen bg-[#05010d] text-white pt-24 pb-12">
+      <div className="container mx-auto px-4 max-w-4xl relative z-10">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl lg:text-3xl font-bold text-white flex items-center gap-3">
+            <FiBell className="text-[#22D3EE]" /> Notifications
+          </h2>
+          {unreadCount > 0 && (
             <button
-              onClick={() => handleSortChange("latest")}
-              className={`mr-2 px-4 py-2 rounded ${
-                sortOrder === "latest"
-                  ? "bg-blue-700 text-white"
-                  : "bg-gray-800 text-white"
-              }`}
+              onClick={markAllAsRead}
+              className="flex items-center gap-2 bg-[#8B5CF6]/20 hover:bg-[#8B5CF6]/40 text-[#22D3EE] font-medium py-2 px-4 rounded-xl border border-purple-500/30 transition-all shadow-[0_0_15px_rgba(139,92,246,0.2)]"
             >
-              Latest
+              <FiCheck /> Mark all as read ({unreadCount})
             </button>
-            <button
-              onClick={() => handleSortChange("oldest")}
-              className={`px-4 py-2 rounded ${
-                sortOrder === "oldest"
-                  ? "bg-blue-700 text-white"
-                  : "bg-gray-800 text-white"
-              }`}
-            >
-              Oldest
-            </button>
-          </div>
-        )}
+          )}
+        </div>
+        <ToastContainer theme="dark" />
 
         {loading ? (
           <div className="flex justify-center items-center h-64">
-            <FaSpinner className="animate-spin text-4xl text-blue-500" />
+            <FaSpinner className="animate-spin text-4xl text-[#22D3EE]" />
           </div>
         ) : notifications.length > 0 ? (
           <div className="space-y-4">
             {notifications.map((notification) => (
               <div
                 key={notification._id}
-                className="notification-card bg-gray-800 text-white shadow-md rounded-lg p-4 flex items-start border border-gray-700"
+                onClick={() => !notification.isRead && markAsRead(notification._id)}
+                className={`flex flex-col gap-2 p-5 rounded-2xl border transition-all cursor-pointer shadow-lg backdrop-blur-xl ${
+                  !notification.isRead
+                    ? "bg-[#1E1B4B]/80 border-purple-500/50 shine-effect"
+                    : "bg-[#0B0F19]/80 border-gray-800 opacity-70"
+                }`}
               >
-                <div className="w-16 h-16 lg:w-20 lg:h-20 flex-shrink-0 rounded-lg overflow-hidden">
-                  {notification.images && notification.images.length > 0 ? (
-                    <img
-                      src={notification.images[0]}
-                      alt="Report"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-700 text-gray-300 rounded-lg">
-                      No Image
-                    </div>
-                  )}
-                </div>
-                <div className="flex-grow ml-4">
-                  <h3 className="text-md font-semibold mb-1 text-white">
-                    Item: {notification.itemName}
+                <div className="flex justify-between items-start">
+                  <h3 className={`text-lg font-semibold ${!notification.isRead ? 'text-white' : 'text-gray-300'}`}>
+                    {notification.title}
                   </h3>
-                  <p className="text-sm text-gray-400 mb-1">
-                    <span className="font-semibold">Report ID:</span>{" "}
-                    {notification.reportID}
-                  </p>
-                  <p className="text-sm text-gray-300 mb-2">
-                    Description: {notification.description}
-                  </p>
-                  {notification.reportType === "lost" ? (
-                    <div>
-                      <p className="text-sm text-gray-300">
-                        Claimed by: <strong>{notification.claimedBy}</strong>
-                      </p>
-                      {notification.responseMessage && (
-                        <div className="mt-2 p-2 border rounded-lg text-sm bg-green-900 border-green-700 text-green-300">
-                          <h4 className="font-semibold">Response</h4>
-                          <p>{notification.responseMessage}</p>
-                        </div>
-                      )}
-                      {notification.otp && (
-                        <p className="text-sm mt-1 text-gray-300">
-                          OTP: <strong>{notification.otp}</strong>
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <div>
-                      {notification.responseMessage && (
-                        <div className="mt-2 p-2 border rounded-lg text-sm bg-green-900 border-green-700 text-green-300">
-                          <h4 className="font-semibold">Response</h4>
-                          <p>{notification.responseMessage}</p>
-                        </div>
-                      )}
-                      {notification.user && (
-                        <div className="mt-1 text-gray-300">
-                          <h4 className="font-semibold text-sm">Posted By:</h4>
-                          <p className="text-sm">
-                            Contact: {notification.user.email}
-                          </p>
-                        </div>
-                      )}
-                      {notification.locationDetails && (
-                        <div className="mt-1 text-gray-300">
-                          <h4 className="font-semibold text-sm">Location:</h4>
-                          <p className="text-sm">
-                            {notification.locationDetails}
-                          </p>
-                        </div>
-                      )}
-                      {notification.additionalInfo && (
-                        <div className="mt-1 text-gray-300">
-                          <h4 className="font-semibold text-sm">
-                            Additional Info:
-                          </h4>
-                          <p className="text-sm">
-                            {notification.additionalInfo}
-                          </p>
-                        </div>
-                      )}
-                      {notification.otp && (
-                        <p className="text-sm mt-1 text-gray-300">
-                          OTP: <strong>{notification.otp}</strong>
-                        </p>
-                      )}
-                    </div>
+                  {!notification.isRead && (
+                    <span className="flex h-3 w-3 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22D3EE] opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-[#22D3EE]"></span>
+                    </span>
                   )}
                 </div>
+                <p className={`text-base leading-relaxed ${!notification.isRead ? 'text-gray-200' : 'text-gray-400'}`}>
+                  {notification.message}
+                </p>
+                <span className="text-xs text-gray-500 mt-2 font-medium tracking-wide">
+                  {new Date(notification.createdAt).toLocaleString()}
+                </span>
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-lg text-gray-500">No notifications</div>
+          <div className="flex flex-col justify-center items-center h-64 bg-[#0B0F19]/80 backdrop-blur-md rounded-2xl border border-gray-800 shadow-xl">
+             <FiBell className="text-6xl text-gray-700 mb-4" />
+            <div className="text-xl text-gray-400 font-medium">You're all caught up!</div>
+            <p className="text-gray-500 mt-2 text-sm text-center max-w-sm">When you get updates about your diet plans or resting periods, they'll appear here.</p>
+          </div>
         )}
       </div>
     </div>
   );
 };
 
-export default NotificationsPage;
+export default Section1;
