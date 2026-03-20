@@ -39,6 +39,9 @@ export default function Leaderboard() {
     const points = weeklyMode ? (u.weeklyPoints || 0) : (u.points || 0);
     const isCurrentUser = user?.email === u.email;
     
+    // Streak logic - we check if user has streak count. If current user, we fallback to stats.
+    const userStreak = isCurrentUser ? (stats.streakCount || 0) : (u.streakCount || 0);
+
     return (
       <div 
         className={`leaderboard-row group relative overflow-hidden ${
@@ -59,15 +62,39 @@ export default function Leaderboard() {
           
           {/* User Info */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="font-bold text-white truncate">
+            <div className="flex items-center flex-wrap gap-2 mb-1">
+              <div className="font-bold text-white truncate max-w-[150px] sm:max-w-xs">
                 {u.firstName || 'User'} {u.lastName || ''}
               </div>
               {isCurrentUser && (
-                <span className="you-badge">
+                <span className="you-badge shrink-0">
                   <span className="relative z-10">You</span>
                 </span>
               )}
+
+              {/* Badges Section */}
+              <div className="flex flex-wrap items-center gap-1.5 ml-1">
+                {i === 0 && (
+                  <span className="flexitems-center gap-1 text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/50 shadow-[0_0_10px_rgba(234,179,8,0.2)]" title="Top Performer">
+                    🥇 Top
+                  </span>
+                )}
+                {i > 0 && i < 10 && (
+                  <span className="flex items-center gap-1 text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-gray-300/20 text-gray-200 border border-gray-400/50" title="Elite Squad (Top 10)">
+                    🥈 Top 10
+                  </span>
+                )}
+                {i >= 10 && i < 50 && (
+                  <span className="flex items-center gap-1 text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-amber-700/20 text-amber-500 border border-amber-700/50" title="Rising Star (Top 50)">
+                    🥉 Top 50
+                  </span>
+                )}
+                {userStreak >= 7 && (
+                  <span className="flex items-center gap-1 text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/50 shadow-[0_0_10px_rgba(249,115,22,0.2)]" title="Consistent Beast (7+ Day Streak)">
+                    🔥 Beast
+                  </span>
+                )}
+              </div>
             </div>
             <div className="text-xs text-gray-400 truncate">{u.email}</div>
           </div>
@@ -97,6 +124,33 @@ export default function Leaderboard() {
       darkMode ? 'bg-[#05010d] text-white' : 'bg-[#020617] text-gray-100'
     }`}>
       <style>{`
+        .dynamic-feedback-banner {
+          background: linear-gradient(135deg, rgba(34, 211, 238, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
+          border: 1px solid rgba(34, 211, 238, 0.4);
+          border-radius: 1rem;
+          padding: 1.5rem;
+          margin-bottom: 2rem;
+          box-shadow: 0 4px 20px rgba(34, 211, 238, 0.1);
+          animation: pulse-border 2.5s infinite;
+        }
+        
+        @keyframes pulse-border {
+          0% { border-color: rgba(34, 211, 238, 0.2); box-shadow: 0 4px 20px rgba(34, 211, 238, 0.1); }
+          50% { border-color: rgba(139, 92, 246, 0.8); box-shadow: 0 4px 30px rgba(139, 92, 246, 0.3); }
+          100% { border-color: rgba(34, 211, 238, 0.2); box-shadow: 0 4px 20px rgba(34, 211, 238, 0.1); }
+        }
+
+        .dynamic-feedback-banner.top-performer {
+          background: linear-gradient(135deg, rgba(250, 204, 21, 0.15) 0%, rgba(249, 115, 22, 0.15) 100%);
+          animation: pulse-gold 2.5s infinite;
+        }
+
+        @keyframes pulse-gold {
+          0% { border-color: rgba(250, 204, 21, 0.2); box-shadow: 0 4px 20px rgba(250, 204, 21, 0.1); }
+          50% { border-color: rgba(250, 204, 21, 0.8); box-shadow: 0 4px 30px rgba(250, 204, 21, 0.3); }
+          100% { border-color: rgba(250, 204, 21, 0.2); box-shadow: 0 4px 20px rgba(250, 204, 21, 0.1); }
+        }
+
         .leaderboard-row {
           position: relative;
           padding: 1.25rem;
@@ -325,6 +379,87 @@ export default function Leaderboard() {
               </p>
             </header>
 
+            {/* Dynamic Feedback Banner */}
+            {user?.email && (
+              <div className="mb-8">
+                {(() => {
+                  const list = activeTab === 'weekly' ? weekly : allTime;
+                  const userIndex = list.findIndex(u => u.email === user.email);
+                  
+                  if (userIndex === -1) return (
+                    <div className="dynamic-feedback-banner text-center sm:text-left">
+                      <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-4">
+                        <span className="text-4xl sm:text-3xl">🚀</span>
+                        <div>
+                          <div className="font-bold text-xl text-white">Join the Ranks!</div>
+                          <div className="text-gray-300">Complete workouts and log your BMI to get on the leaderboard!</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+
+                  if (userIndex === 0) return (
+                    <div className="dynamic-feedback-banner top-performer text-center sm:text-left">
+                      <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-4">
+                        <span className="text-4xl sm:text-3xl drop-shadow-[0_0_10px_rgba(250,204,21,0.8)]">👑</span>
+                        <div>
+                          <div className="font-bold text-xl text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.5)]">Top Performer</div>
+                          <div className="text-yellow-100">You are Rank #1! Keep up the great work to defend your title!</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+
+                  const currentUserScore = activeTab === 'weekly' ? (list[userIndex].weeklyPoints || 0) : (list[userIndex].points || 0);
+                  const userAbove = list[userIndex - 1];
+                  const userAboveScore = activeTab === 'weekly' ? (userAbove.weeklyPoints || 0) : (userAbove.points || 0);
+                  const pointsNeeded = userAboveScore - currentUserScore + 1;
+                  
+                  // Check close to top 10 or top 50
+                  let milestoneMsg = "";
+                  if (userIndex > 0 && userIndex <= 9) {
+                     // Inside top 10
+                     milestoneMsg = `You are #${userIndex + 1}! Just ONE spot away from top ${userIndex}.`;
+                  } else if (userIndex > 9 && list[9]) {
+                     const top10User = list[9];
+                     const top10Score = activeTab === 'weekly' ? (top10User.weeklyPoints || 0) : (top10User.points || 0);
+                     const pointsToTop10 = top10Score - currentUserScore + 1;
+                     if (pointsToTop10 > 0 && pointsToTop10 <= 100) {
+                        milestoneMsg = `You are #${userIndex + 1}, just ${pointsToTop10} points away from the Elite Squad (Top 10)!`;
+                     }
+                  } else if (userIndex >= 50 && list[49]) {
+                     const top50User = list[49];
+                     const top50Score = activeTab === 'weekly' ? (top50User.weeklyPoints || 0) : (top50User.points || 0);
+                     const pointsToTop50 = top50Score - currentUserScore + 1;
+                     if (pointsToTop50 > 0 && pointsToTop50 <= 100) {
+                        milestoneMsg = `You are #${userIndex + 1}, just ${pointsToTop50} points away from the Rising Star (Top 50) badge!`;
+                     }
+                  }
+                  
+                  const workoutsNeeded = Math.ceil(pointsNeeded / 20);
+                  const nameAbove = userAbove.firstName || 'the next user';
+
+                  return (
+                    <div className="dynamic-feedback-banner text-center sm:text-left">
+                      <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-4">
+                        <span className="text-4xl sm:text-3xl drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">🔥</span>
+                        <div>
+                          <div className="font-bold text-xl text-white mb-1">Target Acquired!</div>
+                          <div className="text-gray-200">
+                            {milestoneMsg ? (
+                              <span className="font-medium text-cyan-300">{milestoneMsg} </span>
+                            ) : null}
+                            Overtake <span className="font-bold text-purple-400">{nameAbove}</span> by earning {pointsNeeded} points. 
+                            (Just <span className="font-bold text-cyan-400">{workoutsNeeded} workout{workoutsNeeded > 1 ? 's' : ''}</span>!)
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             <div className="stat-card stat-card-1">
@@ -430,6 +565,53 @@ export default function Leaderboard() {
                   <span className="text-2xl font-black bg-gradient-to-r from-[#A855F7] to-[#22D3EE] bg-clip-text text-transparent">
                     +20
                   </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Rewards & Badges Info */}
+          <div className="info-card mb-12 border-t-4 border-t-yellow-500/50">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="text-3xl">🏅</div>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-yellow-400 via-yellow-500 to-amber-600 bg-clip-text text-transparent drop-shadow-sm">
+                Rank-Based Rewards & Badges
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="info-item relative overflow-hidden group border border-yellow-500/30 bg-yellow-500/10 hover:border-yellow-500/60 transition-colors">
+                <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/20 to-transparent opacity-50"></div>
+                <div className="relative flex flex-col gap-2 p-1">
+                  <div className="text-4xl mb-1 drop-shadow-lg group-hover:scale-110 transition-transform origin-left">🥇</div>
+                  <span className="text-white font-bold text-lg">Top Performer</span>
+                  <p className="text-sm text-yellow-200/80 leading-snug">Rank #1 • Gold Badge + Bonus Points</p>
+                </div>
+              </div>
+              
+              <div className="info-item relative overflow-hidden group border border-gray-400/30 bg-gray-400/10 hover:border-gray-400/60 transition-colors">
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-300/20 to-transparent opacity-50"></div>
+                <div className="relative flex flex-col gap-2 p-1">
+                  <div className="text-4xl mb-1 drop-shadow-lg group-hover:scale-110 transition-transform origin-left">🥈</div>
+                  <span className="text-white font-bold text-lg">Elite Squad</span>
+                  <p className="text-sm text-gray-300/80 leading-snug">Rank #2-10 • Silver Badge</p>
+                </div>
+              </div>
+              
+              <div className="info-item relative overflow-hidden group border border-amber-700/40 bg-amber-700/10 hover:border-amber-600/60 transition-colors">
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-600/20 to-transparent opacity-50"></div>
+                <div className="relative flex flex-col gap-2 p-1">
+                  <div className="text-4xl mb-1 drop-shadow-lg group-hover:scale-110 transition-transform origin-left">🥉</div>
+                  <span className="text-white font-bold text-lg">Rising Star</span>
+                  <p className="text-sm text-amber-500/90 leading-snug">Top 50 • Bronze Badge</p>
+                </div>
+              </div>
+              
+              <div className="info-item relative overflow-hidden group border border-orange-500/30 bg-orange-500/10 hover:border-orange-500/60 transition-colors">
+                <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-transparent opacity-50"></div>
+                <div className="relative flex flex-col gap-2 p-1">
+                  <div className="text-4xl mb-1 drop-shadow-lg group-hover:scale-110 transition-transform origin-left">🔥</div>
+                  <span className="text-white font-bold text-lg">Consistent Beast</span>
+                  <p className="text-sm text-orange-300/80 leading-snug">7-Day Active Streak Maintained</p>
                 </div>
               </div>
             </div>
