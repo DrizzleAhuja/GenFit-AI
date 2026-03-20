@@ -1050,7 +1050,14 @@ export default function PostureCoach() {
                             : `Reps: ${reps} / ${targetTotal} — ${canMarkComplete ? "Ready!" : "Keep training."}`}
                         </p>
                         <button
-                          onClick={() => {
+                          onClick={async () => {
+                            const snapshot = {
+                              exercise,
+                              reps,
+                              calories,
+                              sessionDuration,
+                            };
+                            await logSession(snapshot);
                             navigate("/my-workout-plan", {
                               state: {
                                 markExerciseComplete: true,
@@ -1060,6 +1067,8 @@ export default function PostureCoach() {
                                 weight: workoutFromPlan.exercise.weight,
                                 dayIndex: workoutFromPlan.dayIndex,
                                 weekNumber: workoutFromPlan.weekNumber,
+                                durationMinutes: Math.round(sessionDuration / 60) || 1,
+                                calories: Math.round(calories || 0),
                               },
                             });
                           }}

@@ -97,6 +97,7 @@ const WeeklyBarChart = ({ data, title }) => {
   const maxValue = Math.max(...data, 1);
   const todayIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
   const yLabels = maxValue <= 30 ? [0, 10, 20, 30] : [0, 30, 60, 90];
+  const scaleMax = maxValue <= 30 ? 30 : maxValue; // Use standard scaleMax for height proportions!
 
   return (
     <div className="h-full">
@@ -112,10 +113,14 @@ const WeeklyBarChart = ({ data, title }) => {
         </div>
         <div className="flex-1 flex items-end justify-between gap-2 border-l border-b border-[#1F2937] pl-2 pb-1">
           {days.map((day, i) => {
-            const height = maxValue > 0 ? (data[i] / maxValue) * 100 : 0;
+            const height = scaleMax > 0 ? (data[i] / scaleMax) * 100 : 0;
             const isToday = i === todayIndex;
             return (
-              <div key={day} className="flex flex-col items-center flex-1 h-full justify-end">
+              <div key={day} className="flex flex-col items-center flex-1 h-full justify-end group relative">
+                {/* Tooltip on Hover */}
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 hidden group-hover:block bg-[#020617] border border-[#1F2937] px-2 py-0.5 rounded text-[10px] text-white whitespace-nowrap shadow-md z-20">
+                  {data[i]}m
+                </div>
                 <div
                   className={`w-full max-w-[32px] rounded-t-md transition-all duration-700 ${
                     isToday
@@ -139,6 +144,7 @@ const CalorieBurnedSection = ({ caloriesBurnedThisWeek, weeklyBurnedPerDay }) =>
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const hasData = (weeklyBurnedPerDay || []).some((v) => v > 0);
   const maxVal = Math.max(...(weeklyBurnedPerDay || [0, 0, 0, 0, 0, 0, 0]), 1);
+  const scaleMax = maxVal <= 500 ? 500 : maxVal; // Use fixed 500 target boundary fallback!
 
   if (!hasData) {
     return (
@@ -165,10 +171,18 @@ const CalorieBurnedSection = ({ caloriesBurnedThisWeek, weeklyBurnedPerDay }) =>
       </div>
       <div className="flex items-end justify-between gap-2 h-28 border-l border-b border-[#1F2937] pl-4 pb-2">
         {days.map((day, i) => {
-          const h = maxVal > 0 ? (Math.max((weeklyBurnedPerDay || [])[i] || 0, 0) / maxVal) * 100 : 0;
+          const val = (weeklyBurnedPerDay || [])[i] || 0;
+          const h = scaleMax > 0 ? (val / scaleMax) * 100 : 0;
           return (
-            <div key={day} className="flex flex-col items-center flex-1">
-              <div className="w-full max-w-[24px] rounded-t bg-gradient-to-t from-[#8B5CF6] to-[#22D3EE]" style={{ height: `${Math.max(h, 4)}%` }} />
+            <div key={day} className="flex flex-col items-center flex-1 h-full justify-end group relative">
+              {/* Tooltip on Hover */}
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 hidden group-hover:block bg-[#020617] border border-[#1F2937] px-2 py-0.5 rounded text-[10px] text-white whitespace-nowrap shadow-md z-20">
+                {Math.round(val)} cal
+              </div>
+              <div 
+                className="w-full max-w-[24px] rounded-t bg-gradient-to-t from-[#8B5CF6] to-[#22D3EE] transition-all duration-500" 
+                style={{ height: `${val > 0 ? Math.max(h, 10) : 4}%` }} 
+              />
               <span className="text-[10px] text-gray-500 mt-1">{day}</span>
             </div>
           );
@@ -207,6 +221,7 @@ const CalorieIntakeSection = ({ navigate, calorieHistory }) => {
   }
   const hasData = values.some((v) => v > 0);
   const maxVal = Math.max(...values, 1);
+  const scaleMax = maxVal <= 2000 ? 2000 : maxVal; // Use fixed 2000 kcal target boundary fallback!
 
   return (
     <div>
@@ -221,21 +236,20 @@ const CalorieIntakeSection = ({ navigate, calorieHistory }) => {
       )}
       <div className="flex items-end justify-between gap-2 h-28 border-l border-b border-[#1F2937] pl-4 pb-2 mb-3">
         {days.map((label, i) => {
-          const h = maxVal > 0 ? (values[i] / maxVal) * 100 : 0;
+          const h = scaleMax > 0 ? (values[i] / scaleMax) * 100 : 0;
           return (
-            <div key={label} className="flex flex-col items-center flex-1">
-              {values[i] > 0 && (
-                <span className="text-[10px] text-gray-300 mb-0.5">
-                  {Math.round(values[i])} kcal
-                </span>
-              )}
+            <div key={label} className="flex flex-col items-center flex-1 h-full justify-end group relative">
+              {/* Tooltip on Hover */}
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 hidden group-hover:block bg-[#020617] border border-[#1F2937] px-2 py-0.5 rounded text-[10px] text-white whitespace-nowrap shadow-md z-20">
+                {Math.round(values[i])} kcal
+              </div>
               <div
-                className={`w-full max-w-[24px] rounded-t ${
+                className={`w-full max-w-[24px] rounded-t transition-all duration-500 ${
                   values[i] > 0
                     ? "bg-gradient-to-t from-[#8B5CF6] to-[#22D3EE]"
                     : "bg-[#1F2937]/60"
                 }`}
-                style={{ height: `${Math.max(h, 4)}%` }}
+                style={{ height: `${values[i] > 0 ? Math.max(h, 10) : 4}%` }}
               />
               <span className="text-[10px] text-gray-500 mt-1">{label}</span>
             </div>
@@ -497,16 +511,16 @@ export default function Home() {
     return mins;
   }, [sessionsThisWeek]);
 
-  // Real: calories burned this week (estimate ~5 cal/min from duration)
+  // Real: calories burned this week (estimate fallback to ~5 cal/min from duration if log.calories is missing)
   const caloriesBurnedThisWeek = useMemo(() => {
-    return sessionsThisWeek.reduce((sum, log) => sum + (log.durationMinutes || 0) * 5, 0);
+    return sessionsThisWeek.reduce((sum, log) => sum + (log.calories || (log.durationMinutes || 0) * 5), 0);
   }, [sessionsThisWeek]);
 
   const weeklyBurnedPerDay = useMemo(() => {
     const cal = [0, 0, 0, 0, 0, 0, 0];
     sessionsThisWeek.forEach((log) => {
       const idx = getWeekdayIndex(log.date);
-      cal[idx] += (log.durationMinutes || 0) * 5;
+      cal[idx] += log.calories || (log.durationMinutes || 0) * 5;
     });
     return cal;
   }, [sessionsThisWeek]);

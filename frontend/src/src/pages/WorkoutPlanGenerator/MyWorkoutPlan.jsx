@@ -61,7 +61,9 @@ const MyWorkoutPlan = () => {
           state.reps,
           state.weight,
           false,
-          true // silentRefresh: no loading blink, single refresh
+          true, // silentRefresh: no loading blink, single refresh
+          state.durationMinutes || 0, // Pass duration back from VTA!
+          state.calories || 0 // Pass calories back!
         );
         if (!cancelled) navigate("/my-workout-plan", { replace: true, state: {} });
       } catch (_) {
@@ -228,7 +230,9 @@ const MyWorkoutPlan = () => {
     reps,
     weight,
     isCompleted,
-    silentRefresh = false
+    silentRefresh = false,
+    passedDurationMinutes = 0,
+    passedCalories = 0 // Added!
   ) => {
     if (!user || !activePlan) {
       toast.error("Please log in and have an active plan to mark exercises.");
@@ -292,7 +296,8 @@ const MyWorkoutPlan = () => {
           workoutDetails: updatedWorkoutDetails,
           overallNotes: existingLog?.overallNotes || "",
           perceivedExertion: existingLog?.perceivedExertion || 5,
-          durationMinutes: existingLog?.durationMinutes || 0,
+          durationMinutes: (existingLog?.durationMinutes || 0) + (passedDurationMinutes || 0),
+          calories: (existingLog?.calories || 0) + (passedCalories || 0), // Added!
           isDayCompleted: allExercisesCompletedForDay,
         }
       );

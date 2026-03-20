@@ -25,6 +25,7 @@ const WorkoutSessionLogSchema = new mongoose.Schema(
         overallNotes: { type: String },
         perceivedExertion: { type: Number, min: 1, max: 10 }, // RPE scale
         durationMinutes: { type: Number },
+        calories: { type: Number, default: 0 },
     },
     { timestamps: true }
 );

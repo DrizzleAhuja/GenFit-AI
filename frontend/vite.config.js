@@ -9,7 +9,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       devOptions: {
-        enabled: true, // Enable PWA in dev mode for testing
+        enabled: false, // DISABLED to allow hot-reloading during development!
         type: 'module'
       },
       workbox: {

@@ -16,6 +16,8 @@ import {
   Brain, Flame, Heart, Scale, Timer, ChevronRight, Clock,
   Sun, Moon, Sunrise, Coffee, Dumbbell, Footprints
 } from "lucide-react";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, LineChart, Line, CartesianGrid } from 'recharts';
+import GamifyBadge from "../../Components/GamifyBadge";
 
 // Circular Progress Ring Component
 const CircularProgress = ({ percentage, size = 140, strokeWidth = 10, color = "#84CC16" }) => {
@@ -75,82 +77,77 @@ const AnimatedCounter = ({ value, duration = 1200 }) => {
 };
 
 // Weekly Bar Chart Component
+// Weekly Bar Chart Component
 const WeeklyBarChart = ({ data, title, icon: Icon, yAxisLabel = "min" }) => {
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const maxValue = Math.max(...data, 60);
-  const yLabels = [0, Math.round(maxValue * 0.25), Math.round(maxValue * 0.5), Math.round(maxValue * 0.75), maxValue];
+  const chartData = days.map((day, i) => ({
+    name: day,
+    duration: data[i] || 0
+  }));
+
   const todayIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
-  
+
   return (
     <div className="h-full">
-      <div className="flex items-center gap-2 mb-4">
-        <Icon className="w-5 h-5 text-[#84CC16]" />
-        <h3 className="text-lg font-semibold text-white">{title}</h3>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Icon className="w-5 h-5 text-[#84CC16]" />
+          <h3 className="text-lg font-semibold text-white">{title}</h3>
+        </div>
+        <span className="text-[10px] text-gray-400">Values: [{data.join(', ')}]</span>
       </div>
-      <div className="flex h-48">
-        {/* Y-axis labels */}
-        <div className="flex flex-col justify-between text-xs text-gray-500 pr-2 py-1">
-          {yLabels.reverse().map((label, i) => (
-            <span key={i}>{label}{yAxisLabel}</span>
-          ))}
-        </div>
-        {/* Bars */}
-        <div className="flex-1 flex items-end justify-between gap-2 border-l border-b border-gray-700/50 pl-2 pb-1">
-          {days.map((day, i) => {
-            const height = (data[i] / maxValue) * 100;
-            const isToday = i === todayIndex;
-            return (
-              <div key={day} className="flex flex-col items-center flex-1 h-full justify-end">
-                <div 
-                  className={`w-full max-w-[32px] rounded-t-md transition-all duration-700 ${
-                    isToday 
-                      ? 'bg-gradient-to-t from-[#84CC16] to-[#A3E635] shadow-[0_0_15px_rgba(132,204,22,0.4)]' 
-                      : 'bg-gradient-to-t from-[#84CC16]/70 to-[#84CC16]/90'
-                  }`}
-                  style={{ height: `${Math.max(height, 3)}%` }}
-                />
-                <span className={`text-xs mt-2 ${isToday ? 'text-[#84CC16] font-bold' : 'text-gray-500'}`}>
-                  {day}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+      <div className="h-48 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+            <XAxis dataKey="name" stroke="#6B7280" fontSize={11} tickLine={false} />
+            <YAxis 
+              stroke="#6B7280" 
+              fontSize={11} 
+              tickLine={false} 
+              axisLine={false} 
+              tickFormatter={(v) => `${v}${yAxisLabel}`} 
+              width={35} 
+              domain={[0, 30]} // Fix bounds explicitly using constant to avoid scaling bugs!
+            />
+            <Tooltip 
+              contentStyle={{ backgroundColor: '#111827', border: '1px solid #1F2937', borderRadius: '8px', color: '#fff' }}
+              labelStyle={{ color: '#9CA3AF' }}
+              cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+            />
+            <Bar 
+              dataKey="duration" 
+              fill="#84CC16" 
+              radius={[4, 4, 0, 0]}
+              animationDuration={800}
+            />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
 };
 
 // Line Chart Component for Calorie Intake
-const CalorieLineChart = ({ intakeData, burnedData, goal }) => {
+const CalorieBarChart = ({ intakeData, burnedData }) => {
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const maxValue = Math.max(...intakeData, ...burnedData, goal) * 1.1;
-  const chartHeight = 160;
-  const chartWidth = 100;
-  
-  const getY = (value) => chartHeight - (value / maxValue) * chartHeight;
-  const goalY = getY(goal);
-  
-  const intakePath = intakeData.map((val, i) => {
-    const x = (i / 6) * chartWidth;
-    const y = getY(val);
-    return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
-  }).join(' ');
-  
-  const burnedPath = burnedData.map((val, i) => {
-    const x = (i / 6) * chartWidth;
-    const y = getY(val);
-    return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
-  }).join(' ');
+  const chartData = days.map((day, i) => ({
+    name: day,
+    Intake: intakeData[i] || 0,
+    Burned: burnedData[i] || 0
+  }));
+
+  const totalBurned = burnedData.reduce((a, b) => a + b, 0);
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Flame className="w-5 h-5 text-[#84CC16]" />
-          <h3 className="text-lg font-semibold text-white">Calorie Intake</h3>
+          <Flame className="w-5 h-5 text-[#22D3EE]" />
+          <h3 className="text-lg font-semibold text-white">Calories Burned</h3>
+          <span className="text-xs text-gray-400">({Math.round(totalBurned)} cal this week)</span>
         </div>
         <div className="flex items-center gap-4 text-xs">
+          <span className="text-[10px] text-gray-500 mr-2">Val: [{chartData.map(d => d.Burned).join(', ')}]</span>
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 rounded-full bg-[#84CC16]" />
             <span className="text-gray-400">Intake</span>
@@ -162,44 +159,28 @@ const CalorieLineChart = ({ intakeData, burnedData, goal }) => {
         </div>
       </div>
       
-      <div className="relative h-44">
-        {/* Y-axis labels */}
-        <div className="absolute left-0 top-0 bottom-6 flex flex-col justify-between text-xs text-gray-500">
-          <span>{Math.round(maxValue)}</span>
-          <span>{Math.round(maxValue * 0.75)}</span>
-          <span>{Math.round(maxValue * 0.5)}</span>
-          <span>{Math.round(maxValue * 0.25)}</span>
-          <span>0</span>
-        </div>
-        
-        {/* Chart Area */}
-        <div className="ml-10 h-40 relative">
-          <svg className="w-full h-full" viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="none">
-            {/* Goal Line */}
-            <line 
-              x1="0" y1={goalY} x2={chartWidth} y2={goalY} 
-              stroke="#F97316" strokeWidth="1" strokeDasharray="4 2"
+      <div className="h-44 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }} barGap={2}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} vertical={false} />
+            <XAxis dataKey="name" stroke="#6B7280" fontSize={11} tickLine={false} />
+            <YAxis 
+              stroke="#6B7280" 
+              fontSize={11} 
+              tickLine={false} 
+              axisLine={false} 
+              width={35} 
+              domain={[0, (dataMax) => Math.max(dataMax, 100)]} // Set min height domain
             />
-            <text x={chartWidth - 15} y={goalY - 5} fill="#F97316" fontSize="8">Goal</text>
-            
-            {/* Intake Line */}
-            <path d={intakePath} fill="none" stroke="#84CC16" strokeWidth="2" strokeLinecap="round" />
-            {intakeData.map((val, i) => (
-              <circle key={i} cx={(i / 6) * chartWidth} cy={getY(val)} r="4" fill="#84CC16" />
-            ))}
-            
-            {/* Burned Line */}
-            <path d={burnedPath} fill="none" stroke="#22D3EE" strokeWidth="2" strokeLinecap="round" />
-            {burnedData.map((val, i) => (
-              <circle key={i} cx={(i / 6) * chartWidth} cy={getY(val)} r="3" fill="#22D3EE" />
-            ))}
-          </svg>
-          
-          {/* X-axis labels */}
-          <div className="flex justify-between mt-1 text-xs text-gray-500">
-            {days.map((day, i) => <span key={i}>{day}</span>)}
-          </div>
-        </div>
+            <Tooltip 
+              contentStyle={{ backgroundColor: '#111827', border: '1px solid #1F2937', borderRadius: '8px', color: '#fff' }}
+              labelStyle={{ color: '#9CA3AF' }}
+              cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+            />
+            <Bar dataKey="Intake" fill="#84CC16" radius={[4, 4, 0, 0]} maxBarSize={15} />
+            <Bar dataKey="Burned" fill="#22D3EE" radius={[4, 4, 0, 0]} maxBarSize={15} />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
@@ -312,23 +293,40 @@ export default function Dashboard() {
   const [adherence, setAdherence] = useState({ active: false, adherenceThisWeek: 0, last4Weeks: [] });
   const [bmiHistory, setBmiHistory] = useState([]);
   const [workoutPlan, setWorkoutPlan] = useState(null);
+  const [calorieLogs, setCalorieLogs] = useState([]);
+  const [sessionLogs, setSessionLogs] = useState([]);
+  const [workoutSessionLogs, setWorkoutSessionLogs] = useState([]);
+  const [leaderboardRank, setLeaderboardRank] = useState(-1);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       if (!user?.email || !user?._id) { setLoading(false); return; }
       try {
-        const [s, a, b, w] = await Promise.all([
-          axios.get(`${API_BASE_URL}${API_ENDPOINTS.GAMIFY}/stats`, { params: { email: user.email } }),
-          axios.get(`${API_BASE_URL}${API_ENDPOINTS.GAMIFY}/adherence`, { params: { userId: user._id } }),
-          axios.get(`${API_BASE_URL}${API_ENDPOINTS.BMI}/history`, { params: { email: user.email } }),
-          axios.get(`${API_BASE_URL}${API_ENDPOINTS.AUTH}/workout-plan/active/${user._id}`).catch(() => ({ data: { plan: null } })),
+        const [s, a, b, w, c, p, l] = await Promise.all([
+          axios.get(`${API_BASE_URL}${API_ENDPOINTS.GAMIFY}/stats`, { params: { email: user.email, _t: Date.now() } }),
+          axios.get(`${API_BASE_URL}${API_ENDPOINTS.GAMIFY}/adherence`, { params: { userId: user._id, _t: Date.now() } }),
+          axios.get(`${API_BASE_URL}${API_ENDPOINTS.BMI}/history`, { params: { email: user.email, _t: Date.now() } }),
+          axios.get(`${API_BASE_URL}${API_ENDPOINTS.AUTH}/workout-plan/active/${user._id}`, { params: { _t: Date.now() } }).catch(() => ({ data: { plan: null, sessionLogs: [] } })),
+          axios.get(`${API_BASE_URL}/api/auth/calorie-intake/history/${user._id}`, { params: { _t: Date.now() } }).catch(() => ({ data: { logs: [] } })),
+          axios.get(`${API_BASE_URL}/api/posture/sessions/${user._id}`, { params: { _t: Date.now() } }).catch(() => ({ data: { sessions: [] } })),
+          axios.get(`${API_BASE_URL}${API_ENDPOINTS.GAMIFY}/leaderboard`, { params: { period: 'all', _t: Date.now() } }).catch(() => ({ data: { users: [] } })),
         ]);
+        
         setStats(s.data || {});
         setAdherence(a.data || {});
         setBmiHistory((b.data || []).slice(0, 7));
         setWorkoutPlan(w.data?.plan || null);
-      } catch (e) { console.error("Dashboard load error:", e); }
+        setWorkoutSessionLogs(w.data?.sessionLogs || []);
+        setCalorieLogs(c.data?.logs || []);
+        setSessionLogs(p.data?.sessions || []);
+
+        const lbUsers = l.data?.users || [];
+        const rankIdx = lbUsers.findIndex(u => u.email === user.email);
+        setLeaderboardRank(rankIdx);
+      } catch (e) { 
+        console.error("Dashboard load error:", e); 
+      }
       setLoading(false);
     }
     load();
@@ -341,36 +339,126 @@ export default function Dashboard() {
     return Math.min(Math.round((progress / target) * 100), 100);
   }, [stats]);
 
+  // Aggregate daily durations from both posture sessions and plan logs for the current week (since Mon)
+  const weeklyExerciseData = useMemo(() => {
+    const data = [0, 0, 0, 0, 0, 0, 0];
+    const now = new Date();
+    const currentDay = now.getDay();
+    const diff = now.getDate() - currentDay + (currentDay === 0 ? -6 : 1);
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(diff);
+    startOfWeek.setHours(0,0,0,0);
+
+    // Sum Posture Session Logs (durationSeconds)
+    (sessionLogs || []).forEach(log => {
+      const logDate = new Date(log.date);
+      if (logDate >= startOfWeek) {
+        let dayIdx = logDate.getDay();
+        dayIdx = dayIdx === 0 ? 6 : dayIdx - 1; // Mon=0, Sun=6
+        data[dayIdx] += Math.round((log.durationSeconds || 0) / 60);
+      }
+    });
+
+    // Sum Workout Session Logs from Plan (durationMinutes)
+    (workoutSessionLogs || []).forEach(log => {
+      const logDate = new Date(log.date);
+      if (logDate >= startOfWeek) {
+        let dayIdx = logDate.getDay();
+        dayIdx = dayIdx === 0 ? 6 : dayIdx - 1;
+        data[dayIdx] += Math.round(log.durationMinutes || 0);
+      }
+    });
+
+    return data;
+  }, [sessionLogs, workoutSessionLogs]);
+
+  // Sum up actual calories burned this week
+  const calorieBurnedData = useMemo(() => {
+    const data = [0, 0, 0, 0, 0, 0, 0];
+    const now = new Date();
+    const currentDay = now.getDay();
+    const diff = now.getDate() - currentDay + (currentDay === 0 ? -6 : 1);
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(diff);
+    startOfWeek.setHours(0,0,0,0);
+
+    (sessionLogs || []).forEach(log => {
+      const logDate = new Date(log.date);
+      if (logDate >= startOfWeek) {
+        let dayIdx = logDate.getDay();
+        dayIdx = dayIdx === 0 ? 6 : dayIdx - 1;
+        data[dayIdx] += Math.round(log.calories || 0);
+      }
+    });
+
+    (workoutSessionLogs || []).forEach(log => {
+      const logDate = new Date(log.date);
+      if (logDate >= startOfWeek) {
+        let dayIdx = logDate.getDay();
+        dayIdx = dayIdx === 0 ? 6 : dayIdx - 1;
+        data[dayIdx] += Math.round(log.calories || 0);
+      }
+    });
+
+    return data;
+  }, [sessionLogs, workoutSessionLogs]);
+
   const caloriesBurned = useMemo(() => {
-    const base = (stats.weeklyPoints || 0) * 3 + (stats.streakCount || 0) * 50;
-    return Math.max(base, 500);
-  }, [stats]);
+    return calorieBurnedData.reduce((a, b) => a + b, 0);
+  }, [calorieBurnedData]);
 
   const workoutsThisWeek = useMemo(() => {
-    return stats.weeklyChallenge?.progress || Math.min(stats.streakCount || 0, 7);
-  }, [stats]);
+    return weeklyExerciseData.filter(m => m > 0).length;
+  }, [weeklyExerciseData]);
 
-  // Mock data for charts (in real app, fetch from API)
-  const weeklyExerciseData = useMemo(() => {
-    const base = [25, 15, 0, 45, 35, 50, 30];
-    return base.map((v, i) => v + (stats.streakCount > i ? 10 : 0));
-  }, [stats]);
+  // Sum up actual calorie intake for this week
+  const calorieIntakeData = useMemo(() => {
+    const data = [0, 0, 0, 0, 0, 0, 0];
+    const now = new Date();
+    const currentDay = now.getDay();
+    const diff = now.getDate() - currentDay + (currentDay === 0 ? -6 : 1);
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(diff);
+    startOfWeek.setHours(0,0,0,0);
 
-  const calorieIntakeData = useMemo(() => [1900, 1850, 2100, 1950, 2180, 2300, 1800], []);
-  const calorieBurnedData = useMemo(() => [300, 150, 50, 400, 180, 350, 200], []);
+    (calorieLogs || []).forEach(log => {
+      const logDate = new Date(log.date);
+      if (logDate >= startOfWeek) {
+        let dayIdx = logDate.getDay();
+        dayIdx = dayIdx === 0 ? 6 : dayIdx - 1;
+        data[dayIdx] += Math.round(log.totalCalories || 0);
+      }
+    });
+    return data;
+  }, [calorieLogs]);
+
   const calorieGoal = 2000;
 
+  // Compute 4-week grid from active dates back from current week's Monday
   const streakHeatmapData = useMemo(() => {
-    const weeks = [];
-    for (let w = 0; w < 4; w++) {
+    const activeDates = new Set((sessionLogs || []).map(log => new Date(log.date).toDateString()));
+    const result = [];
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    const currentDay = today.getDay();
+    const diffToMon = currentDay === 0 ? -6 : 1 - currentDay;
+    const startOfThisWeek = new Date(today);
+    startOfThisWeek.setDate(today.getDate() + diffToMon);
+
+    for (let w = 3; w >= 0; w--) {
+      const weekStart = new Date(startOfThisWeek);
+      weekStart.setDate(startOfThisWeek.getDate() - w * 7);
       const week = [];
       for (let d = 0; d < 7; d++) {
-        week.push(Math.random() > 0.3);
+        const dDate = new Date(weekStart);
+        dDate.setDate(weekStart.getDate() + d);
+        week.push(activeDates.has(dDate.toDateString()));
       }
-      weeks.push(week);
+      result.push(week);
     }
-    return weeks;
-  }, []);
+    return result;
+  }, [sessionLogs]);
 
   const consistencyScore = useMemo(() => {
     const totalActive = streakHeatmapData.flat().filter(Boolean).length;
@@ -404,6 +492,12 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen flex flex-col bg-[#0A0F1C] text-white">
       <NavBar />
+      
+      {/* Visual Debug Banner to prove file updates applied */}
+      <div className="bg-red-600 text-white p-4 font-bold text-center text-sm z-50">
+        [ SYSTEM DEBUG ]: Layout update fixing scales & towers applied successfully. IF YOU SEE THIS BANNER, REFRESH (Ctrl+F5).
+      </div>
+
       <main className="flex-grow">
         <section className="py-6 sm:py-8">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
@@ -535,10 +629,9 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
               {/* Calorie Intake Chart */}
               <div className="lg:col-span-2 rounded-2xl bg-[#111827] border border-[#1F2937] p-6">
-                <CalorieLineChart 
+                <CalorieBarChart 
                   intakeData={calorieIntakeData}
                   burnedData={calorieBurnedData}
-                  goal={calorieGoal}
                 />
               </div>
 
@@ -570,6 +663,39 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
+
+            {/* Active Workout Plan Section */}
+            {workoutPlan && (
+              <div className="rounded-2xl bg-[#111827] border border-[#1F2937] p-6 mb-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="p-2 rounded-lg bg-[#3B82F6]/10">
+                    <Dumbbell className="w-5 h-5 text-[#3B82F6]" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white">Active Workout Plan</h3>
+                </div>
+                
+                <div className="p-4 rounded-xl bg-[#1F2937]/30 border border-[#374151]/50">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <h4 className="font-semibold text-white mb-1">{workoutPlan.name}</h4>
+                      <p className="text-sm text-gray-400 capitalize">Goal: {workoutPlan.generatedParams?.fitnessGoal?.replace(/_/g, ' ') || 'N/A'}</p>
+                    </div>
+                    <div className="flex-1 max-w-xs w-full">
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-gray-400">Progress</span>
+                        <span className="text-[#3B82F6] font-semibold">{workoutPlan.completedDayCount || 0} days</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-gray-700 overflow-hidden">
+                        <div 
+                          className="h-full bg-[#3B82F6] transition-all duration-500" 
+                          style={{ width: `${Math.min(100, ((workoutPlan.completedDayCount || 0) / (workoutPlan.generatedParams?.daysPerWeek * workoutPlan.durationWeeks || 28)) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Bottom Section: BMI Trend + Quick Actions + Badges */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -620,8 +746,20 @@ export default function Dashboard() {
               <div className="rounded-2xl bg-[#111827] border border-[#1F2937] p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <Award className="w-5 h-5 text-[#FACC15]" />
-                  <h3 className="text-lg font-semibold text-white">Badges ({(stats.badges || []).length})</h3>
+                  <h3 className="text-lg font-semibold text-white">Badges</h3>
                 </div>
+                
+                {/* Leaderboard/Rank Badges */}
+                <div className="flex flex-wrap items-center gap-2 mb-4 p-3 rounded-xl bg-[#1F2937]/30 border border-[#374151]/30">
+                  {leaderboardRank === 0 && <GamifyBadge type="top1" />}
+                  {leaderboardRank > 0 && leaderboardRank < 10 && <GamifyBadge type="top10" />}
+                  {leaderboardRank >= 10 && leaderboardRank < 50 && <GamifyBadge type="top50" />}
+                  {(stats.streakCount || 0) >= 7 && <GamifyBadge type="beast" />}
+                  {!(leaderboardRank >= 0 && leaderboardRank < 50) && !((stats.streakCount || 0) >= 7) && (
+                    <span className="text-xs text-gray-400">No leaderboard badges yet</span>
+                  )}
+                </div>
+
                 {(stats.badges || []).length > 0 ? (
                   <div className="space-y-2">
                     {(stats.badges || []).slice(0, 3).map((badge, i) => (
