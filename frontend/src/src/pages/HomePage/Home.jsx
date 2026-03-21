@@ -148,45 +148,54 @@ const CalorieBurnedSection = ({ caloriesBurnedThisWeek, weeklyBurnedPerDay }) =>
 
   if (!hasData) {
     return (
-      <div>
+      <div className="flex flex-col h-full">
         <div className="flex items-center gap-2 mb-4">
           <Flame className="w-5 h-5 text-[#22D3EE]" />
           <h3 className="text-lg font-semibold text-white">Calories Burned</h3>
         </div>
-        <div className="flex flex-col items-center justify-center py-10 rounded-xl bg-[#020617]/60 border border-[#1F2937]">
+        <div className="flex-1 flex flex-col items-center justify-center rounded-xl bg-[#020617]/60 border border-[#1F2937] py-6">
           <Flame className="w-10 h-10 text-gray-600 mb-2" />
           <p className="text-gray-400 text-sm">No workout data this week</p>
-          <p className="text-gray-500 text-xs mt-1">Log workouts to see calories burned (estimated from duration)</p>
+          <p className="text-gray-500 text-xs mt-1 text-center">Log workouts to see calories burned (estimated from duration)</p>
         </div>
       </div>
     );
   }
 
+  const yLabels = scaleMax <= 500 ? [0, 250, 500] : [0, Math.round(scaleMax / 2), scaleMax];
+
   return (
-    <div>
+    <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 mb-4">
         <Flame className="w-5 h-5 text-[#22D3EE]" />
         <h3 className="text-lg font-semibold text-white">Calories Burned</h3>
         <span className="text-sm text-gray-400 ml-auto">{caloriesBurnedThisWeek} cal this week</span>
       </div>
-      <div className="flex items-end justify-between gap-2 h-28 border-l border-b border-[#1F2937] pl-4 pb-2">
-        {days.map((day, i) => {
-          const val = (weeklyBurnedPerDay || [])[i] || 0;
-          const h = scaleMax > 0 ? (val / scaleMax) * 100 : 0;
-          return (
-            <div key={day} className="flex flex-col items-center flex-1 h-full justify-end group relative">
-              {/* Tooltip on Hover */}
-              <div className="absolute -top-6 left-1/2 -translate-x-1/2 hidden group-hover:block bg-[#020617] border border-[#1F2937] px-2 py-0.5 rounded text-[10px] text-white whitespace-nowrap shadow-md z-20">
-                {Math.round(val)} cal
+      <div className="flex-1 flex min-h-[120px]">
+        <div className="flex flex-col justify-between text-[10px] text-gray-500 pr-2 py-1">
+          {[...yLabels].reverse().map((label, i) => (
+            <span key={i}>{label}</span>
+          ))}
+        </div>
+        <div className="flex-1 flex items-end justify-between gap-2 border-l border-b border-[#1F2937] pl-2 pb-1">
+          {days.map((day, i) => {
+            const val = (weeklyBurnedPerDay || [])[i] || 0;
+            const h = scaleMax > 0 ? (val / scaleMax) * 100 : 0;
+            return (
+              <div key={day} className="flex flex-col items-center flex-1 h-full justify-end group relative">
+                {/* Tooltip on Hover */}
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 hidden group-hover:block bg-[#020617] border border-[#1F2937] px-2 py-0.5 rounded text-[10px] text-white whitespace-nowrap shadow-md z-20">
+                  {Math.round(val)} cal
+                </div>
+                <div 
+                  className="w-full max-w-[24px] rounded-t bg-gradient-to-t from-[#8B5CF6] to-[#22D3EE] transition-all duration-500" 
+                  style={{ height: `${val > 0 ? Math.max(h, 10) : 4}%` }} 
+                />
+                <span className="text-[10px] text-gray-500 mt-1">{day}</span>
               </div>
-              <div 
-                className="w-full max-w-[24px] rounded-t bg-gradient-to-t from-[#8B5CF6] to-[#22D3EE] transition-all duration-500" 
-                style={{ height: `${val > 0 ? Math.max(h, 10) : 4}%` }} 
-              />
-              <span className="text-[10px] text-gray-500 mt-1">{day}</span>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -223,8 +232,10 @@ const CalorieIntakeSection = ({ navigate, calorieHistory }) => {
   const maxVal = Math.max(...values, 1);
   const scaleMax = maxVal <= 2000 ? 2000 : maxVal; // Use fixed 2000 kcal target boundary fallback!
 
+  const yLabels = scaleMax <= 2000 ? [0, 1000, 2000] : [0, Math.round(scaleMax / 2), scaleMax];
+
   return (
-    <div>
+    <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 mb-4">
         <LineChart className="w-5 h-5 text-[#22D3EE]" />
         <h3 className="text-lg font-semibold text-white">Calorie Intake (last 7 days)</h3>
@@ -234,27 +245,34 @@ const CalorieIntakeSection = ({ navigate, calorieHistory }) => {
           No calorie logs yet. Use Calorie Tracker to log meals and see them here.
         </p>
       )}
-      <div className="flex items-end justify-between gap-2 h-28 border-l border-b border-[#1F2937] pl-4 pb-2 mb-3">
-        {days.map((label, i) => {
-          const h = scaleMax > 0 ? (values[i] / scaleMax) * 100 : 0;
-          return (
-            <div key={label} className="flex flex-col items-center flex-1 h-full justify-end group relative">
-              {/* Tooltip on Hover */}
-              <div className="absolute -top-6 left-1/2 -translate-x-1/2 hidden group-hover:block bg-[#020617] border border-[#1F2937] px-2 py-0.5 rounded text-[10px] text-white whitespace-nowrap shadow-md z-20">
-                {Math.round(values[i])} kcal
+      <div className="flex-1 flex min-h-[120px] mb-3">
+        <div className="flex flex-col justify-between text-[10px] text-gray-500 pr-2 py-1">
+          {[...yLabels].reverse().map((label, i) => (
+            <span key={i}>{label}</span>
+          ))}
+        </div>
+        <div className="flex-1 flex items-end justify-between gap-2 border-l border-b border-[#1F2937] pl-2 pb-1">
+          {days.map((label, i) => {
+            const h = scaleMax > 0 ? (values[i] / scaleMax) * 100 : 0;
+            return (
+              <div key={label} className="flex flex-col items-center flex-1 h-full justify-end group relative">
+                {/* Tooltip on Hover */}
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 hidden group-hover:block bg-[#020617] border border-[#1F2937] px-2 py-0.5 rounded text-[10px] text-white whitespace-nowrap shadow-md z-20">
+                  {Math.round(values[i])} kcal
+                </div>
+                <div
+                  className={`w-full max-w-[24px] rounded-t transition-all duration-500 ${
+                    values[i] > 0
+                      ? "bg-gradient-to-t from-[#8B5CF6] to-[#22D3EE]"
+                      : "bg-[#1F2937]/60"
+                  }`}
+                  style={{ height: `${values[i] > 0 ? Math.max(h, 10) : 4}%` }}
+                />
+                <span className="text-[10px] text-gray-500 mt-1">{label}</span>
               </div>
-              <div
-                className={`w-full max-w-[24px] rounded-t transition-all duration-500 ${
-                  values[i] > 0
-                    ? "bg-gradient-to-t from-[#8B5CF6] to-[#22D3EE]"
-                    : "bg-[#1F2937]/60"
-                }`}
-                style={{ height: `${values[i] > 0 ? Math.max(h, 10) : 4}%` }}
-              />
-              <span className="text-[10px] text-gray-500 mt-1">{label}</span>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
       <button
         type="button"
