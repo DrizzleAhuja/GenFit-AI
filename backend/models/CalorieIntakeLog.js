@@ -5,8 +5,9 @@ const CalorieIntakeLogSchema = new mongoose.Schema(
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     date: { type: Date, default: Date.now },
     totalCalories: { type: Number, required: true },
-    source: { type: String, default: "image" }, // e.g. "image", "manual"
+    source: { type: String, default: "image" }, // e.g. "image", "manual", "text"
     notes: { type: String },
+    waterIntake: { type: Number, default: 0 }, // tracks glasses of water
     // Optional breakdown of what was eaten for this log
     items: [
       {
@@ -14,6 +15,7 @@ const CalorieIntakeLogSchema = new mongoose.Schema(
         caloriesPerItem: { type: Number, required: true },
         quantity: { type: Number, default: 1 },
         totalCalories: { type: Number, required: true },
+        mealType: { type: String, enum: ["Breakfast", "Lunch", "Evening Snack", "Dinner", "Other"], default: "Other" },
       },
     ],
   },

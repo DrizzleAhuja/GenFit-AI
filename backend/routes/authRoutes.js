@@ -1256,36 +1256,31 @@ router.post("/calorie-tracker/scan", async (req, res) => {
     const base64Data = imageBase64.replace(/^data:image\/[a-zA-Z]+;base64,/, "");
 
     const prompt = `
-You are a nutrition assistant. A user has uploaded a food image.
+You are a nutrition assistant. A user has uploaded an image of a food or beverage.
 
 TASK:
-- Detect the main food items and estimate calories as realistically as you can.
-- You MUST work well for **Indian foods** (South Indian, North Indian, street food, thalis, curries, biryanis, dosas, parathas, sabzis, sweets, etc.), as well as any international food.
-- If multiple foods are present (e.g., rice + curry + salad), list them separately and also give a total.
+- Detect the main food/beverage items and estimate calories as realistically as you can.
+- You MUST work well for **Indian foods** (South Indian, North Indian, street food, curries, dosas, etc.), as well as international foods and drinks (like milk, coffee, juice, soda).
+- DO NOT return 0 calories for items that contain caloric value (e.g. Milk, Juices, Foods). Even plain beverages like milk or lattes have calories.
+- If multiple foods/drinks are present, list them separately and give a total.
 
 VERY IMPORTANT OUTPUT RULES:
-- Return ONLY valid JSON (no markdown, no code fences, no comments, no trailing commas).
+- Return ONLY valid JSON (no markdown, no code fences, no trailing commas).
 - Do NOT break strings across lines. Every string value must be on a single line.
-- Food "name" must be a short label without quotes inside it. Examples:
-  - "Masala Dosa"
-  - "Stuffed Paratha"
-  - "Dal Makhani"
-  - "Paneer Butter Masala"
-  - "Idli Sambar"
-  - "Rajma Chawal"
+- The "estimated_calories" and "total_estimated_calories" MUST be strict numbers (integer or float). Do NOT include words like "kcal" or string quotes for these fields.
 - Use plain ASCII characters in the JSON output.
-- If you are unsure of the exact dish, choose the **closest reasonable Indian dish name** and give a best calorie estimate.
+- If unsure of the exact dish or drink, choose the closest reasonable name and give a best calorie estimate.
 
 OUTPUT FORMAT (STRICT JSON ONLY):
 {
   "food_items": [
     {
-      "name": "Masala Dosa",
-      "estimated_calories": 350,
-      "confidence": 0.82
+      "name": "Glass of Milk",
+      "estimated_calories": 150,
+      "confidence": 0.90
     }
   ],
-  "total_estimated_calories": 350,
+  "total_estimated_calories": 150,
   "notes": "short human readable note about assumptions/portion size"
 }
 
@@ -1406,12 +1401,12 @@ ${userNote ? `User note / context: ${userNote}` : ""}
 // Log daily calorie intake (aggregated per day per user)
 router.post("/calorie-intake/log", async (req, res) => {
   try {
-    const { userId, totalCalories, date, source, notes, items } = req.body || {};
+    const { userId, totalCalories, date, source, notes, items, waterIntake } = req.body || {};
 
-    if (!userId || typeof totalCalories !== "number") {
+    if (!userId) {
       return res.status(400).json({
         success: false,
-        error: "userId and numeric totalCalories are required",
+        error: "userId is required",
       });
     }
 
@@ -1440,16 +1435,18 @@ router.post("/calorie-intake/log", async (req, res) => {
               caloriesPerItem: it.caloriesPerItem,
               quantity: typeof it.quantity === "number" ? it.quantity : 1,
               totalCalories: it.totalCalories,
+              mealType: it.mealType || "Other",
             }))
         : [];
 
     const log = await CalorieIntakeLog.create({
       userId: user._id,
-      totalCalories,
+      totalCalories: totalCalories || 0,
       source: source || "image",
       notes: notes || undefined,
       date: logDate,
       items: safeItems,
+      waterIntake: waterIntake || 0,
     });
 
     return res.status(201).json({
@@ -1462,6 +1459,107 @@ router.post("/calorie-intake/log", async (req, res) => {
       success: false,
       error: "Failed to log calorie intake",
       details: err.message,
+    });
+  }
+});
+
+// Text-based calorie tracking using Gemini
+router.post("/calorie-intake/estimate", async (req, res) => {
+  try {
+    const { text, mealType } = req.body || {};
+
+    if (!text) {
+      return res.status(400).json({
+        success: false,
+        error: "Text input is required",
+      });
+    }
+
+    const prompt = `
+You are a nutrition assistant. A user has typed a description of what they ate.
+
+TASK:
+- Estimate the calories for the given food text as realistically as possible.
+- The input might contain quantities (e.g., "2 boiled eggs and 1 slice of bread" or "1 bowl of dal, 2 rotis").
+- If multiple food items are specified, list them separately in the JSON array.
+- Understand common Indian foods and international foods.
+
+VERY IMPORTANT OUTPUT RULES:
+- Return ONLY valid JSON (no markdown, no code fences, no comments).
+- Do NOT break strings across lines.
+- No surrounding quotes inside keys/values.
+- The "mealType" must be one of: "Breakfast", "Lunch", "Evening Snack", "Dinner", "Other". Default to what the user provides (${mealType || "Other"}), or infer if obvious.
+
+OUTPUT FORMAT (STRICT JSON ONLY):
+{
+  "food_items": [
+    {
+      "name": "2 Boiled Eggs",
+      "estimated_calories": 156
+    },
+    {
+      "name": "1 Slice of Bread",
+      "estimated_calories": 80
+    }
+  ],
+  "total_estimated_calories": 236,
+  "mealType": "${mealType || "Other"}"
+}
+
+User input: "${text}"
+`.trim();
+
+    const response = await axios.post(
+      `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
+      {
+        contents: [
+          {
+            parts: [
+              { text: prompt },
+            ],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 512,
+        },
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        timeout: 25000,
+      }
+    );
+
+    let raw = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+    raw = raw.trim();
+
+    // Strip Accidental Markdown code formatting
+    if (raw.startsWith("\`\`\`")) {
+      raw = raw.replace(/^\`\`\`[a-zA-Z]*\n?/, "").replace(/\`\`\`$/, "").trim();
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      console.error("Failed to parse Text Estimate JSON:", raw);
+      return res.status(500).json({
+        success: false,
+        error: "Failed to parse AI response. Please try being more specific.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: parsed,
+    });
+  } catch (error) {
+    console.error("Error in calorie-intake/estimate endpoint:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to estimate calories from text",
     });
   }
 });
