@@ -1201,7 +1201,7 @@ router.post("/chat", async (req, res) => {
                 }
               },
               totalCalories: { type: "number", description: "Sum of all items calories" },
-              waterIntake: { type: "number", description: "Water intake in ml (if any). Default 0." },
+              waterIntake: { type: "number", description: "Number of GLASSES of water drank (assume 1 glass = ~250ml). Default 0." },
               notes: { type: "string", description: "Any notes provided by user" }
             },
             required: ["foodItems", "totalCalories"]
