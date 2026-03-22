@@ -1344,8 +1344,9 @@ router.post("/chat", async (req, res) => {
     while (hasToolCalls && iterations < 3) {
       iterations++;
       
+      const hasImage = formattedMessages.some(m => Array.isArray(m.content) && m.content.some(c => c.type === "image_url"));
       const payload = {
-        model: "openai/gpt-oss-120b",
+        model: hasImage ? "meta-llama/llama-4-scout-17b-16e-instruct" : "openai/gpt-oss-120b",
         messages: formattedMessages,
         tools: tools,
         tool_choice: "auto",
