@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { FiCopy, FiRefreshCw } from "react-icons/fi";
-import { FaDumbbell, FaHeartbeat, FaRunning } from "react-icons/fa";
+import { FaDumbbell, FaHeartbeat, FaRunning, FaMicrophone, FaMicrophoneSlash, FaImage } from "react-icons/fa";
 import { BsRobot } from "react-icons/bs";
 import { IoMdSend } from "react-icons/io";
 import { useSelector } from "react-redux";
@@ -27,7 +27,11 @@ const FitBot = ({ defaultOpen = false }) => {
   const [error, setError] = useState(null);
   const [activeWorkoutPlan, setActiveWorkoutPlan] = useState(null); // New state for active workout plan
   const [isOpen, setIsOpen] = useState(Boolean(defaultOpen));
+  const [imageBase64, setImageBase64] = useState(null);
+  const [isListening, setIsListening] = useState(false);
   const chatEndRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const recognitionRef = useRef(null);
 
   // Update initial message when user data changes
   useEffect(() => {
@@ -63,16 +67,59 @@ const FitBot = ({ defaultOpen = false }) => {
   }, [user, activeWorkoutPlan]);
 
   // FitBot.js (Frontend)
+  useEffect(() => {
+    // Initialize speech recognition
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => setIsListening(true);
+      recognition.onend = () => setIsListening(false);
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setInput((prev) => prev + (prev ? " " : "") + transcript);
+      };
+      recognition.onerror = (event) => {
+        console.error("Speech recognition error", event.error);
+        setIsListening(false);
+      };
+      recognitionRef.current = recognition;
+    }
+  }, []);
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+    } else {
+      recognitionRef.current?.start();
+    }
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImageBase64(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const sendMessage = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() && !imageBase64) return;
 
     setLoading(true);
     setError(null);
 
-    const userMessage = { role: "user", content: input };
+    const userMessage = { role: "user", content: input, imageBase64 };
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     setInput("");
+    setImageBase64(null);
 
     try {
       const response = await axios.post(
@@ -227,6 +274,14 @@ const FitBot = ({ defaultOpen = false }) => {
               </div>
             </div>
           ))}
+          {imageBase64 && !loading && (
+            <div className={`flex mb-4 justify-end`}>
+              <div className="max-w-xs md:max-w-md lg:max-w-lg rounded-2xl p-4 bg-gradient-to-r from-[#22D3EE] to-[#0EA5E9] text-white rounded-br-none">
+                 <img src={imageBase64} alt="Attached" className="max-w-full h-auto rounded-lg mb-2" />
+                 {input && <p className="whitespace-pre-wrap">{input}</p>}
+              </div>
+            </div>
+          )}
           {loading && (
             <div className="flex justify-start mb-4">
               <div className="bg-[#020617]/80 border border-[#1F2937] text-gray-800 shadow-sm rounded-2xl rounded-bl-none p-4 max-w-xs">
@@ -254,20 +309,42 @@ const FitBot = ({ defaultOpen = false }) => {
               {error}
             </div>
           )}
-          <div className="flex">
+          <div className="flex bg-[#020617]/80 rounded-lg border border-[#1F2937] focus-within:ring-2 focus-within:ring-[#22D3EE] focus-within:border-transparent items-center">
+            <button
+              type="button"
+              onClick={toggleListening}
+              className={`p-3 text-gray-400 hover:text-white transition ${isListening ? 'text-red-500 animate-pulse' : ''}`}
+            >
+              {isListening ? <FaMicrophoneSlash /> : <FaMicrophone />}
+            </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="p-3 text-gray-400 hover:text-white transition relative"
+            >
+              <FaImage />
+              {imageBase64 && <span className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full"></span>}
+            </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+              accept="image/*"
+              className="hidden"
+            />
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              className="flex-1 px-4 py-3 rounded-l-lg border border-[#1F2937] focus:ring-2 focus:ring-[#22D3EE] focus:border-transparent bg-[#020617]/80 text-white"
-              placeholder="Ask FitBot about workouts, nutrition, etc..."
+              className="flex-1 px-2 py-3 bg-transparent text-white focus:outline-none"
+              placeholder={imageBase64 ? "Image attached. Add a message..." : "Ask FitBot..."}
               disabled={loading}
             />
             <button
               onClick={sendMessage}
-              className="px-6 bg-gradient-to-r from-[#22D3EE] via-[#0EA5E9] to-[#8B5CF6] text-white rounded-r-lg hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center"
-              disabled={loading || !input.trim()}
+              className="px-6 h-full py-3 bg-gradient-to-r from-[#22D3EE] via-[#0EA5E9] to-[#8B5CF6] text-white rounded-r-lg hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center ml-auto"
+              disabled={loading || (!input.trim() && !imageBase64)}
             >
               {loading ? (
                 <svg
@@ -295,6 +372,12 @@ const FitBot = ({ defaultOpen = false }) => {
               )}
             </button>
           </div>
+          {imageBase64 && (
+            <div className="mt-2 text-xs text-green-400 flex items-center justify-between">
+              <span>Image attached for analysis.</span>
+              <button className="text-red-400 hover:text-red-300" onClick={() => setImageBase64(null)}>Remove</button>
+            </div>
+          )}
           <div className="mt-3 flex items-center justify-center space-x-3">
             {quickActions.map((a) => (
               <button

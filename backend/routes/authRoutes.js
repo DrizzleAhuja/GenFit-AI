@@ -14,6 +14,7 @@ const {
   getCurrentUrl,
   GEMINI_API_KEY,
   GEMINI_API_URL,
+  GROQ_API_KEY,
 } = require("../config/config");
 
 function getGoogleFitRedirectUri(req) {
@@ -1125,113 +1126,419 @@ router.post("/chat", async (req, res) => {
       return res.status(400).json({ error: "No user message found" });
     }
 
-    // Fetch user's BMI and active workout plan data for personalized advice
+    // Build userContext
     let userContext = "";
+    let userObj = null;
+    let activeWorkoutPlan = null;
+
     if (userEmail) {
       try {
-        const user = await User.findOne({ email: userEmail });
-        if (user) {
-          // Get latest BMI data
-          const latestBMI = await BMI.findOne({ userId: user._id })
-            .sort({ date: -1 })
-            .lean();
-
-          // Get active workout plan from the new WorkoutPlan model
-          const activeWorkoutPlan = await WorkoutPlan.findOne({
-            userId: user._id,
-            isActive: true,
-          })
-            .sort({ createdAt: -1 })
-            .lean();
+        userObj = await User.findOne({ email: userEmail });
+        if (userObj) {
+          const latestBMI = await BMI.findOne({ userId: userObj._id }).sort({ date: -1 }).lean();
+          activeWorkoutPlan = await WorkoutPlan.findOne({ userId: userObj._id, isActive: true }).sort({ createdAt: -1 }).lean();
 
           if (latestBMI) {
-            userContext += `\n\nUser's Health Profile:\n   645|- BMI: ${latestBMI.bmi
-              } (${latestBMI.category})\n   646|- Age: ${latestBMI.age
-              }\n   647|- Height: ${latestBMI.heightFeet}'${latestBMI.heightInches
-              }"\n   648|- Weight: ${latestBMI.weight
-              }kg\n   649|- Target Weight: ${latestBMI.targetWeight || "Not set"
-              }kg\n   650|- Target Timeline: ${latestBMI.targetTimeline || "Not set"
-              }\n   651|- Diseases: ${user.diseases?.join(", ") || "None"
-              }\n   652|- Allergies: ${user.allergies?.join(", ") || "None"}`;
+            userContext += `\n\nUser's Health Profile:\n  - BMI: ${latestBMI.bmi} (${latestBMI.category})\n  - Age: ${latestBMI.age}\n  - Height: ${latestBMI.heightFeet}'${latestBMI.heightInches}"\n  - Weight: ${latestBMI.weight}kg\n  - Target Weight: ${latestBMI.targetWeight || "Not set"}kg\n  - Target Timeline: ${latestBMI.targetTimeline || "Not set"}\n  - Diseases: ${userObj.diseases?.join(", ") || "None"}\n  - Allergies: ${userObj.allergies?.join(", ") || "None"}`;
           }
 
           if (activeWorkoutPlan) {
-            userContext += `\n\nUser's Current Active Workout Plan (${activeWorkoutPlan.name
-              }):\n   657|- Goal: ${activeWorkoutPlan.generatedParams.fitnessGoal
-                ?.replace(/_/g, " ")
-                .split(" ")
-                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                .join(" ") || "N/A"
-              }\n   658|- Current Weight: ${activeWorkoutPlan.generatedParams.currentWeight || "N/A"
-              }kg\n   659|- Target Weight: ${activeWorkoutPlan.generatedParams.targetWeight || "N/A"
-              }kg\n   660|- Workout Type: ${activeWorkoutPlan.generatedParams.workoutType || "N/A"
-              }\n   661|- Training Method: ${activeWorkoutPlan.generatedParams.trainingMethod || "N/A"
-              }\n   662|- Strength Level: ${activeWorkoutPlan.generatedParams.strengthLevel || "N/A"
-              }\n   663|- Time Commitment: ${activeWorkoutPlan.generatedParams.timeCommitment || "N/A"
-              } min\n   664|- Days Per Week: ${activeWorkoutPlan.generatedParams.daysPerWeek || "N/A"
-              }\n   665|- Duration: ${activeWorkoutPlan.generatedParams.durationWeeks || "N/A"
-              } weeks\n   666|- Plan Details (first day): ${JSON.stringify(
-                activeWorkoutPlan.planContent[0]
-              )}...`;
+            userContext += `\n\nUser's Current Active Workout Plan (${activeWorkoutPlan.name}):\n  - Goal: ${activeWorkoutPlan.generatedParams?.fitnessGoal?.replace(/_/g, " ").split(" ").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ") || "N/A"}\n  - Current Weight: ${activeWorkoutPlan.generatedParams?.currentWeight || "N/A"}kg\n  - Target Weight: ${activeWorkoutPlan.generatedParams?.targetWeight || "N/A"}kg\n  - Workout Type: ${activeWorkoutPlan.generatedParams?.workoutType || "N/A"}\n  - Training Method: ${activeWorkoutPlan.generatedParams?.trainingMethod || "N/A"}\n  - Strength Level: ${activeWorkoutPlan.generatedParams?.strengthLevel || "N/A"}\n  - Time Commitment: ${activeWorkoutPlan.generatedParams?.timeCommitment || "N/A"} min\n  - Days Per Week: ${activeWorkoutPlan.generatedParams?.daysPerWeek || "N/A"}\n  - Duration: ${activeWorkoutPlan.generatedParams?.durationWeeks || "N/A"} weeks\n  - Plan Details (first day): ${JSON.stringify(activeWorkoutPlan.planContent?.[0] || {})}...`;
           }
         }
       } catch (contextError) {
         console.error("Error fetching user context:", contextError);
-        // Continue without user context if there's an error
       }
     }
 
-    const prompt = `You are FitBot, an AI fitness assistant. Help users with their fitness questions, workout advice, nutrition tips, and motivation. You MUST prioritize the user's provided health profile and current active workout plan details in your responses. Be encouraging, professional, and provide practical advice.\n   376|   234|\n   377|   235|User's question: ${lastUserMessage.content}${userContext}\n   378|   236|\n   379|   237|Please provide a helpful response as a fitness coach would, taking into account the user's health profile and current workout plan when relevant.`;
+    const systemPrompt = `You are FitBot, an AI fitness assistant. Help users with their fitness questions, workout advice, nutrition tips, and motivation. You MUST prioritize the user's provided health profile and current active workout plan details. Be encouraging, professional, and provide practical advice. You have access to tools to log the user's food intake and workout sessions. Use them when the user asks to log food or a workout. When logging food, you MUST estimate the calories yourself (e.g. 1 chapati = ~70-100 kcal) and never ask the user to provide calorie estimates.${userContext}`;
 
-    const response = await axios.post(
-      `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
+    // Format messages for Grok
+    const formattedMessages = [
+      { role: "system", content: systemPrompt }
+    ];
+
+    for (const msg of messages) {
+      if (msg.role === "user") {
+        if (msg.imageBase64) {
+          formattedMessages.push({
+            role: "user",
+            content: [
+              { type: "text", text: msg.content },
+              { type: "image_url", image_url: { url: msg.imageBase64 } }
+            ]
+          });
+        } else {
+          formattedMessages.push({ role: "user", content: msg.content || "" });
+        }
+      } else if (msg.role === "assistant") {
+        formattedMessages.push({ role: msg.role, content: msg.content || "" });
+      }
+    }
+
+    const tools = [
       {
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt,
+        type: "function",
+        function: {
+          name: "log_food",
+          description: "Log user's food intake to the database. You MUST estimate the calories yourself. Do NOT ask the user for calories.",
+          parameters: {
+            type: "object",
+            properties: {
+              foodItems: {
+                type: "array",
+                description: "Array of food items eaten.",
+                items: {
+                  type: "object",
+                  properties: {
+                    name: { type: "string", description: "Name of food" },
+                    caloriesPerItem: { type: "number", description: "Your AI-estimated calories per item" },
+                    quantity: { type: "number", description: "Quantity eaten" },
+                    totalCalories: { type: "number", description: "Total AI-estimated calories for this item" },
+                    mealType: { type: "string", enum: ["Breakfast", "Lunch", "Evening Snack", "Dinner", "Other"] }
+                  },
+                  required: ["name", "caloriesPerItem", "quantity", "totalCalories"]
+                }
               },
-            ],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 1000,
-          topP: 0.8,
-          topK: 10,
-        },
+              totalCalories: { type: "number", description: "Sum of all items calories" },
+              waterIntake: { type: "number", description: "Water intake in ml (if any). Default 0." },
+              notes: { type: "string", description: "Any notes provided by user" }
+            },
+            required: ["foodItems", "totalCalories"]
+          }
+        }
       },
       {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        timeout: 15000,
+        type: "function",
+        function: {
+          name: "log_workout",
+          description: "Log user's workout session to the database. Always use this if user explicitly says they performed/completed a workout or exercise.",
+          parameters: {
+            type: "object",
+            properties: {
+              exercises: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    exerciseName: { type: "string", description: "Name of the exercise" },
+                    sets: { type: "number", description: "Number of sets" },
+                    reps: { type: "string", description: "Number of reps, e.g. 10 or 8-12" },
+                    weight: { type: "string", description: "Weight used, e.g. 50kg" }
+                  },
+                  required: ["exerciseName", "sets", "reps"]
+                }
+              },
+              durationMinutes: { type: "number", description: "Overall duration of the workout in minutes" },
+              caloriesBurned: { type: "number", description: "Estimated calories burned" },
+              perceivedExertion: { type: "number", description: "Rate of perceived exertion (1-10)" },
+              overallNotes: { type: "string", description: "Any notes provided by user" }
+            },
+            required: ["exercises"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "update_bmi",
+          description: "Update the user's BMI, weight, height, age, and goals.",
+          parameters: {
+            type: "object",
+            properties: {
+              heightFeet: { type: "number", description: "Height in feet" },
+              heightInches: { type: "number", description: "Height in inches" },
+              weight: { type: "number", description: "Weight in kg" },
+              age: { type: "number", description: "Age in years" },
+              targetWeight: { type: "number", description: "Target weight in kg" },
+              targetTimeline: { type: "string", description: "Target timeline, e.g. '3 months'" },
+              selectedPlan: { type: "string", enum: ["lose_weight", "gain_weight", "build_muscles"] }
+            },
+            required: ["weight", "heightFeet", "heightInches", "age"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "update_profile",
+          description: "Update the user's profile information.",
+          parameters: {
+            type: "object",
+            properties: {
+              firstName: { type: "string" },
+              lastName: { type: "string" },
+              diseases: { type: "array", items: { type: "string" } },
+              allergies: { type: "array", items: { type: "string" } }
+            }
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "create_workout_plan",
+          description: "Create a new workout plan for the user and optionally set it as active.",
+          parameters: {
+            type: "object",
+            properties: {
+              name: { type: "string", description: "Name of the workout plan" },
+              description: { type: "string" },
+              durationWeeks: { type: "number", description: "Duration in weeks" },
+              planContent: {
+                type: "array",
+                description: "Structured workout days",
+                items: {
+                  type: "object",
+                  properties: {
+                    day: { type: "string", description: "e.g. 'Monday' or 'Day 1'" },
+                    focus: { type: "string" },
+                    warmup: { type: "string" },
+                    cooldown: { type: "string" },
+                    exercises: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          name: { type: "string" },
+                          sets: { type: "number" },
+                          reps: { type: "string" },
+                          weight: { type: "string" },
+                          rest: { type: "string" },
+                          notes: { type: "string" }
+                        },
+                        required: ["name", "sets", "reps"]
+                      }
+                    }
+                  },
+                  required: ["day", "exercises"]
+                }
+              },
+              setActive: { type: "boolean", description: "Whether to set this as the active workout plan" }
+            },
+            required: ["name", "durationWeeks", "planContent"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "create_diet_chart",
+          description: "Create a detailed diet chart for the user.",
+          parameters: {
+            type: "object",
+            properties: {
+              dietChartMarkdown: { type: "string", description: "Detailed formatted diet chart using markdown." },
+              durationWeeks: { type: "number" }
+            },
+            required: ["dietChartMarkdown", "durationWeeks"]
+          }
+        }
       }
-    );
+    ];
 
-    let botResponse =
-      response.data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "I'm sorry, I couldn't process your request right now. Please try again.";
+    let hasToolCalls = true;
+    let botResponseText = "";
+    let iterations = 0;
+    
+    while (hasToolCalls && iterations < 3) {
+      iterations++;
+      
+      const payload = {
+        model: "openai/gpt-oss-120b",
+        messages: formattedMessages,
+        tools: tools,
+        tool_choice: "auto",
+        temperature: 1,
+        max_completion_tokens: 8192,
+        top_p: 1,
+        stream: false,
+      };
 
-    // Clean up the response by removing excessive asterisks and formatting
-    botResponse = botResponse
-      .replace(/\*{2,}/g, "") // Remove multiple asterisks (**, ***, etc.)
-      .replace(/\*([^*]+)\*/g, "$1") // Remove single asterisks around text
-      .replace(/\*{1,2}\s*/g, "") // Remove remaining asterisks at start of lines
-      .replace(/\n\s*\*\s*/g, "\n• ") // Convert remaining asterisks to bullet points
-      .replace(/\n{3,}/g, "\n\n") // Remove excessive line breaks
-      .replace(/^\s*\*\s*/gm, "• ") // Convert line-starting asterisks to bullets
-      .trim();
+      const response = await axios.post(
+        "https://api.groq.com/openai/v1/chat/completions",
+        payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${GROQ_API_KEY}`
+          },
+          timeout: 45000,
+        }
+      );
+
+      const responseMessage = response.data.choices[0].message;
+      formattedMessages.push(responseMessage);
+
+      if (responseMessage.tool_calls) {
+        for (const toolCall of responseMessage.tool_calls) {
+          const functionName = toolCall.function.name;
+          const args = JSON.parse(toolCall.function.arguments);
+          let toolResult = "";
+
+          try {
+            if (!userObj) {
+              toolResult = JSON.stringify({ error: "User not identified. Cannot log data without a user context." });
+            } else if (functionName === "log_food") {
+              const logDate = new Date();
+              const log = await CalorieIntakeLog.create({
+                userId: userObj._id,
+                totalCalories: args.totalCalories || 0,
+                source: "chat",
+                notes: args.notes,
+                date: logDate,
+                items: args.foodItems.map(it => ({
+                  name: it.name,
+                  caloriesPerItem: it.caloriesPerItem,
+                  quantity: it.quantity || 1,
+                  totalCalories: it.totalCalories,
+                  mealType: it.mealType || "Other",
+                })),
+                waterIntake: args.waterIntake || 0,
+              });
+              toolResult = JSON.stringify({ success: true, message: "Food logged successfully", logId: log._id });
+            } else if (functionName === "log_workout") {
+              if (!activeWorkoutPlan) {
+                toolResult = JSON.stringify({ error: "No active workout plan found for the user. A workout plan is required to log a session." });
+              } else {
+                const log = await WorkoutSessionLog.create({
+                  userId: userObj._id,
+                  workoutPlanId: activeWorkoutPlan._id,
+                  date: new Date(),
+                  workoutDetails: args.exercises.map(ex => ({
+                    exerciseName: ex.exerciseName,
+                    sets: ex.sets,
+                    reps: String(ex.reps),
+                    weight: ex.weight || "",
+                    completed: true
+                  })),
+                  durationMinutes: args.durationMinutes || 0,
+                  calories: args.caloriesBurned || 0,
+                  perceivedExertion: args.perceivedExertion || 5,
+                  overallNotes: args.overallNotes,
+                  allExercisesCompleted: true
+                });
+                
+                try {
+                  const { awardPoints } = require("../utils/gamify");
+                  await awardPoints(userObj._id, 'workout_log');
+                } catch (e) {
+                  console.error('Gamify error logging workout from chat:', e);
+                }
+                
+                toolResult = JSON.stringify({ success: true, message: "Workout logged successfully", logId: log._id });
+              }
+            } else if (functionName === "update_bmi") {
+              const heightInMeters = (args.heightFeet * 0.3048) + (args.heightInches * 0.0254);
+              const calculatedBmi = args.weight / (heightInMeters * heightInMeters);
+              let category = "Normal";
+              if (calculatedBmi < 18.5) category = "Underweight";
+              else if (calculatedBmi >= 25 && calculatedBmi < 30) category = "Overweight";
+              else if (calculatedBmi >= 30) category = "Obese";
+
+              const bmiData = {
+                userId: userObj._id,
+                heightFeet: args.heightFeet,
+                heightInches: args.heightInches,
+                weight: args.weight,
+                age: args.age,
+                bmi: parseFloat(calculatedBmi.toFixed(2)),
+                category,
+                selectedPlan: args.selectedPlan || null,
+                targetWeight: args.targetWeight || null,
+                targetTimeline: args.targetTimeline || null,
+                date: new Date()
+              };
+              const newBmi = await BMI.create(bmiData);
+              toolResult = JSON.stringify({ success: true, message: "BMI updated successfully", bmi: newBmi.bmi });
+            } else if (functionName === "update_profile") {
+              const updates = {};
+              if (args.firstName) updates.firstName = args.firstName;
+              if (args.lastName) updates.lastName = args.lastName;
+              if (args.diseases) updates.diseases = args.diseases;
+              if (args.allergies) updates.allergies = args.allergies;
+              const updatedUser = await User.findByIdAndUpdate(userObj._id, { $set: updates }, { new: true });
+              toolResult = JSON.stringify({ success: true, message: "Profile updated successfully" });
+            } else if (functionName === "create_workout_plan") {
+              if (args.setActive !== false) {
+                await WorkoutPlan.updateMany({ userId: userObj._id, isActive: true }, { isActive: false });
+              }
+              const plan = await WorkoutPlan.create({
+                userId: userObj._id,
+                name: args.name,
+                description: args.description || "",
+                durationWeeks: args.durationWeeks,
+                isActive: args.setActive !== false,
+                planContent: args.planContent,
+                generatedParams: {
+                  timeCommitment: "N/A",
+                  workoutType: "mixed",
+                  intensity: "N/A",
+                  equipment: "N/A",
+                  daysPerWeek: args.planContent.length
+                }
+              });
+              if (args.setActive !== false) activeWorkoutPlan = plan;
+              toolResult = JSON.stringify({ success: true, message: "Workout plan created successfully", planId: plan._id });
+            } else if (functionName === "create_diet_chart") {
+              let planIdToUse = activeWorkoutPlan ? activeWorkoutPlan._id : null;
+              if (!planIdToUse) {
+                 const latestPlan = await WorkoutPlan.findOne({ userId: userObj._id }).sort({ createdAt: -1 });
+                 if (latestPlan) planIdToUse = latestPlan._id;
+              }
+              if (!planIdToUse) {
+                toolResult = JSON.stringify({ error: "Cannot create a diet chart without an associated workout plan." });
+              } else {
+                await DietChart.updateMany({ userId: userObj._id, isActive: true }, { isActive: false });
+                const chart = await DietChart.create({
+                  userId: userObj._id,
+                  workoutPlanId: planIdToUse,
+                  dietChart: args.dietChartMarkdown,
+                  durationWeeks: args.durationWeeks,
+                  isActive: true
+                });
+                toolResult = JSON.stringify({ success: true, message: "Diet chart created successfully", chartId: chart._id });
+              }
+            } else {
+              toolResult = JSON.stringify({ error: `Tool ${functionName} not supported.` });
+            }
+          } catch (toolError) {
+            console.error(`Error executing tool ${functionName}:`, toolError);
+            toolResult = JSON.stringify({ error: toolError.message });
+          }
+
+          formattedMessages.push({
+            role: "tool",
+            tool_call_id: toolCall.id,
+            name: functionName,
+            content: toolResult
+          });
+        }
+      } else {
+        hasToolCalls = false;
+        botResponseText = responseMessage.content;
+      }
+    }
+
+    if (botResponseText) {
+      botResponseText = botResponseText
+        .replace(/\*{2,}/g, "")
+        .replace(/\*([^*]+)\*/g, "$1")
+        .replace(/\*{1,2}\s*/g, "")
+        .replace(/\n\s*\*\s*/g, "\n• ")
+        .replace(/\n{3,}/g, "\n\n")
+        .replace(/^\s*\*\s*/gm, "• ")
+        .trim();
+    }
 
     res.json({
       success: true,
-      response: botResponse,
+      response: botResponseText || "I've handled that for you.",
     });
   } catch (error) {
     console.error("Error in chat endpoint:", error);
     if (error.response) {
-      console.error("Gemini API response error:", error.response.data);
+      console.error("Grok API response error:", JSON.stringify(error.response.data, null, 2));
     }
     res.status(500).json({
       error: "Failed to process chat message",
