@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { BarChart2, Users, FileText, MessageSquare, LifeBuoy, LogOut } from 'lucide-react';
+import { BarChart2, Users, FileText, MessageSquare, LifeBuoy, LogOut, DollarSign, PlusCircle } from 'lucide-react';
+
 
 const AdminSidebar = () => {
   const links = [
@@ -9,6 +10,9 @@ const AdminSidebar = () => {
     { title: 'Audit Trail', path: '/admin/audit', icon: <FileText size={20} /> },
     { title: 'Feedback', path: '/admin/feedback', icon: <MessageSquare size={20} /> },
     { title: 'User Support', path: '/admin/support', icon: <LifeBuoy size={20} /> },
+    { title: 'Income Stats', path: '/admin/income', icon: <DollarSign size={20} /> },
+    { title: 'Weekly Challenges', path: '/admin/challenges', icon: <PlusCircle size={20} /> },
+
   ];
 
   const handleLogout = () => {

@@ -14,8 +14,8 @@ const postureRoutes = require("./routes/postureRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const messageRoutes = require("./routes/messageRoutes");
 
-// const messageRoutes = require("./routes/messageRoutes");
 
 const http = require("http");
 const { init } = require("./utils/socket");
@@ -189,6 +189,8 @@ app.use("/api/posture", postureRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/messages", messageRoutes);
+
 
 // app.use("/api", messageRoutes);
 

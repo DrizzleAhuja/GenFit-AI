@@ -36,6 +36,9 @@ import AdminUsers from "./pages/Admin/Users";
 import AdminAuditTrail from "./pages/Admin/AuditTrail";
 import AdminFeedback from "./pages/Admin/Feedback";
 import AdminSupport from "./pages/Admin/Support";
+import AdminIncome from "./pages/Admin/Income";
+import AdminChallenges from "./pages/Admin/Challenges";
+
 
 
 
@@ -115,6 +118,9 @@ function App() {
             <Route path="audit" element={<AdminAuditTrail />} />
             <Route path="feedback" element={<AdminFeedback />} />
             <Route path="support" element={<AdminSupport />} />
+            <Route path="income" element={<AdminIncome />} />
+            <Route path="challenges" element={<AdminChallenges />} />
+
           </Route>
         </Routes>
 

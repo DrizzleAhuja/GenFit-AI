@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { getStats, getUsers, updateUserPlan, getUserLogs, getMessages } = require("../controllers/adminController");
+const { getStats, getUsers, updateUserPlan, getUserLogs, getMessages, getIncomeStats, createWeeklyChallenge } = require("../controllers/adminController");
 
 const authMiddleware = require("../middlewares/authMiddleware");
 const { adminAuth } = require("../middlewares/authMiddleware");
@@ -14,6 +14,9 @@ router.get("/users", getUsers);
 router.put("/users/:id/plan", updateUserPlan);
 router.get("/user-logs", getUserLogs);
 router.get("/messages", getMessages);
+router.get("/income", getIncomeStats);
+router.post("/create-challenge", createWeeklyChallenge);
+
 
 
 module.exports = router;

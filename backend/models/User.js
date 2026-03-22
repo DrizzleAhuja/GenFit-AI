@@ -66,7 +66,11 @@ const userSchema = new mongoose.Schema({
     progress: { type: Number, default: 0 },
     completed: { type: Boolean, default: false },
     weekStartAt: { type: Date, default: null },
+    weekEndAt: { type: Date, default: null },
+    points: { type: Number, default: 100 },
+    type: { type: String, enum: ["workout", "posture", "calorie"], default: "workout" }
   },
+
   // Google Fit integration (optional)
   googleFitLinked: { type: Boolean, default: false },
   googleFit: {
@@ -80,6 +84,8 @@ const userSchema = new mongoose.Schema({
     enum: ["free", "pro"],
     default: "free",
   },
+  proUpgradedAt: { type: Date, default: null },
+
   limits: {
     vtaUsage: { type: Number, default: 0 },
     photoUsage: { type: Number, default: 0 },
@@ -88,8 +94,12 @@ const userSchema = new mongoose.Schema({
 });
 
 userSchema.pre('save', function(next) {
-
   this._wasModifiedPlan = this.isModified('plan');
+  
+  if (this._wasModifiedPlan && this.plan === 'pro' && !this.proUpgradedAt) {
+    this.proUpgradedAt = new Date();
+  }
+
   this._wasModifiedProfile = this.isModified('firstName') || this.isModified('lastName') || this.isModified('diseases');
   this._wasModifiedVta = this.isModified('limits.vtaUsage');
   next();

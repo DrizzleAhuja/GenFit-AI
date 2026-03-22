@@ -245,6 +245,9 @@ export default function Footer() {
     ],
     "Help & Documentation": [
       { icon: <FaQuestionCircle className="mr-2" />, label: "FAQ", href: "#" },
+      { icon: <FaQuestionCircle className="mr-2" />, label: "Feedback & Support", href: "/ContactUs", isNavLink: true },
+
+
       { icon: <FaFileContract className="mr-2" />, label: "Terms & Conditions", href: "#" },
       { icon: <FaChartLine className="mr-2" />, label: "Reporting", href: "#" },
       { icon: <FaFileAlt className="mr-2" />, label: "Documentation", href: "#" },
@@ -285,15 +288,26 @@ export default function Footer() {
                   
                   return (
                     <li key={index}>
-                      <a
-                        href={link.href}
-                        onClick={link.onClick || undefined}
-                        className={`flex items-center ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-700 hover:text-gray-900'} transition-colors cursor-pointer`}
-                      >
-                        {link.icon}
-                        {link.label}
-                      </a>
+                      {link.isNavLink ? (
+                        <NavLink 
+                          to={link.href}
+                          className={`flex items-center ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-700 hover:text-gray-900'} transition-colors cursor-pointer`}
+                        >
+                          {link.icon}
+                          {link.label}
+                        </NavLink>
+                      ) : (
+                        <a
+                          href={link.href}
+                          onClick={link.onClick || undefined}
+                          className={`flex items-center ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-700 hover:text-gray-900'} transition-colors cursor-pointer`}
+                        >
+                          {link.icon}
+                          {link.label}
+                        </a>
+                      )}
                     </li>
+
                   );
                 })}
               </ul>

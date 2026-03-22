@@ -76,12 +76,27 @@ async function awardPoints(userId, type) {
             const target = user.weeklyChallenge.target || 3;
             if (!user.weeklyChallenge.completed && user.weeklyChallenge.progress >= target) {
                 user.weeklyChallenge.completed = true;
-                // bonus and badge
-                user.points += 30;
-                user.weeklyPoints += 30;
+                const bonus = user.weeklyChallenge.points || 30;
+                user.points += bonus;
+                user.weeklyPoints += bonus;
+                
+                // Send Notification
+                try {
+                    const Notification = require("../models/Notification");
+                    await Notification.create({
+                        userId: user._id,
+                        title: "Weekly Challenge Completed!",
+                        message: `Congratulations! You earned ${bonus} points for completing: ${user.weeklyChallenge.title}`,
+                        type: "system"
+                    });
+                } catch (err) {
+                    console.error("Failed to send reward notification:", err);
+                }
+
                 if (!Array.isArray(user.badges)) user.badges = [];
                 if (!user.badges.includes('Weekly Challenger')) user.badges.push('Weekly Challenger');
             }
+
         }
     }
 

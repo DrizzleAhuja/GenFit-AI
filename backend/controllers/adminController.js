@@ -176,5 +176,108 @@ const getMessages = async (req, res) => {
   }
 };
 
-module.exports = { getStats, getUsers, updateUserPlan, getUserLogs, getMessages };
+// @desc    Get Income Stats
+// @route   GET /api/admin/income
+// @access  Private (Admin)
+const getIncomeStats = async (req, res) => {
+  try {
+    const User = require("../models/User");
+    
+    // Backfill existing pro users missing the date for retroactive charts safety
+    await User.updateMany(
+      { plan: "pro", proUpgradedAt: null },
+      [ { $set: { proUpgradedAt: "$createdAt" } } ]
+    );
+
+    const proUsersCount = await User.countDocuments({ plan: "pro" });
+    const freeUsersCount = await User.countDocuments({ plan: "free" });
+    const totalUsers = proUsersCount + freeUsersCount;
+    const rate = 199; // ₹199 INR
+    const estimatedMonthlyIncome = proUsersCount * rate;
+
+    // Aggregate users by month of upgrade
+    const monthlyStats = await User.aggregate([
+      { $match: { plan: "pro", proUpgradedAt: { $ne: null } } },
+      {
+        $group: {
+          _id: { $month: "$proUpgradedAt" },
+          revenue: { $sum: rate }
+        }
+      },
+      { $sort: { "_id": 1 } }
+    ]);
+
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const chartData = monthlyStats.map(stat => ({
+      month: monthNames[stat._id - 1] || 'N/A',
+      revenue: stat.revenue
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        proUsers: proUsersCount,
+        freeUsers: freeUsersCount,
+        totalUsers,
+        rate,
+        estimatedMonthlyIncome,
+        currency: "INR",
+        chartData: chartData.length > 0 ? chartData : [{ month: 'N/A', revenue: 0 }]
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server Error", error: error.message });
+  }
+};
+
+
+// @desc    Create/Update Weekly Challenge for all users
+// @route   POST /api/admin/create-challenge
+// @access  Private (Admin)
+const createWeeklyChallenge = async (req, res) => {
+  try {
+    const { title, target, points, startDate, endDate, type } = req.body;
+    const User = require("../models/User");
+    const Notification = require("../models/Notification");
+
+    if (!title || !target) {
+      return res.status(400).json({ success: false, message: "Title and Target are required" });
+    }
+
+    const challengeConfig = {
+      title,
+      target: parseInt(target),
+      points: parseInt(points) || 30,
+      type: type || "workout",
+      weekStartAt: startDate ? new Date(startDate) : new Date(),
+      weekEndAt: endDate ? new Date(endDate) : null,
+      progress: 0,
+      completed: false
+    };
+
+    // Update all users
+    await User.updateMany({}, {
+      $set: { weeklyChallenge: challengeConfig }
+    });
+
+    // Broadcast Notification
+    const users = await User.find({}, "_id");
+    if (users.length > 0) {
+      const notifications = users.map(u => ({
+        userId: u._id,
+        title: "New Weekly Challenge Started!",
+        message: `${title} - Win ${points || 30} points! Ends: ${endDate ? new Date(endDate).toLocaleDateString() : 'N/A'}`,
+        type: "system"
+      }));
+      await Notification.insertMany(notifications);
+    }
+
+    res.status(200).json({ success: true, message: "Weekly Challenge Created & Disseminated successfully", data: challengeConfig });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server Error", error: error.message });
+  }
+};
+
+module.exports = { getStats, getUsers, updateUserPlan, getUserLogs, getMessages, getIncomeStats, createWeeklyChallenge };
+
 

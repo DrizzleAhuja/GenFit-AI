@@ -1,4 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
+import axios from "axios";
+import { API_BASE_URL } from "../../../config/api";
+import { toast } from "react-toastify";
+
 import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
 import { useTheme } from '../../context/ThemeContext';
@@ -6,6 +10,31 @@ import { Mail, Phone, MapPin, Send, Sparkles } from 'lucide-react';
 
 export default function Contactus() {
   const { darkMode } = useTheme();
+  const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.name || !formData.email || !formData.message) {
+      return toast.error("Please fill all required fields.");
+    }
+    setLoading(true);
+    try {
+      await axios.post(`${API_BASE_URL}/api/messages`, {
+        name: formData.name,
+        email: formData.email,
+        item: formData.subject || "No Subject",
+        description: formData.message
+      });
+      toast.success("Feedback sent successfully!");
+      setFormData({ name: '', email: '', subject: '', message: '' });
+    } catch (err) {
+      toast.error("Failed to send feedback");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   
   return (
     <div className={`min-h-screen flex flex-col ${
@@ -83,12 +112,15 @@ export default function Contactus() {
               <div className="relative h-full rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-6 sm:p-8 flex flex-col shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
                 <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
                 <h2 className="text-xl sm:text-2xl font-semibold mb-6 text-white">Send us a Message</h2>
-                <form className="space-y-4 flex-1 flex flex-col">
+                <form onSubmit={handleSubmit} className="space-y-4 flex-1 flex flex-col">
                   <div>
                     <label htmlFor="name" className="block text-sm font-medium mb-2 text-gray-300">Name</label>
                     <input
                       type="text"
                       id="name"
+                      required
+                      value={formData.name}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
                       className="w-full p-3 rounded-xl border border-[#1F2937] bg-[#020617] text-white focus:ring-2 focus:ring-[#22D3EE]/50 focus:border-[#22D3EE] transition-all"
                       placeholder="Your Name"
                     />
@@ -98,15 +130,20 @@ export default function Contactus() {
                     <input
                       type="email"
                       id="email"
+                      required
+                      value={formData.email}
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
                       className="w-full p-3 rounded-xl border border-[#1F2937] bg-[#020617] text-white focus:ring-2 focus:ring-[#22D3EE]/50 focus:border-[#22D3EE] transition-all"
                       placeholder="your@example.com"
                     />
                   </div>
                   <div>
-                    <label htmlFor="subject" className="block text-sm font-medium mb-2 text-gray-300">Subject</label>
+                    <label htmlFor="subject" className="block text-sm font-medium mb-2 text-gray-300">Subject (Optional)</label>
                     <input
                       type="text"
                       id="subject"
+                      value={formData.subject}
+                      onChange={(e) => setFormData({...formData, subject: e.target.value})}
                       className="w-full p-3 rounded-xl border border-[#1F2937] bg-[#020617] text-white focus:ring-2 focus:ring-[#22D3EE]/50 focus:border-[#22D3EE] transition-all"
                       placeholder="Subject of your message"
                     />
@@ -116,18 +153,23 @@ export default function Contactus() {
                     <textarea
                       id="message"
                       rows="5"
+                      required
+                      value={formData.message}
+                      onChange={(e) => setFormData({...formData, message: e.target.value})}
                       className="w-full p-3 rounded-xl border border-[#1F2937] bg-[#020617] text-white focus:ring-2 focus:ring-[#22D3EE]/50 focus:border-[#22D3EE] transition-all resize-none"
                       placeholder="Your message..."
                     ></textarea>
                   </div>
                   <button
                     type="submit"
-                    className="group inline-flex items-center justify-center px-6 sm:px-8 py-3 rounded-full text-sm sm:text-base font-semibold text-white bg-gradient-to-r from-[#22D3EE] via-[#0EA5E9] to-[#8B5CF6] hover:opacity-95 transition-all duration-300 shadow-lg hover:shadow-[#22D3EE]/40"
+                    disabled={loading}
+                    className="group inline-flex items-center justify-center px-6 sm:px-8 py-3 rounded-full text-sm sm:text-base font-semibold text-white bg-gradient-to-r from-[#22D3EE] via-[#0EA5E9] to-[#8B5CF6] hover:opacity-95 transition-all duration-300 shadow-lg hover:shadow-[#22D3EE]/40 disabled:opacity-50"
                   >
-                    Send Message
-                    <Send className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    {loading ? "Sending..." : "Send Message"}
+                    {!loading && <Send className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />}
                   </button>
                 </form>
+
               </div>
             </div>
           </div>

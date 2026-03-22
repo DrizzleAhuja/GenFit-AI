@@ -1,10 +1,8 @@
-// // routes/messageRoutes.js
-// const express = require("express");
-// const { sendMessage } = require("../controllers/messageController");
-// const authenticateUser = require("../middlewares/authMiddleware");
+const express = require("express");
+const router = express.Router();
+const { sendMessage } = require("../controllers/messageController");
 
-// const router = express.Router();
+// Public or User authenticated endpoint to submit feedback/contact messages
+router.post("/", sendMessage);
 
-// router.post("/contact", authenticateUser, sendMessage);
-
-// module.exports = router;
+module.exports = router;
