@@ -256,6 +256,20 @@ const createWeeklyChallenge = async (req, res) => {
       return res.status(400).json({ success: false, message: "Title and Target are required" });
     }
 
+    // Check if an active challenge already exists
+    const existing = await User.findOne({ 
+      "weeklyChallenge.title": { $exists: true, $ne: null } 
+    }).select("weeklyChallenge");
+
+    if (existing && existing.weeklyChallenge && existing.weeklyChallenge.weekEndAt) {
+      if (new Date(existing.weeklyChallenge.weekEndAt) > new Date()) {
+        return res.status(400).json({ 
+          success: false, 
+          message: `An active challenge already exists: '${existing.weeklyChallenge.title}'. It ends on ${new Date(existing.weeklyChallenge.weekEndAt).toLocaleDateString()}` 
+        });
+      }
+    }
+
     const challengeConfig = {
       title,
       target: parseInt(target),

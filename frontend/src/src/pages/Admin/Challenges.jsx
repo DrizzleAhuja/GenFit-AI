@@ -15,6 +15,7 @@ export default function Challenges() {
   });
   const [loading, setLoading] = useState(false);
   const [currentChallenge, setCurrentChallenge] = useState(null);
+  const [errorModal, setErrorModal] = useState({ isOpen: false, title: '', message: '' });
   const [loadingChallenge, setLoadingChallenge] = useState(true);
 
   const fetchCurrentChallenge = async () => {
@@ -51,7 +52,11 @@ export default function Challenges() {
         setFormData({ title: '', target: '', points: 30, type: 'workout', startDate: '', endDate: '' });
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to create challenge");
+      setErrorModal({
+        isOpen: true,
+        title: 'Overlapping Schedule 🛑',
+        message: err.response?.data?.message || "There is already an active challenge running. You cannot overwrite it until it expires."
+      });
     } finally {
       setLoading(false);
     }
@@ -153,6 +158,27 @@ export default function Challenges() {
           {loading ? "Creating..." : "Launch Challenge"}
         </button>
       </form>
+
+      {/* Error Modal Card Popup */}
+      {errorModal.isOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 animate-fadeIn">
+          <div className="bg-[#0c0520] border border-red-500/30 rounded-3xl p-6 max-w-sm w-full mx-4 shadow-[0_0_50px_rgba(239,68,68,0.25)] flex flex-col items-center text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/30 shadow-lg animation-bounce-subtle">
+              <PlusCircle className="text-red-500 rotate-45 animate-pulse" size={32} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white tracking-wide">{errorModal.title}</h3>
+              <p className="text-sm text-gray-400 mt-2 leading-relaxed">{errorModal.message}</p>
+            </div>
+            <button 
+              onClick={() => setErrorModal({ ...errorModal, isOpen: false })}
+              className="px-6 py-2.5 bg-gradient-to-r from-red-600 to-pink-600 text-white font-semibold rounded-xl w-full shadow-md shadow-red-500/10 hover:opacity-90 transition-all font-medium text-sm mt-2"
+            >
+              Acknowledged
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

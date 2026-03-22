@@ -347,6 +347,23 @@ export default function Leaderboard() {
 
       <NavBar />
       
+      {/* Weekly Challenge Banner */}
+      {stats?.weeklyChallenge?.title && (
+        <div className="bg-gradient-to-r from-[#22D3EE] via-[#8B5CF6] to-[#A855F7] text-white p-3 font-bold text-center text-sm z-40 shadow-lg border-b border-[#22D3EE]/30 relative overflow-hidden group">
+          <div className="flex items-center justify-center gap-3">
+            <span className="flex items-center justify-center bg-white/20 p-1.5 rounded-lg animate-pulse">🏆</span>
+            <span className="truncate">
+              <span className="text-[#FACC15]">Active Weekly Challenge:</span> {stats.weeklyChallenge.title} — {stats.weeklyChallenge.progress || 0}/{stats.weeklyChallenge.target || 3} workouts!
+            </span>
+            {stats.weeklyChallenge.weekEndAt && (
+              <span className="text-xs bg-black/30 border border-white/20 px-3 py-1 rounded-full shrink-0">
+                Ends: {new Date(stats.weeklyChallenge.weekEndAt).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       <main className="flex-grow">
         <section className="relative overflow-hidden py-6 sm:py-8 lg:py-10">
           {/* Background blobs */}
