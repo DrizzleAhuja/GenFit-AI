@@ -29,7 +29,10 @@ import PostureCoach from "./pages/PostureCoach/PostureCoach.jsx";
 import PWAInstallBanner from "./Components/PWAInstallBanner.jsx";
 import FitBotWidget from "./pages/FitBot/Section1.jsx";
 import DailyStepsTracker from "./pages/DailyStepsTracker/DailyStepsTracker.jsx";
+import SplashScreen from "./Components/SplashScreen.jsx";
+
 function App() {
+  const [isSplashLoading, setIsSplashLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     const savedLoginStatus = localStorage.getItem("isLoggedIn");
     return savedLoginStatus === "true";
@@ -37,7 +40,18 @@ function App() {
 
   useEffect(() => {
     localStorage.setItem("isLoggedIn", isLoggedIn);
+    
+    // Splash screen timer
+    const timer = setTimeout(() => {
+      setIsSplashLoading(false);
+    }, 2800); // 2.8 seconds loading overlay
+    
+    return () => clearTimeout(timer);
   }, [isLoggedIn]);
+
+  if (isSplashLoading) {
+    return <SplashScreen />;
+  }
 
   return (
     <ThemeProvider>
