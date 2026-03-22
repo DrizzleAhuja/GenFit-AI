@@ -18,8 +18,18 @@ const FitBot = ({ defaultOpen = false }) => {
       content: user
         ? `Hi ${
             user.firstName || "there"
-          }! I'm FitBot, your AI fitness assistant. I have access to your BMI data and workout plan, so I can provide personalized advice. How can I help you today? 💪`
-        : "Hi there! I'm FitBot, your AI fitness assistant. How can I help you with your workout today? 💪",
+          }! I'm FitBot, your AI Agent! I don't just answer questions—I can operate your dashboard. You can ask me to:
+            
+- Log your food (send me a picture of your dish!)
+- Log your workout 
+- Create a workout plan
+- Create a diet chart
+- Update your Profile/BMI
+
+Example: "Log that I ate 2 apples for breakfast" or "Create a 4-week workout plan"
+
+Try using the microphone 🎤 or attaching an image 🖼️! 💪`
+        : "Hi there! I'm FitBot, your AI Agent. I can generate diet charts, create workout routines, and analyze pictures of your food! Please login so I can personalize your experience. 💪",
     },
   ]);
   const [input, setInput] = useState("");
@@ -56,7 +66,21 @@ const FitBot = ({ defaultOpen = false }) => {
   // Update initial message when user data or activeWorkoutPlan changes
   useEffect(() => {
     if (user && messages.length === 1) {
-      const personalizedMessage = `Hi ${user.firstName || "there"}! I'm FitBot, your AI fitness assistant. I have access to your BMI data and workout plan, so I can provide personalized advice. ${activeWorkoutPlan ? `Your current active plan is: ${activeWorkoutPlan.name}.` : ""} How can I help you today? 💪`;
+      const personalizedMessage = `Hi ${
+        user.firstName || "there"
+      }! I'm FitBot, your AI Agent! I don't just answer questions—I can operate your dashboard. You can ask me to:
+
+- Log your food (send me a picture of your dish!)
+- Log your workout 
+- Create a workout plan
+- Create a diet chart
+- Update your Profile/BMI
+
+Example: "Log that I ate 2 apples for breakfast" or "Create a 4-week workout plan"
+
+${activeWorkoutPlan ? `✅ Your current active plan is: ${activeWorkoutPlan.name}.` : ""} 
+
+Try using the microphone 🎤 or attaching an image 🖼️! 💪`;
       setMessages([
         {
           role: "assistant",
