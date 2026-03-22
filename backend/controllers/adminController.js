@@ -151,12 +151,15 @@ const getMessages = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
+    const { type } = req.query;
 
     const Message = require("../models/Message");
+    const filter = type ? { type } : {};
 
-    const totalMessages = await Message.countDocuments();
-    const messages = await Message.find()
+    const totalMessages = await Message.countDocuments(filter);
+    const messages = await Message.find(filter)
       .populate("user", "firstName lastName email")
+
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
@@ -278,6 +281,25 @@ const createWeeklyChallenge = async (req, res) => {
   }
 };
 
-module.exports = { getStats, getUsers, updateUserPlan, getUserLogs, getMessages, getIncomeStats, createWeeklyChallenge };
+// @desc    Get Current Weekly Challenge
+// @route   GET /api/admin/current-challenge
+const getCurrentChallenge = async (req, res) => {
+  try {
+    const User = require("../models/User");
+    const userWithChallenge = await User.findOne({ 
+      "weeklyChallenge.title": { $exists: true, $ne: null } 
+    }).select("weeklyChallenge");
+
+    res.status(200).json({
+      success: true,
+      data: userWithChallenge ? userWithChallenge.weeklyChallenge : null
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server Error", error: error.message });
+  }
+};
+
+module.exports = { getStats, getUsers, updateUserPlan, getUserLogs, getMessages, getIncomeStats, createWeeklyChallenge, getCurrentChallenge };
+
 
 

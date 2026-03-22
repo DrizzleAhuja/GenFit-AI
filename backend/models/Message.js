@@ -6,9 +6,15 @@ const messageSchema = new mongoose.Schema({
     },
     rollNo: {
         type: String,
-        required: true,
+        default: "N/A"
+    },
+    type: {
+        type: String,
+        enum: ["feedback", "support"],
+        default: "feedback"
     },
     email: {
+
         type: String
     },
     item: {
@@ -22,8 +28,9 @@ const messageSchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
-        required: true,
+        required: false,
     },
+
     fakeClaim: {
         type: Boolean,
         default: false,

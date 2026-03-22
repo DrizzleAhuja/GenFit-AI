@@ -6,7 +6,8 @@ import { GoogleOAuthProvider, GoogleLogin, useGoogleLogin } from "@react-oauth/g
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
-import { FiMenu, FiX, FiUser, FiEdit2, FiLogOut, FiBell, FiCheck, FiMessageSquare } from "react-icons/fi";
+import { FiMenu, FiX, FiUser, FiEdit2, FiLogOut, FiBell, FiCheck, FiMessageSquare, FiHelpCircle } from "react-icons/fi";
+
 
 import { io } from "socket.io-client";
 import { useTheme } from "../../context/ThemeContext";
@@ -292,12 +293,20 @@ export default function NavBar() {
                         <FiUser className="mr-2" /> My Profile
                       </NavLink>
                       <NavLink
-                        to="/ContactUs"
+                        to="/Feedback"
                         className="flex px-4 py-2 text-sm items-center text-gray-200 hover:bg-gray-700"
                         onClick={() => setDropdownOpen(false)}
                       >
-                        <FiMessageSquare className="mr-2" /> Feedback & Support
+                        <FiMessageSquare className="mr-2" /> Feedback
                       </NavLink>
+                      <NavLink
+                        to="/Support"
+                        className="flex px-4 py-2 text-sm items-center text-gray-200 hover:bg-gray-700"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <FiHelpCircle className="mr-2" /> Support
+                      </NavLink>
+
                       <button
                         onClick={handleLogout}
                         className="w-full text-left px-4 py-2 text-sm flex items-center text-gray-200 hover:bg-gray-700"
@@ -472,14 +481,22 @@ export default function NavBar() {
               <FiUser className="mr-2" /> My Profile
             </NavLink>
             <NavLink
-              to="/ContactUs"
+              to="/Feedback"
               className="flex px-4 py-2 text-sm items-center text-gray-200 hover:bg-gray-700"
               onClick={() => setDropdownOpen(false)}
             >
-              <FiMessageSquare className="mr-2" /> Feedback & Support
+              <FiMessageSquare className="mr-2" /> Feedback
+            </NavLink>
+            <NavLink
+              to="/Support"
+              className="flex px-4 py-2 text-sm items-center text-gray-200 hover:bg-gray-700"
+              onClick={() => setDropdownOpen(false)}
+            >
+              <FiHelpCircle className="mr-2" /> Support
             </NavLink>
             <button
               onClick={handleLogout}
+
               className="w-full text-left px-4 py-2 text-sm flex items-center text-gray-200 hover:bg-gray-700"
             >
               <FiLogOut className="mr-2" /> Logout

@@ -1,17 +1,19 @@
 const Message = require("../models/Message");
 
 const sendMessage = async (req, res) => {
-    const { name, email, item, description } = req.body;
+    const { name, email, item, description, type } = req.body;
     const userId = req.user ? req.user._id : null;
 
     try {
         const newMessage = new Message({
             name,
             email,
-            item, // acts as subject
+            item, 
             description,
+            type: type || "feedback",
             user: userId
         });
+
         await newMessage.save();
         res.status(200).json({ success: true, message: "Feedback sent successfully!" });
     } catch (error) {

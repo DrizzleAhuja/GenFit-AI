@@ -16,10 +16,11 @@ export default function Feedback() {
     setLoading(true);
     try {
       const res = await axios.get(`${API_BASE_URL}/api/admin/messages`, {
-        params: { page, limit: 15 },
+        params: { page, limit: 15, type: "feedback" },
         headers: { email: user?.email },
       });
       if (res.data.success) {
+
         setMessages(res.data.data);
         setTotalPages(res.data.pagination.totalPages);
       }

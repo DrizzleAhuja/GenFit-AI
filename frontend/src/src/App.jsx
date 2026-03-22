@@ -23,6 +23,9 @@ import About from "./pages/AboutPage/About.jsx"; // Import About component
 import Features from "./pages/FeaturesPage/a.jsx"; // Import Features component
 import MyWorkoutPlan from "./pages/WorkoutPlanGenerator/MyWorkoutPlan.jsx";
 import DietChartGenerator from "./pages/DietChartGenerator/DietChartGenerator.jsx";
+import UserFeedback from "./pages/Feedback/UserFeedback.jsx";
+import UserSupport from "./pages/Support/UserSupport.jsx";
+
 import Leaderboard from "./pages/Leaderboard/Leaderboard.jsx";
 import Dashboard from "./pages/Dashboard/Dashboard.jsx";
 import PostureCoach from "./pages/PostureCoach/PostureCoach.jsx";
@@ -84,6 +87,9 @@ function App() {
           <Route path="/Workout" element={<MyListings />} />
           <Route path="/VerificationPage" element={<VerificationPage />} />
           <Route path="/ContactUs" element={<Contactus />} />
+          <Route path="/Feedback" element={<UserFeedback />} />
+          <Route path="/Support" element={<UserSupport />} />
+
 
           <Route path="/UserLogs" element={<UserLogsPage />} />
           <Route path="/calorie-tracker" element={<CalorieTracker />} />

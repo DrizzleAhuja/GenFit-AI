@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from "../../../config/api";
 import { PlusCircle, Target, Award, Calendar, RefreshCcw } from 'lucide-react';
@@ -14,6 +14,29 @@ export default function Challenges() {
     endDate: ''
   });
   const [loading, setLoading] = useState(false);
+  const [currentChallenge, setCurrentChallenge] = useState(null);
+  const [loadingChallenge, setLoadingChallenge] = useState(true);
+
+  const fetchCurrentChallenge = async () => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const res = await axios.get(`${API_BASE_URL}/api/admin/current-challenge`, {
+        headers: { email: user.email }
+      });
+      if (res.data.success) {
+        setCurrentChallenge(res.data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch challenge", err);
+    } finally {
+      setLoadingChallenge(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCurrentChallenge();
+  }, []);
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -43,9 +66,26 @@ export default function Challenges() {
         <p className="text-gray-400 mt-1">Deploy global challenges pushing rewards to users immediately.</p>
       </div>
 
+      {loadingChallenge ? (
+         <p className="text-gray-400">Loading current challenge...</p>
+      ) : currentChallenge ? (
+         <div className="bg-[#0c0520]/60 p-5 rounded-2xl border border-[#22D3EE]/30 backdrop-blur-md shadow-lg">
+           <h3 className="text-lg font-bold text-[#22D3EE] flex items-center gap-2"><Award /> Active Challenge</h3>
+           <p className="text-white font-medium mt-1">{currentChallenge.title}</p>
+           <div className="text-sm text-gray-400 mt-2 flex flex-col gap-1">
+             <div>Target: <span className="text-purple-400 font-bold">{currentChallenge.target}</span> | Points: <span className="text-yellow-400 font-bold">{currentChallenge.points}</span></div>
+             <div>Starts: {new Date(currentChallenge.weekStartAt).toLocaleDateString()} | Ends: {currentChallenge.weekEndAt ? new Date(currentChallenge.weekEndAt).toLocaleDateString() : 'Continuous'}</div>
+           </div>
+         </div>
+      ) : (
+         <p className="text-gray-500 text-sm">No active challenge running right now.</p>
+      )}
+
+
       <form onSubmit={handleSubmit} className="bg-[#0c0520]/40 backdrop-blur-md rounded-2xl p-8 border border-purple-500/20 shadow-2xl space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-2">
+
             <label className="block text-sm font-medium text-gray-300 mb-1">Challenge Title</label>
             <input 
               type="text" 

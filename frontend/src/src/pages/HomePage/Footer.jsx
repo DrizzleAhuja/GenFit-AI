@@ -245,7 +245,9 @@ export default function Footer() {
     ],
     "Help & Documentation": [
       { icon: <FaQuestionCircle className="mr-2" />, label: "FAQ", href: "#" },
-      { icon: <FaQuestionCircle className="mr-2" />, label: "Feedback & Support", href: "/ContactUs", isNavLink: true },
+      { icon: <FaQuestionCircle className="mr-2" />, label: "Feedback", href: "/Feedback", isNavLink: true },
+      { icon: <FaQuestionCircle className="mr-2" />, label: "Support", href: "/Support", isNavLink: true },
+
 
 
       { icon: <FaFileContract className="mr-2" />, label: "Terms & Conditions", href: "#" },

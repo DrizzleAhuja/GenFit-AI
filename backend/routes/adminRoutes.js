@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const { getStats, getUsers, updateUserPlan, getUserLogs, getMessages, getIncomeStats, createWeeklyChallenge } = require("../controllers/adminController");
+const { getStats, getUsers, updateUserPlan, getUserLogs, getMessages, getIncomeStats, createWeeklyChallenge, getCurrentChallenge } = require("../controllers/adminController");
+
 
 const authMiddleware = require("../middlewares/authMiddleware");
 const { adminAuth } = require("../middlewares/authMiddleware");
@@ -15,7 +16,9 @@ router.put("/users/:id/plan", updateUserPlan);
 router.get("/user-logs", getUserLogs);
 router.get("/messages", getMessages);
 router.get("/income", getIncomeStats);
+router.get("/current-challenge", getCurrentChallenge);
 router.post("/create-challenge", createWeeklyChallenge);
+
 
 
 
