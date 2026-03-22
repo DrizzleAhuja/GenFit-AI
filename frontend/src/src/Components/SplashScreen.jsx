@@ -2,7 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 
 const SplashScreen = () => {
-  const text = "MindFit AI";
+  const text = "GenFit AI";
 
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#030014] overflow-hidden">
