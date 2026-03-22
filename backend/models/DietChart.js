@@ -33,4 +33,22 @@ const dietChartSchema = new mongoose.Schema({
 dietChartSchema.index({ userId: 1, workoutPlanId: 1 });
 dietChartSchema.index({ userId: 1, isActive: 1 });
 
+dietChartSchema.post('save', async function(doc) {
+  try {
+    const User = mongoose.model('User');
+    const UserLog = mongoose.model('UserLog');
+    const user = await User.findById(doc.userId);
+    if (user) {
+      await UserLog.create({
+        userId: doc.userId,
+        userEmail: user.email,
+        action: `Generated Diet Chart (Duration: ${doc.durationWeeks} weeks)`
+      });
+    }
+  } catch (err) {
+    console.error("UserLog Error (DietChart):", err);
+  }
+});
+
 module.exports = mongoose.model("DietChart", dietChartSchema);
+

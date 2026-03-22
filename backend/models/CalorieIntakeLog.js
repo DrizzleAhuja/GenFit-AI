@@ -25,7 +25,25 @@ const CalorieIntakeLogSchema = new mongoose.Schema(
 // Ensure one log per user per day (last-write-wins semantics)
 CalorieIntakeLogSchema.index({ userId: 1, date: 1 });
 
+CalorieIntakeLogSchema.post('save', async function(doc) {
+  try {
+    const User = mongoose.model('User');
+    const UserLog = mongoose.model('UserLog');
+    const user = await User.findById(doc.userId);
+    if (user) {
+      await UserLog.create({
+        userId: doc.userId,
+        userEmail: user.email,
+        action: `Logged Calorie Intake (${doc.totalCalories} kcal)`
+      });
+    }
+  } catch (err) {
+    console.error("UserLog Error (Calorie):", err);
+  }
+});
+
 const CalorieIntakeLog = mongoose.model("CalorieIntakeLog", CalorieIntakeLogSchema);
+
 
 export default CalorieIntakeLog;
 

@@ -23,4 +23,14 @@ const authMiddleware = async (req, res, next) => {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
+const adminAuth = (req, res, next) => {
+  if (req.user && req.user.role === "admin") {
+    next();
+  } else {
+    return res.status(403).json({ message: "Forbidden: Admin access required" });
+  }
+};
+
 module.exports = authMiddleware;
+module.exports.adminAuth = adminAuth;

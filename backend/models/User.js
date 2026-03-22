@@ -87,6 +87,44 @@ const userSchema = new mongoose.Schema({
   },
 });
 
+userSchema.pre('save', function(next) {
+
+  this._wasModifiedPlan = this.isModified('plan');
+  this._wasModifiedProfile = this.isModified('firstName') || this.isModified('lastName') || this.isModified('diseases');
+  this._wasModifiedVta = this.isModified('limits.vtaUsage');
+  next();
+});
+
+userSchema.post('save', async function(doc) {
+  try {
+    const UserLog = mongoose.model('UserLog');
+    if (this._wasModifiedPlan) {
+      await UserLog.create({
+        userId: doc._id,
+        userEmail: doc.email,
+        action: `Upgraded Plan to ${doc.plan.toUpperCase()}`
+      });
+    }
+    if (this._wasModifiedProfile) {
+      await UserLog.create({
+        userId: doc._id,
+        userEmail: doc.email,
+        action: `Updated Profile Details`
+      });
+    }
+    if (this._wasModifiedVta) {
+      await UserLog.create({
+        userId: doc._id,
+        userEmail: doc.email,
+        action: `Interacted with AI Chatbot (VTA)`
+      });
+    }
+  } catch (err) {
+    console.error("UserLog Error (User):", err);
+  }
+});
+
 const User = mongoose.model("User", userSchema);
+
 
 module.exports = User;

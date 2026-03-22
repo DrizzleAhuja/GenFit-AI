@@ -81,6 +81,24 @@ const WorkoutPlanSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+WorkoutPlanSchema.post('save', async function(doc) {
+  try {
+    const User = mongoose.model('User');
+    const UserLog = mongoose.model('UserLog');
+    const user = await User.findById(doc.userId);
+    if (user) {
+      await UserLog.create({
+        userId: doc.userId,
+        userEmail: user.email,
+        action: `Generated Workout Plan (${doc.name})`
+      });
+    }
+  } catch (err) {
+    console.error("UserLog Error (WorkoutPlan):", err);
+  }
+});
+
 const WorkoutPlan = mongoose.model('WorkoutPlan', WorkoutPlanSchema);
+
 
 export default WorkoutPlan;

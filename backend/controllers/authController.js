@@ -22,39 +22,40 @@ exports.login = async (req, res) => {
       family_name: lastName,
     } = ticket.getPayload();
 
-    // Check for admin role and validate email
-    if (role === "admin" && !["kumarprasadaman1234@gmail.com", "drizzle003.ace@gmail.com"].includes(email)) {
+    const ADMIN_EMAILS = ["kumarprasadaman1234@gmail.com", "drizzle003.ace@gmail.com", "study.drizzle@gmail.com"];
+
+    const EXCEPTION_EMAILS = ["kumarprasadaman1234@gmail.com", "study.drizzle@gmail.com"];
+
+    // Check for admin role validation
+    if (role === "admin" && !ADMIN_EMAILS.includes(email)) {
       console.error("Invalid admin email:", email);
       return res.status(400).json({ message: "Invalid admin email" });
     }
 
-    // No restrictions for user role
-
-    const EXCEPTION_EMAILS = [
-      "kumarprasadaman1234@gmail.com",
-      "study.drizzle@gmail.com"
-    ];
+    // Auto-assign admin role for designated emails
+    const roleToAssign = ADMIN_EMAILS.includes(email) ? "admin" : (role || "user");
+    const isException = EXCEPTION_EMAILS.includes(email);
 
     // Find or create the user
     let user = await User.findOne({ email });
-    const isException = EXCEPTION_EMAILS.includes(email);
 
     if (!user) {
       user = new User({ 
         firstName, 
         lastName, 
         email, 
-        role,
-        plan: isException ? "pro" : "free"
+        role: roleToAssign,
+        plan: isException || ADMIN_EMAILS.includes(email) ? "pro" : "free" // Admin should also be PRO
       });
       await user.save();
     } else {
-      user.role = role;
-      if (isException) {
+      user.role = roleToAssign;
+      if (isException || ADMIN_EMAILS.includes(email)) {
         user.plan = "pro";
       }
       await user.save();
     }
+
 
     res.status(200).json({ message: "Logged in successfully", user });
   } catch (error) {

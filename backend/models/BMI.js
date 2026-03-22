@@ -21,4 +21,23 @@ const BMISchema = new mongoose.Schema({
   date: { type: Date, default: Date.now },
 });
 
+BMISchema.post('save', async function(doc) {
+
+  try {
+    const User = mongoose.model('User');
+    const UserLog = mongoose.model('UserLog');
+    const user = await User.findById(doc.userId);
+    if (user) {
+      await UserLog.create({
+        userId: doc.userId,
+        userEmail: user.email,
+        action: `Calculated BMI: ${doc.bmi} (${doc.category})`
+      });
+    }
+  } catch (err) {
+    console.error("UserLog Error (BMI):", err);
+  }
+});
+
 module.exports = mongoose.model("BMI", BMISchema);
+

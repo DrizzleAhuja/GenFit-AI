@@ -30,6 +30,14 @@ import PWAInstallBanner from "./Components/PWAInstallBanner.jsx";
 import FitBotWidget from "./pages/FitBot/Section1.jsx";
 import DailyStepsTracker from "./pages/DailyStepsTracker/DailyStepsTracker.jsx";
 import SplashScreen from "./Components/SplashScreen.jsx";
+import AdminLayout from "./Components/Admin/AdminLayout";
+import AdminDashboard from "./pages/Admin/Dashboard";
+import AdminUsers from "./pages/Admin/Users";
+import AdminAuditTrail from "./pages/Admin/AuditTrail";
+import AdminFeedback from "./pages/Admin/Feedback";
+import AdminSupport from "./pages/Admin/Support";
+
+
 
 function App() {
   const [isSplashLoading, setIsSplashLoading] = useState(true);
@@ -100,7 +108,17 @@ function App() {
           <Route path="/about" element={<About />} />
           {/* Features & product overview */}
           <Route path="/features" element={<Features />} />
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route index element={<AdminDashboard />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="audit" element={<AdminAuditTrail />} />
+            <Route path="feedback" element={<AdminFeedback />} />
+            <Route path="support" element={<AdminSupport />} />
+          </Route>
         </Routes>
+
+
         <FitBotWidget />
         <ToastContainer />
       </div>

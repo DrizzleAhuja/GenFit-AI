@@ -536,9 +536,16 @@ export default function Home() {
   const [sessionLogs, setSessionLogs] = useState([]);
   const [calorieHistory, setCalorieHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  
+  useEffect(() => {
+    if (user && user.role === "admin") {
+      navigate("/admin/dashboard");
+    }
+  }, [user, navigate]);
+  
   useEffect(() => {
     async function load() {
+
       if (!user?.email && !user?._id) {
         setLoading(false);
         return;

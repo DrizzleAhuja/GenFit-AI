@@ -169,7 +169,11 @@ export default function NavBar() {
 
 
   const navLinks = [
-    ...(user ? [{ path: "/", label: "DASHBOARD" }] : []),
+    ...(user && user.role !== "admin" ? [{ path: "/", label: "DASHBOARD" }] : []),
+    ...(user && user.role === "admin" ? [
+      { path: "/admin/dashboard", label: "DASHBOARD" },
+      { path: "/admin/users", label: "USERS" }
+    ] : []),
     ...(!user
       ? [
         { path: "/about", label: "ABOUT US" },
@@ -177,15 +181,17 @@ export default function NavBar() {
         { path: "/Contactus", label: "CONTACT US" },
         { path: "/leaderboard", label: "LEADERBOARD" },
       ]
-      : [
-        { path: "/VirtualTA", label: "VIRTUAL TRAINING ASSISTANT" },
-        { path: "/CurrentBMI", label: "CURRENT BMI" },
-        { path: "/calorie-tracker", label: "CALORIE TRACKER" },
-        { path: "/daily-steps", label: "DAILY STEPS" },
-        { path: "/Workout", label: "WORKOUT" },
-        { path: "/diet-chart", label: "DIET CHART" },
-        { path: "/leaderboard", label: "LEADERBOARD" },
-      ]),
+      : user.role === "admin"
+        ? [] // Hide user pages for Admin
+        : [
+          { path: "/VirtualTA", label: "VIRTUAL TRAINING ASSISTANT" },
+          { path: "/CurrentBMI", label: "CURRENT BMI" },
+          { path: "/calorie-tracker", label: "CALORIE TRACKER" },
+          { path: "/daily-steps", label: "DAILY STEPS" },
+          { path: "/Workout", label: "WORKOUT" },
+          { path: "/diet-chart", label: "DIET CHART" },
+          { path: "/leaderboard", label: "LEADERBOARD" },
+        ]),
   ];
 
   return (

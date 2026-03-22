@@ -12,7 +12,25 @@ const PostureSessionLogSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+PostureSessionLogSchema.post('save', async function(doc) {
+  try {
+    const User = mongoose.model('User');
+    const UserLog = mongoose.model('UserLog');
+    const user = await User.findById(doc.userId);
+    if (user) {
+      await UserLog.create({
+        userId: doc.userId,
+        userEmail: user.email,
+        action: `Logged a Posture Session (${doc.exerciseType})`
+      });
+    }
+  } catch (err) {
+    console.error("UserLog Error (Posture):", err);
+  }
+});
+
 const PostureSessionLog = mongoose.model(
+
   "PostureSessionLog",
   PostureSessionLogSchema
 );
