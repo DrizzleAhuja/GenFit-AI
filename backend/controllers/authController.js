@@ -30,13 +30,29 @@ exports.login = async (req, res) => {
 
     // No restrictions for user role
 
+    const EXCEPTION_EMAILS = [
+      "kumarprasadaman1234@gmail.com",
+      "study.drizzle@gmail.com"
+    ];
+
     // Find or create the user
     let user = await User.findOne({ email });
+    const isException = EXCEPTION_EMAILS.includes(email);
+
     if (!user) {
-      user = new User({ firstName, lastName, email, role });
+      user = new User({ 
+        firstName, 
+        lastName, 
+        email, 
+        role,
+        plan: isException ? "pro" : "free"
+      });
       await user.save();
     } else {
       user.role = role;
+      if (isException) {
+        user.plan = "pro";
+      }
       await user.save();
     }
 

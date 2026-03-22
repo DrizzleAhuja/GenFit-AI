@@ -435,6 +435,78 @@ export default function Home() {
     toast.error("Google sign-in failed. Please try again.");
   };
 
+  const loadRazorpay = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleUpgrade = async () => {
+    try {
+      const res = await loadRazorpay();
+      if (!res) {
+        toast.error("Razorpay SDK failed to load. Are you online?");
+        return;
+      }
+      
+      // 1. Create order
+      const { data } = await axios.post(`${API_BASE_URL}/api/payment/create-order`, {
+        userId: user?._id
+      }, {
+        withCredentials: true
+      });
+      
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || "YOUR_KEY_ID_HERE", // Fallback for safety
+        amount: data.order.amount, // Updated from data.amount to data.order.amount
+        currency: data.order.currency, // Updated from data.currency
+        name: "GenFit AI",
+        description: "GenFit PRO Subscription",
+        order_id: data.order.id, // Updated from data.orderId to data.order.id
+        handler: async function (response) {
+          try {
+            const verifyRes = await axios.post(`${API_BASE_URL}/api/payment/verify`, {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              userId: user?._id
+            }, { withCredentials: true });
+
+            if (verifyRes.data.success) {
+              toast.success("Payment successful! Upgraded to PRO.");
+              // Update local user state
+              const updatedUser = { ...user, plan: "pro" };
+              dispatch(setUser(updatedUser));
+              localStorage.setItem("user", JSON.stringify(updatedUser));
+            } else {
+              toast.error("Payment verification failed.");
+            }
+          } catch (err) {
+            console.error(err);
+            toast.error("Error verifying payment.");
+          }
+        },
+        prefill: {
+          name: user.firstName,
+          email: user.email,
+        },
+        theme: {
+          color: "#8B5CF6",
+        },
+      };
+
+      const paymentObject = new window.Razorpay(options);
+      paymentObject.open();
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.error || "Error initializing payment.");
+    }
+  };
+
   const features = [
     {
       icon: <Brain className="w-8 h-8 text-[#8B5CF6]" />,
@@ -857,6 +929,27 @@ export default function Home() {
             </div>
 
             <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
+              {/* Upgrade Banner for Free Users */}
+              {(!user.plan || user.plan === "free") && (
+                <div className="mb-8 p-4 rounded-xl bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/40 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-[0_0_20px_rgba(234,179,8,0.15)]">
+                  <div className="flex items-center gap-4 text-left">
+                    <div className="p-3 bg-yellow-500/20 rounded-full">
+                      <Zap className="w-6 h-6 text-yellow-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white">Upgrade to GenFit PRO</h3>
+                      <p className="text-sm text-yellow-100/70">Unlock unlimited AI Coach and Photo Calorie Scans.</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={handleUpgrade}
+                    className="whitespace-nowrap px-6 py-2.5 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 text-black font-bold rounded-full shadow-lg transition-transform hover:scale-105"
+                  >
+                    Upgrade for ₹199
+                  </button>
+                </div>
+              )}
+
               {/* Header – Features style */}
               <header className="text-center md:text-left mb-6 sm:mb-8 lg:mb-10">
                 <div className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-gradient-to-r from-[#8B5CF6]/20 to-[#22D3EE]/20 border border-[#8B5CF6]/40 backdrop-blur-xl mb-4">

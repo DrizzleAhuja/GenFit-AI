@@ -50,8 +50,16 @@ export default function EditProfile() {
 
   useEffect(() => {
     async function fetchStats() {
-      if (user?.email) {
+      if (user?._id) {
         try {
+           // 1. Fetch latest user doc for up-to-date limits
+           const uRes = await axios.get(`${API_BASE_URL}/api/users/${user._id}`);
+           if (uRes.data) {
+             // Avoid infinite loop by updating ONLY if data has changed slightly or just set once
+             dispatch(setUser(uRes.data));
+             localStorage.setItem("user", JSON.stringify(uRes.data));
+           }
+
            const s = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.GAMIFY}/stats`, { params: { email: user.email } });
            setStats(s.data || {});
            
@@ -60,12 +68,12 @@ export default function EditProfile() {
            const r = allusers.findIndex(u => u.email === user.email);
            if (r !== -1) setRank(r + 1);
         } catch (e) {
-           console.error("Failed to fetch gamify stats", e);
+           console.error("Failed to fetch gamify stats or user limits", e);
         }
       }
     }
     fetchStats();
-  }, [user]);
+  }, [user?._id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -210,6 +218,63 @@ export default function EditProfile() {
 
           {/* Form */}
           <div className="px-6 py-8">
+            {/* Subscription Section */}
+            <div className="mb-6 p-4 rounded-xl bg-[#020617]/40 border border-[#1F2937] flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-bold text-white flex items-center gap-2">
+                    Current Plan: <span className={`uppercase ${user?.plan === 'pro' ? 'text-yellow-400' : 'text-gray-400'}`}>{user?.plan === 'pro' ? 'Pro' : 'Free'}</span>
+                  </h4>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {user?.plan === 'pro' ? 'Unlimited access to all features' : 'Usage limits apply'}
+                  </p>
+                </div>
+                {(!user?.plan || user?.plan === 'free') && (
+                  <button 
+                    type="button"
+                    onClick={() => navigate('/')} 
+                    className="px-4 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-yellow-400 to-orange-500 text-black shadow-md hover:opacity-90 transition-transform hover:scale-105"
+                  >
+                    Upgrade
+                  </button>
+                )}
+              </div>
+              
+              {(!user?.plan || user?.plan === 'free') && (
+                <div className="mt-2 pt-3 border-t border-white/5 space-y-3">
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-300 font-medium">Virtual Training Assistant</span>
+                      <span className="text-white font-semibold flex items-center gap-1">
+                        <span>{(user?.limits?.vtaUsage || 0)}</span>
+                        <span className="text-gray-500">/</span>
+                        <span className="text-gray-500">5</span>
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-800 rounded-full h-2">
+                      <div className="bg-[#22D3EE] h-2 rounded-full transition-all duration-500" style={{ width: `${Math.min(((user?.limits?.vtaUsage || 0) / 5) * 100, 100)}%` }}></div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-300 font-medium">Photo Calorie Scanner</span>
+                      <span className="text-white font-semibold flex items-center gap-1">
+                        <span>{(user?.limits?.photoUsage || 0)}</span>
+                        <span className="text-gray-500">/</span>
+                        <span className="text-gray-500">5</span>
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-800 rounded-full h-2">
+                      <div className="bg-[#8B5CF6] h-2 rounded-full transition-all duration-500" style={{ width: `${Math.min(((user?.limits?.photoUsage || 0) / 5) * 100, 100)}%` }}></div>
+                    </div>
+                  </div>
+                  
+                  <p className="text-[10px] text-gray-500">Limits reset monthly.</p>
+                </div>
+              )}
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-6">
 
               {/* Avatar Selection */}

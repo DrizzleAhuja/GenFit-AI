@@ -75,6 +75,16 @@ const userSchema = new mongoose.Schema({
     lastSyncAt: { type: Date, default: null },
   },
   avatar: { type: String, default: "" },
+  plan: {
+    type: String,
+    enum: ["free", "pro"],
+    default: "free",
+  },
+  limits: {
+    vtaUsage: { type: Number, default: 0 },
+    photoUsage: { type: Number, default: 0 },
+    lastResetAt: { type: Date, default: Date.now },
+  },
 });
 
 const User = mongoose.model("User", userSchema);

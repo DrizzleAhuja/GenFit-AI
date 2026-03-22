@@ -12,6 +12,7 @@ const bmiRoutes = require("./routes/bmiRoutes");
 const gamifyRoutes = require("./routes/gamifyRoutes");
 const postureRoutes = require("./routes/postureRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
 // const messageRoutes = require("./routes/messageRoutes");
 
 const http = require("http");
@@ -184,6 +185,7 @@ app.use("/api/bmi", bmiRoutes);
 app.use("/api/gamify", gamifyRoutes);
 app.use("/api/posture", postureRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/payment", paymentRoutes);
 // app.use("/api", messageRoutes);
 
 // ✅ Error handling middleware

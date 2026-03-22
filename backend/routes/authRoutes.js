@@ -1,4 +1,6 @@
 const express = require("express");
+const { checkAndIncrementLimit } = require("../utils/limitCheck");
+
 const router = express.Router();
 const Workout = require("../models/Workout");
 const User = require("../models/User");
@@ -1551,14 +1553,24 @@ router.post("/chat", async (req, res) => {
 // Image-based calorie tracking using Gemini Vision
 router.post("/calorie-tracker/scan", async (req, res) => {
   try {
-    const { imageBase64, userNote } = req.body || {};
+    const { imageBase64, userNote, userId } = req.body || {};
 
-    if (!imageBase64) {
+    if (!imageBase64 || !userId) {
       return res.status(400).json({
         success: false,
-        error: "imageBase64 is required in the request body",
+        error: "imageBase64 and userId are required",
       });
     }
+
+    // --- ENFORCE LIMITS ---
+    const limitCheck = await checkAndIncrementLimit(userId, "photoUsage");
+    if (!limitCheck.allowed) {
+      return res.status(403).json({
+        success: false,
+        error: limitCheck.message || "Limit exceeded"
+      });
+    }
+    // -----------------------
 
     // Strip data URL prefix if present
     const base64Data = imageBase64.replace(/^data:image\/[a-zA-Z]+;base64,/, "");

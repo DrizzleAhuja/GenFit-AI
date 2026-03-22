@@ -264,11 +264,16 @@ export default function NavBar() {
                         {getUserInitials(user)}
                       </div>
                     )}
-                    <span className="text-gray-200">
-                      <b>
-                        {user.firstName} {user.lastName ? user.lastName : ""}
-                      </b>
-                    </span>
+                    <div className="flex flex-col items-start">
+                      <span className="text-gray-200">
+                        <b>
+                          {user.firstName} {user.lastName ? user.lastName : ""}
+                        </b>
+                      </span>
+                      <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 mt-0.5 rounded-sm shadow-sm ${user.plan === 'pro' ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-black' : 'bg-gray-600 text-gray-200'}`}>
+                        {user.plan === 'pro' ? 'PRO' : 'FREE'}
+                      </span>
+                    </div>
                   </div>
                   {dropdownOpen && (
                     <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 z-50 bg-[#020617]/95 backdrop-blur-xl border border-[#1F2937]">
@@ -363,8 +368,11 @@ export default function NavBar() {
                     )}
                   </div>
                   <div>
-                    <p className="text-white font-semibold">
+                    <p className="text-white font-semibold flex items-center gap-2">
                       {user.firstName} {user.lastName ? user.lastName : ""}
+                      <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-sm shadow-sm ${user.plan === 'pro' ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-black' : 'bg-gray-600 text-gray-200'}`}>
+                        {user.plan === 'pro' ? 'PRO' : 'FREE'}
+                      </span>
                     </p>
                     <p className="text-gray-400 text-sm">{user.email}</p>
                   </div>

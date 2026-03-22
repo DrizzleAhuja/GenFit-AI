@@ -10,7 +10,7 @@ import { API_BASE_URL } from "../../../config/api";
 import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
 import { useTheme } from '../../context/ThemeContext';
-import { Sparkles, ChevronDown, ChevronRight, Video, Activity } from 'lucide-react';
+import { Sparkles, ChevronDown, ChevronRight, Video, Activity, Zap } from 'lucide-react';
 import { analyzePosture } from "../../utils/postureService";
 import { RepCounter, calculateCaloriesBurned } from "../../utils/repCounter";
 
@@ -225,6 +225,8 @@ export default function PostureCoach() {
   const [visibilityMessage, setVisibilityMessage] = useState("");
   const [cameraError, setCameraError] = useState("");
   const [sessionHistory, setSessionHistory] = useState([]);
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [limitMessage, setLimitMessage] = useState("");
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState("");
   const [expandedGroups, setExpandedGroups] = useState(() =>
@@ -713,7 +715,7 @@ export default function PostureCoach() {
               y: kp.y,
               score: kp.score,
             }));
-            analyzePosture(exercise, landmarks)
+            analyzePosture(exercise, landmarks, user?._id)
               .then((res) => {
                 if (res?.success && res.analysis) {
                   setAnalysis(res.analysis);
@@ -762,7 +764,7 @@ export default function PostureCoach() {
     setExpandedGroups((prev) => ({ ...prev, [bodyPart]: !prev[bodyPart] }));
   };
 
-  const toggleRunning = () => {
+  const toggleRunning = async () => {
     if (isRunning) {
       const snapshot = {
         exercise,
@@ -783,6 +785,30 @@ export default function PostureCoach() {
       lastGoodScoreRef.current = false;
       setIsRunning(false);
     } else {
+      // Check limits for Free tier
+      if (!user?.plan || user?.plan === "free") {
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/posture/start-session`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ userId: user?._id }),
+          });
+
+          if (!res.ok) {
+            const data = await res.json();
+            setLimitMessage(data.error || "You have reached your free tier limit for Virtual Training. Please upgrade to Pro.");
+            setShowLimitModal(true);
+            return; // Abort starting
+          }
+        } catch (err) {
+          console.error("Error starting VTA session:", err);
+          alert("Error verifying session limits. Please try again.");
+          return;
+        }
+      }
+      
       setIsRunning(true);
     }
   };
@@ -1219,6 +1245,38 @@ export default function PostureCoach() {
         </section>
       </main>
       <Footer />
+      {/* Limit Modal */}
+      {showLimitModal && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/70 backdrop-blur-md">
+          <div className="relative p-6 max-w-sm w-full mx-4 rounded-2xl border border-[#1F2937] bg-[#020617]/90 text-center shadow-[0_20px_60px_rgba(139,92,246,0.2)] overflow-hidden">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-yellow-500/20 rounded-full blur-2xl" />
+            
+            <div className="flex justify-center mb-4">
+              <div className="p-3 bg-yellow-500/10 rounded-full border border-yellow-500/30">
+                <Zap className="w-8 h-8 text-yellow-500 animate-pulse" />
+              </div>
+            </div>
+            
+            <h3 className="text-xl font-extrabold text-white mb-2">Limit Reached!</h3>
+            <p className="text-xs text-gray-400 mb-6">{limitMessage}</p>
+            
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={() => navigate('/')} 
+                className="w-full py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-yellow-400 to-orange-500 text-black shadow-lg hover:scale-105 transition-transform"
+              >
+                Upgrade to PRO (₹199)
+              </button>
+              <button 
+                onClick={() => setShowLimitModal(false)} 
+                className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+              >
+                Maybe later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

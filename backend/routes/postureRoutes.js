@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const PostureSessionLog = require("../models/PostureSessionLog").default;
+const { checkAndIncrementLimit } = require("../utils/limitCheck");
 
 /**
  * Utility: compute angle (in degrees) at point B between BA and BC.
@@ -896,9 +897,33 @@ function analyzeGeneralPosture(landmarks) {
   };
 }
 
-router.post("/analyze", (req, res) => {
+router.post("/start-session", async (req, res) => {
   try {
-    const { exerciseType, landmarks } = req.body || {};
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ success: false, error: "userId is required" });
+    }
+
+    const { checkAndIncrementLimit } = require("../utils/limitCheck");
+    const limitCheck = await checkAndIncrementLimit(userId, "vtaUsage");
+    
+    if (!limitCheck.allowed) {
+      return res.status(403).json({
+        success: false,
+        error: limitCheck.message || "Limit exceeded"
+      });
+    }
+
+    res.json({ success: true, message: "Session started" });
+  } catch (error) {
+    console.error("VTA Start Session Error:", error);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+});
+
+router.post("/analyze", async (req, res) => {
+  try {
+    const { exerciseType, landmarks, userId } = req.body || {};
 
     if (!exerciseType || !Array.isArray(landmarks) || landmarks.length === 0) {
       return res.status(400).json({
@@ -906,6 +931,8 @@ router.post("/analyze", (req, res) => {
         error: "exerciseType and landmarks[] are required",
       });
     }
+
+    // Limits are now enforced on /start-session endpoint to count usage correctly.
 
     let result;
     switch (exerciseType) {
