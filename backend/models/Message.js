@@ -39,6 +39,10 @@ const messageSchema = new mongoose.Schema({
         type: String,
         default: "", // Optional field
     },
+    acknowledged: {
+        type: Boolean,
+        default: false,
+    },
     createdAt: {
         type: Date,
         default: Date.now,

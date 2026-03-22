@@ -164,7 +164,16 @@ export default function NavBar() {
         toast.info(`🔔 ${notification.title}`, { autoClose: 4000 });
       });
 
-      return () => socket.disconnect();
+      const handleNotificationsUpdated = () => {
+        fetchNotifications();
+      };
+
+      window.addEventListener("notificationsUpdated", handleNotificationsUpdated);
+
+      return () => {
+        socket.disconnect();
+        window.removeEventListener("notificationsUpdated", handleNotificationsUpdated);
+      };
     }
   }, [user]);
 

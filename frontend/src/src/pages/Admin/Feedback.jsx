@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { API_BASE_URL } from "../../../config/api";
 import { Loader } from "lucide-react";
+import { toast } from "react-toastify";
+
 
 export default function Feedback() {
   const [messages, setMessages] = useState([]);
@@ -31,9 +33,25 @@ export default function Feedback() {
     }
   };
 
+  const handleAcknowledge = async (id) => {
+    try {
+      const res = await axios.post(`${API_BASE_URL}/api/admin/messages/${id}/acknowledge`, {}, {
+        headers: { email: user?.email }
+      });
+      if (res.data.success) {
+        setMessages(messages.map(m => m._id === id ? { ...m, acknowledged: true } : m));
+        toast.success("Feedback acknowledged!");
+      }
+    } catch (err) {
+      toast.error("Failed to acknowledge feedback");
+      console.error("Failed to acknowledge");
+    }
+  };
+
   useEffect(() => {
     fetchMessages();
   }, [page]);
+
 
   return (
     <div className="space-y-6">
@@ -57,6 +75,8 @@ export default function Feedback() {
                 <th className="px-6 py-4">Item/Subject</th>
                 <th className="px-6 py-4">Description</th>
                 <th className="px-6 py-4">Date</th>
+                <th className="px-6 py-4">Action</th>
+
               </tr>
             </thead>
             <tbody className="divide-y divide-purple-500/10 text-gray-200">
@@ -77,6 +97,16 @@ export default function Feedback() {
                   <td className="px-6 py-4 text-gray-400 text-sm">
                     {new Date(msg.createdAt).toLocaleString()}
                   </td>
+                  <td className="px-6 py-4">
+                    <button 
+                       onClick={() => handleAcknowledge(msg._id)}
+                       disabled={msg.acknowledged}
+                       className={`px-3 py-1 rounded-md text-xs font-bold font-sans ${msg.acknowledged ? "bg-gray-600/50 text-gray-400 cursor-not-allowed" : "bg-gradient-to-r from-[#22D3EE] to-[#8B5CF6] text-white hover:opacity-90"}`}
+                    >
+                      {msg.acknowledged ? "Acknowledged" : "Acknowledge"}
+                    </button>
+                  </td>
+
                 </tr>
               ))}
               {messages.length === 0 && (

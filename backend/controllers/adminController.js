@@ -308,7 +308,52 @@ const getCurrentChallenge = async (req, res) => {
   }
 };
 
-module.exports = { getStats, getUsers, updateUserPlan, getUserLogs, getMessages, getIncomeStats, createWeeklyChallenge, getCurrentChallenge };
+// @desc    Acknowledge Message & Send Notification
+// @route   POST /api/admin/messages/:id/acknowledge
+const acknowledgeMessage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const Message = require("../models/Message");
+    const Notification = require("../models/Notification");
+
+    const message = await Message.findById(id);
+    if (!message) return res.status(404).json({ success: false, message: "Message not found" });
+
+    let targetUserId = message.user;
+    if (!targetUserId && message.email) {
+      const User = require("../models/User");
+      const user = await User.findOne({ email: message.email });
+      if (user) targetUserId = user._id;
+    }
+
+    if (targetUserId && message.type === 'feedback') {
+      const notification = await Notification.create({
+        userId: targetUserId,
+        title: "Feedback Received!",
+        message: `We have received your feedback on '${message.item}' and will work on it!`,
+        type: "system"
+      });
+
+      // Emit socket notification if user is online
+      const { getUserSocket, getIo } = require("../utils/socket");
+      const socketId = getUserSocket(targetUserId);
+      if (socketId) {
+        getIo().to(socketId).emit("newNotification", notification);
+      }
+    }
+
+    message.acknowledged = true;
+    await message.save();
+
+    res.status(200).json({ success: true, message: "Feedback acknowledged and notification sent!" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server Error", error: error.message });
+  }
+};
+
+module.exports = { getStats, getUsers, updateUserPlan, getUserLogs, getMessages, getIncomeStats, createWeeklyChallenge, getCurrentChallenge, acknowledgeMessage };
+
+
 
 
 

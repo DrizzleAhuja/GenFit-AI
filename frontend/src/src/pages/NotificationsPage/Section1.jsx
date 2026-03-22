@@ -52,6 +52,7 @@ const Section1 = () => {
         headers: { email: user.email }
       });
       setNotifications(prev => prev.map(n => ({...n, isRead: true})));
+      window.dispatchEvent(new Event("notificationsUpdated"));
     } catch (error) {
       console.error("Error marking all read", error);
     }
@@ -64,6 +65,7 @@ const Section1 = () => {
         headers: { email: user.email }
       });
       setNotifications(prev => prev.map(n => n._id === id ? {...n, isRead: true} : n));
+      window.dispatchEvent(new Event("notificationsUpdated"));
     } catch (error) {
       console.error("Error marking specific notification as read", error);
     }
