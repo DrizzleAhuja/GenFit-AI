@@ -261,8 +261,11 @@ export default function PostureCoach() {
     let intervalId = null;
     
     if (isRunning) {
-      sessionStartTimeRef.current = Date.now();
+      if (!sessionStartTimeRef.current) {
+        sessionStartTimeRef.current = Date.now();
+      }
       intervalId = setInterval(() => {
+
         const duration = Math.floor((Date.now() - sessionStartTimeRef.current) / 1000);
         setSessionDuration(duration);
         
