@@ -211,10 +211,18 @@ const getIncomeStats = async (req, res) => {
     ]);
 
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const chartData = monthlyStats.map(stat => ({
-      month: monthNames[stat._id - 1] || 'N/A',
-      revenue: stat.revenue
-    }));
+    const currentMonth = new Date().getMonth() + 1; // 1-12
+    const chartData = [];
+
+    for (let i = 5; i >= 0; i--) {
+      let m = currentMonth - i;
+      if (m <= 0) m += 12;
+      const stat = monthlyStats.find(s => s._id === m);
+      chartData.push({
+        month: monthNames[m - 1],
+        revenue: stat ? stat.revenue : 0
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -225,10 +233,11 @@ const getIncomeStats = async (req, res) => {
         rate,
         estimatedMonthlyIncome,
         currency: "INR",
-        chartData: chartData.length > 0 ? chartData : [{ month: 'N/A', revenue: 0 }]
+        chartData
       }
     });
   } catch (error) {
+
     res.status(500).json({ success: false, message: "Server Error", error: error.message });
   }
 };
