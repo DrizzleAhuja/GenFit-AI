@@ -149,20 +149,27 @@ const WorkoutPlanGenerator = () => {
     setLoading(false);
   };
 
-  const savePlan = async () => {
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [savePlanName, setSavePlanName] = useState("");
+
+  const savePlan = () => {
     if (!user || !plan) {
       toast.error("Please generate a plan first.");
       return;
     }
+    setSavePlanName(`My ${formData.goal.replace(/_/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')} Plan`);
+    setShowSaveModal(true);
+  };
 
+  const confirmSavePlan = async () => {
+    if (!savePlanName.trim()) {
+      toast.error("Please enter a plan name.");
+      return;
+    }
+
+    setShowSaveModal(false);
     setLoading(true);
     try {
-      const planName = prompt("Give your workout plan a name:", `My ${formData.goal.replace(/_/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')} Plan`);
-      if (!planName) {
-        setLoading(false);
-        return;
-      }
-
       const calculatedDurationWeeks = calculateDurationWeeks(
         formData.currentWeight,
         formData.targetWeight,
@@ -174,7 +181,7 @@ const WorkoutPlanGenerator = () => {
         `${API_BASE_URL}${API_ENDPOINTS.AUTH}/workout-plan/save`,
         {
           userId: user._id,
-          name: planName,
+          name: savePlanName,
           description: `Personalized ${formData.goal.replace(/_/g, ' ')} plan for ${formData.intensity} level, targeting ${formData.targetWeight ? `${formData.targetWeight}kg` : 'maintenance'} over ${calculatedDurationWeeks} weeks.`,
           planContent: plan,
           generatedParams: { ...formData, bmiData, durationWeeks: calculatedDurationWeeks },
@@ -1870,6 +1877,47 @@ const WorkoutPlanGenerator = () => {
             </div>
           )}
         </div>
+
+        {showSaveModal && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 backdrop-blur-md">
+            <div className="relative p-6 max-w-sm w-full mx-4 rounded-2xl border border-[#1F2937] bg-[#020617]/90 text-center shadow-[0_20px_60px_rgba(139,92,246,0.3)] overflow-hidden">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-purple-500/20 rounded-full blur-2xl pointer-events-none" />
+              
+              <div className="flex justify-center mb-4">
+                <div className="p-3 bg-purple-500/10 rounded-full border border-purple-500/30">
+                  <FiSave className="w-8 h-8 text-purple-400" />
+                </div>
+              </div>
+              
+              <h3 className="text-xl font-extrabold text-white mb-2">Save Workout Plan</h3>
+              <p className="text-xs text-gray-400 mb-4">Give your workout plan a name</p>
+              
+              <input 
+                type="text"
+                value={savePlanName}
+                onChange={(e) => setSavePlanName(e.target.value)}
+                className="w-full bg-[#020617]/80 text-sm text-white border border-gray-700 rounded-lg px-3 py-2 outline-none focus:border-purple-500 mb-4"
+                placeholder="Plan Name"
+              />
+              
+              <div className="flex flex-col gap-2">
+                <button 
+                  onClick={confirmSavePlan} 
+                  className="w-full py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg hover:scale-105 transition-transform flex items-center justify-center gap-2"
+                >
+                  <FiSave className="text-lg" />
+                  Save Plan
+                </button>
+                <button 
+                  onClick={() => setShowSaveModal(false)} 
+                  className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
