@@ -6,7 +6,7 @@ import { GoogleOAuthProvider, GoogleLogin, useGoogleLogin } from "@react-oauth/g
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
-import { FiMenu, FiX, FiUser, FiEdit2, FiLogOut, FiBell, FiCheck, FiMessageSquare, FiHelpCircle } from "react-icons/fi";
+import { FiMenu, FiX, FiUser, FiEdit2, FiLogOut, FiBell, FiCheck, FiMessageSquare, FiHelpCircle, FiUsers } from "react-icons/fi";
 
 
 import { io } from "socket.io-client";
@@ -302,6 +302,13 @@ export default function NavBar() {
                         <FiUser className="mr-2" /> My Profile
                       </NavLink>
                       <NavLink
+                        to="/community"
+                        className="flex px-4 py-2 text-sm items-center text-gray-200 hover:bg-gray-700"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <FiUsers className="mr-2" /> Community
+                      </NavLink>
+                      <NavLink
                         to="/Feedback"
                         className="flex px-4 py-2 text-sm items-center text-gray-200 hover:bg-gray-700"
                         onClick={() => setDropdownOpen(false)}
@@ -443,6 +450,13 @@ export default function NavBar() {
                   >
                     <FiUser className="mr-3" /> My Profile
                   </NavLink>
+                  <NavLink
+                    to="/community"
+                    className="flex items-center px-4 py-2 text-gray-200 hover:bg-[#020617]/60 rounded-md transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <FiUsers className="mr-3" /> Community
+                  </NavLink>
                   <button
                     onClick={() => {
                       handleLogout();
@@ -488,6 +502,13 @@ export default function NavBar() {
               onClick={() => setDropdownOpen(false)}
             >
               <FiUser className="mr-2" /> My Profile
+            </NavLink>
+            <NavLink
+              to="/community"
+              className="flex px-4 py-2 text-sm items-center text-gray-200 hover:bg-gray-700"
+              onClick={() => setDropdownOpen(false)}
+            >
+              <FiUsers className="mr-2" /> Community
             </NavLink>
             <NavLink
               to="/Feedback"

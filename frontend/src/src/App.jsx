@@ -41,6 +41,7 @@ import AdminFeedback from "./pages/Admin/Feedback";
 import AdminSupport from "./pages/Admin/Support";
 import AdminIncome from "./pages/Admin/Income";
 import AdminChallenges from "./pages/Admin/Challenges";
+import Community from "./pages/Community/Community.jsx";
 
 
 
@@ -100,6 +101,7 @@ function App() {
           <Route path="/diet-chart" element={<DietChartGenerator />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/community" element={<Community />} />
           <Route path="/daily-steps" element={<DailyStepsTracker />} />
           {/* Optional alias route for direct access */}
           <Route path="/posture-coach" element={<PostureCoach />} />

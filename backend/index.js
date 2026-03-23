@@ -15,6 +15,7 @@ const notificationRoutes = require("./routes/notificationRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const messageRoutes = require("./routes/messageRoutes");
+const communityRoutes = require("./routes/communityRoutes");
 
 
 const http = require("http");
@@ -190,6 +191,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/community", communityRoutes);
 
 
 // app.use("/api", messageRoutes);
