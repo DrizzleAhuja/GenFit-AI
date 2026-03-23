@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useLocation } from "react-router-dom";
 import "./App.css";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -46,6 +46,8 @@ import AdminChallenges from "./pages/Admin/Challenges";
 
 
 function App() {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith("/admin");
   const [isSplashLoading, setIsSplashLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     const savedLoginStatus = localStorage.getItem("isLoggedIn");
@@ -131,7 +133,7 @@ function App() {
         </Routes>
 
 
-        <FitBotWidget />
+        {!isAdminRoute && <FitBotWidget />}
         <ToastContainer />
       </div>
     </ThemeProvider>
