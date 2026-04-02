@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Webcam from "react-webcam";
 import * as tf from "@tensorflow/tfjs";
@@ -195,6 +195,91 @@ const EXERCISE_GROUPS = [
 // Flat list for lookups (first occurrence per id for display fallback)
 const EXERCISES = EXERCISE_GROUPS.flatMap((g) => g.exercises);
 
+function isFullBodyVisibleFromPose(pose) {
+  if (!pose?.keypoints?.length) return false;
+
+  // Consider "full body visible" only when we can see the whole chain:
+  // shoulders + hips + knees + ankles (at least one side for each).
+  const keypointsByName = new Map();
+  for (const kp of pose.keypoints) {
+    if (!kp) continue;
+    const name = kp.name || kp.part || kp.id;
+    if (!name) continue;
+    if ((kp.score || 0) <= 0.3) continue;
+    keypointsByName.set(String(name).toLowerCase(), kp);
+  }
+
+  const has = (n) => keypointsByName.has(n);
+  const shoulders = has("left_shoulder") || has("right_shoulder");
+  const hips = has("left_hip") || has("right_hip");
+  const knees = has("left_knee") || has("right_knee");
+  // Ankles can be unreliable depending on crop/lighting, so treat them as optional.
+  // We still require shoulders + hips + knees so we don't read issues when only the target
+  // limb/body part is visible.
+  return shoulders && hips && knees;
+}
+
+// -------- Narration + accuracy helpers (practical improvements) --------
+// 1) Temporal smoothing: average landmarks over last frames
+// 4) Confidence filtering: ignore low-confidence keypoints
+const SMOOTH_LANDMARK_WINDOW = 15;
+const KEYPOINT_CONFIDENCE_THRESHOLD = 0.5;
+const MIN_KEYPOINTS_FOR_CONF_FILTER = 8;
+
+function toLandmarksFromPoseKeypoints(keypoints) {
+  return (keypoints || []).map((kp) => ({
+    name: kp?.name || kp?.part || kp?.id,
+    x: kp?.x,
+    y: kp?.y,
+    score: kp?.score,
+  }));
+}
+
+function filterLandmarksByConfidence(landmarks) {
+  return (landmarks || []).filter((kp) => (kp?.score || 0) >= KEYPOINT_CONFIDENCE_THRESHOLD);
+}
+
+function shouldUseFilteredLandmarks(landmarks) {
+  return (landmarks || []).filter((kp) => (kp?.score || 0) >= KEYPOINT_CONFIDENCE_THRESHOLD).length >=
+    MIN_KEYPOINTS_FOR_CONF_FILTER;
+}
+
+function averageLandmarksFromFrames(frames) {
+  // frames: Array<Array<{name,x,y,score}>>
+  const accum = new Map();
+
+  for (const frame of frames || []) {
+    if (!Array.isArray(frame)) continue;
+    for (const kp of frame) {
+      if (!kp?.name || typeof kp.x !== "number" || typeof kp.y !== "number") continue;
+      const name = String(kp.name).toLowerCase();
+      const score = typeof kp.score === "number" ? kp.score : 0.5;
+
+      if (!accum.has(name)) {
+        accum.set(name, { xSum: 0, ySum: 0, scoreSum: 0, scoreCount: 0 });
+      }
+      const a = accum.get(name);
+      a.xSum += kp.x * score;
+      a.ySum += kp.y * score;
+      a.scoreSum += score;
+      a.scoreCount += 1;
+    }
+  }
+
+  const averaged = [];
+  for (const [name, a] of accum.entries()) {
+    const scoreDiv = a.scoreSum > 0 ? a.scoreSum : Math.max(1, a.scoreCount);
+    averaged.push({
+      name,
+      x: a.xSum / scoreDiv,
+      y: a.ySum / scoreDiv,
+      score: a.scoreSum / Math.max(1, a.scoreCount),
+    });
+  }
+
+  return averaged;
+}
+
 export default function PostureCoach() {
   const { darkMode } = useTheme();
   const location = useLocation();
@@ -205,6 +290,19 @@ export default function PostureCoach() {
   const repCounterRef = useRef(null);
   const sessionStartTimeRef = useRef(null);
   const lastGoodScoreRef = useRef(false);
+  const analysisRef = useRef(null);
+  const repCountRef = useRef(0);
+  const lastRepTimeRef = useRef(null);
+  const lastSpokenRepRef = useRef(0);
+  const currentFrameVisibilityRef = useRef({
+    bodyVisible: false,
+    fullBodyVisible: false,
+  });
+  // Temporal smoothing buffer for live analysis
+  const landmarkHistoryRef = useRef([]);
+  // Motion tracking buffer for each rep (start -> mid -> end)
+  const repMotionFramesRef = useRef([]);
+  const isCollectingRepFramesRef = useRef(false);
   const user = useSelector(selectUser);
   // Linkage with Workout Plan: MyWorkoutPlan passes state { fromWorkoutPlan: true, exercise: { name, sets, reps, weight }, dayIndex, weekNumber, workoutPlanId }. Keep in sync when changing either page.
   const workoutFromPlan = location.state?.fromWorkoutPlan ? location.state : null;
@@ -223,6 +321,7 @@ export default function PostureCoach() {
   const [cameras, setCameras] = useState([]);
   const [selectedCameraId, setSelectedCameraId] = useState(null);
   const [visibilityMessage, setVisibilityMessage] = useState("");
+  const [angleGuidanceMessage, setAngleGuidanceMessage] = useState("");
   const [cameraError, setCameraError] = useState("");
   const [sessionHistory, setSessionHistory] = useState([]);
   const [showLimitModal, setShowLimitModal] = useState(false);
@@ -252,9 +351,39 @@ export default function PostureCoach() {
     }
     // Reset reps when exercise changes
     setReps(0);
+    repCountRef.current = 0;
     setCalories(0);
+    analysisRef.current = null;
+    landmarkHistoryRef.current = [];
+    repMotionFramesRef.current = [];
+    isCollectingRepFramesRef.current = false;
+    lastRepTimeRef.current = null;
+    lastSpokenRepRef.current = 0;
+    currentFrameVisibilityRef.current = { bodyVisible: false, fullBodyVisible: false };
     lastGoodScoreRef.current = false;
   }, [exercise]);
+
+  // Simple, practical camera guidance (helps MoveNet keypoints + backend angle rules).
+  useEffect(() => {
+    if (!isRunning) {
+      setAngleGuidanceMessage("");
+      return;
+    }
+
+    switch (exercise) {
+      case "posture":
+      case "bent_over_row":
+      case "deadlift":
+      case "lunge":
+        setAngleGuidanceMessage(
+          "For best accuracy, stand side-on to the camera (keep full body in frame)."
+        );
+        break;
+      default:
+        setAngleGuidanceMessage("");
+        break;
+    }
+  }, [exercise, isRunning]);
 
   // Track session duration and update calories
   useEffect(() => {
@@ -644,6 +773,87 @@ export default function PostureCoach() {
     [user]
   );
 
+  const stopNarration = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+  }, []);
+
+  const speakText = useCallback(
+    (text, rate = 0.78) => {
+      if (typeof window === "undefined") return;
+      if (!window.speechSynthesis) return;
+      if (!text || typeof text !== "string") return;
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = Math.max(0.6, Math.min(0.95, rate));
+      utterance.pitch = 0.95;
+      utterance.volume = 1;
+
+      // Replace any ongoing speech so it stays synced to reps.
+      stopNarration();
+      window.speechSynthesis.speak(utterance);
+    },
+    [stopNarration]
+  );
+
+  const speakStartNarration = useCallback(() => {
+    speakText(
+      "Coaching started. Keep slow, controlled reps. I will give feedback after each rep.",
+      0.78
+    );
+  }, [speakText]);
+
+  const speakRepNarration = useCallback(
+    (repNumber, opts = {}) => {
+      const { analysisOverride = null, fullBodyVisibleOverride, rateOverride } = opts;
+
+      if (repNumber <= lastSpokenRepRef.current) return;
+      lastSpokenRepRef.current = repNumber;
+
+      const a = analysisOverride ?? analysisRef.current;
+      const fullBodyVisible =
+        typeof fullBodyVisibleOverride === "boolean"
+          ? fullBodyVisibleOverride
+          : currentFrameVisibilityRef.current.fullBodyVisible;
+
+      // Sync speech pace to your rep pace (slower reps => slightly faster voice).
+      let rate = rateOverride;
+      if (typeof rate !== "number") {
+        const now = Date.now();
+        const intervalMs = lastRepTimeRef.current
+          ? now - lastRepTimeRef.current
+          : 3000;
+        lastRepTimeRef.current = now;
+        rate = Math.max(0.65, Math.min(0.9, (intervalMs / 3000) * 0.75));
+      }
+
+      const isCorrect = Boolean(a?.isCorrect);
+      const issues = Array.isArray(a?.issues) ? a.issues : [];
+
+      let text;
+      if (!a) {
+        text = `Rep ${repNumber}. Keep going slowly.`;
+      } else if (fullBodyVisible) {
+        if (isCorrect) {
+          text = `Rep ${repNumber}. Good rep. Great control. Keep going slowly.`;
+        } else {
+          const firstIssue = issues[0];
+          text = firstIssue
+            ? `Rep ${repNumber}. Fix: ${firstIssue}. Keep your form steady.`
+            : `Rep ${repNumber}. Needs adjustment. Keep your form steady.`;
+        }
+      } else {
+        // If only the target body part is visible, do not read issue details.
+        // Avoid saying "good/bad" from possibly stale analysis; just keep you moving.
+        text = `Rep ${repNumber}. Rep counted. Keep your form steady and slow.`;
+      }
+
+      speakText(text, rate);
+    },
+    [speakText]
+  );
+
   const captureLoop = useCallback(async () => {
     if (!detectorRef.current || !webcamRef.current || !canvasRef.current) return;
     if (!isRunning) return;
@@ -680,6 +890,9 @@ export default function PostureCoach() {
         // Require at least ~50% of keypoints confidently visible
         const bodyVisible = visibilityRatio >= 0.5;
 
+        const fullBodyVisible = isFullBodyVisibleFromPose(pose);
+        currentFrameVisibilityRef.current = { bodyVisible, fullBodyVisible };
+
         const ctx = canvas.getContext("2d");
         drawSkeleton(pose, ctx, videoWidth, videoHeight, exercise, repCounterRef.current);
 
@@ -688,39 +901,113 @@ export default function PostureCoach() {
             "Human body not clearly visible. Step back and make sure your full body is in the frame."
           );
         } else {
-          if (visibilityMessage) setVisibilityMessage("");
+          setVisibilityMessage("");
+
+          // Update rep counter only when body is visible
+          // Build landmarks and apply confidence filtering
+          const rawLandmarks = toLandmarksFromPoseKeypoints(pose.keypoints);
+          const highConfLandmarks = filterLandmarksByConfidence(rawLandmarks);
+          const repLandmarks = shouldUseFilteredLandmarks(rawLandmarks)
+            ? highConfLandmarks
+            : rawLandmarks.filter((kp) => (kp?.score || 0) > 0.3);
+
+          // 1) Temporal smoothing: keep last N frames of (filtered) landmarks
+          landmarkHistoryRef.current.push(repLandmarks);
+          if (landmarkHistoryRef.current.length > SMOOTH_LANDMARK_WINDOW) {
+            landmarkHistoryRef.current.shift();
+          }
+          const smoothedLandmarks = averageLandmarksFromFrames(landmarkHistoryRef.current);
 
           // Update rep counter only when body is visible
           if (repCounterRef.current && isRunning) {
-            const keypoints = pose.keypoints.map((kp) => ({
-              name: kp.name || kp.part || kp.id,
-              x: kp.x,
-              y: kp.y,
-              score: kp.score,
-            }));
+            const prevRepState = repCounterRef.current.state;
+            const repResult = repCounterRef.current.update(repLandmarks);
+            const nextRepState = repCounterRef.current.state;
 
-            const repResult = repCounterRef.current.update(keypoints);
+            // 2) Full-motion tracking: collect frames from rep start (down) -> end (up)
+            if (nextRepState === "down" && (prevRepState === "rest" || prevRepState === "up")) {
+              repMotionFramesRef.current = [repLandmarks];
+              isCollectingRepFramesRef.current = true;
+            } else if (isCollectingRepFramesRef.current) {
+              repMotionFramesRef.current.push(repLandmarks);
+            }
+
             if (repResult.newRep) {
               // Always increment; never set to repResult.reps so count can't jump down if counter resets
-              setReps((prev) => prev + 1);
+              repCountRef.current += 1;
+              setReps(repCountRef.current);
               // Trigger animation
               setNewRepAnimation(true);
               setTimeout(() => setNewRepAnimation(false), 500);
+
+              const currentRep = repCountRef.current;
+              const fullBodyVisibleSnapshot = currentFrameVisibilityRef.current.fullBodyVisible;
+
+              // Pace: compute rep pace right at the moment the rep is detected.
+              const nowForRate = Date.now();
+              const intervalMs = lastRepTimeRef.current
+                ? nowForRate - lastRepTimeRef.current
+                : 3000;
+              lastRepTimeRef.current = nowForRate;
+              const rate = Math.max(0.65, Math.min(0.9, (intervalMs / 3000) * 0.75));
+
+              const repFrames = repMotionFramesRef.current || [];
+              const repAveragedLandmarks = averageLandmarksFromFrames(repFrames);
+
+              // Stop collecting for next rep
+              repMotionFramesRef.current = [];
+              isCollectingRepFramesRef.current = false;
+
+              if (fullBodyVisibleSnapshot) {
+                // Narration should reflect this rep, using start->mid->end averaged landmarks.
+                lastSentRef.current = nowForRate;
+                const landmarksForBackend =
+                  repAveragedLandmarks?.length ? repAveragedLandmarks : repLandmarks;
+
+                analyzePosture(exercise, landmarksForBackend, user?._id)
+                  .then((res) => {
+                    if (res?.success && res.analysis) {
+                      analysisRef.current = res.analysis;
+                      setAnalysis(res.analysis);
+                      speakRepNarration(currentRep, {
+                        analysisOverride: res.analysis,
+                        fullBodyVisibleOverride: true,
+                        rateOverride: rate,
+                      });
+                    } else {
+                      speakRepNarration(currentRep, {
+                        analysisOverride: null,
+                        fullBodyVisibleOverride: true,
+                        rateOverride: rate,
+                      });
+                    }
+                  })
+                  .catch(() => {
+                    speakRepNarration(currentRep, {
+                      analysisOverride: null,
+                      fullBodyVisibleOverride: true,
+                      rateOverride: rate,
+                    });
+                  });
+              } else {
+                // If full body isn't visible, do not read issue details.
+                speakRepNarration(currentRep, {
+                  fullBodyVisibleOverride: false,
+                  rateOverride: rate,
+                });
+              }
             }
           }
 
           const now = Date.now();
           if (now - lastSentRef.current > 500) {
             lastSentRef.current = now;
-            const landmarks = pose.keypoints.map((kp) => ({
-              name: kp.name || kp.part || kp.id,
-              x: kp.x,
-              y: kp.y,
-              score: kp.score,
-            }));
-            analyzePosture(exercise, landmarks, user?._id)
+            const landmarksForBackend =
+              smoothedLandmarks?.length ? smoothedLandmarks : repLandmarks;
+            analyzePosture(exercise, landmarksForBackend, user?._id)
               .then((res) => {
                 if (res?.success && res.analysis) {
+                  analysisRef.current = res.analysis;
                   setAnalysis(res.analysis);
                   // Reps are counted only by RepCounter (pose-based) to avoid double count or count jumping down
                   const score = res.analysis.score || 0;
@@ -751,7 +1038,7 @@ export default function PostureCoach() {
     }
 
     loopRef.current = requestAnimationFrame(captureLoop);
-  }, [drawSkeleton, exercise, isRunning]);
+  }, [drawSkeleton, exercise, isRunning, speakRepNarration, user?._id]);
 
   useEffect(() => {
     if (isRunning) {
@@ -782,6 +1069,15 @@ export default function PostureCoach() {
       if (repCounterRef.current) {
         repCounterRef.current.reset();
       }
+      repCountRef.current = 0;
+      lastRepTimeRef.current = null;
+      lastSpokenRepRef.current = 0;
+      analysisRef.current = null;
+      currentFrameVisibilityRef.current = { bodyVisible: false, fullBodyVisible: false };
+      landmarkHistoryRef.current = [];
+      repMotionFramesRef.current = [];
+      isCollectingRepFramesRef.current = false;
+      stopNarration();
       setReps(0);
       setCalories(0);
       setSessionDuration(0);
@@ -813,6 +1109,9 @@ export default function PostureCoach() {
       }
       
       setIsRunning(true);
+
+      // Start speaking right after coaching begins (button click is a user gesture).
+      speakStartNarration();
     }
   };
 
@@ -1010,6 +1309,11 @@ export default function PostureCoach() {
               {visibilityMessage && !isModelLoading && (
                 <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-red-500/80 text-white text-[11px] md:text-xs px-3 py-1 rounded-full shadow-lg">
                   {visibilityMessage}
+                </div>
+              )}
+              {!visibilityMessage && angleGuidanceMessage && isRunning && !isModelLoading && (
+                <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-cyan-500/80 text-white text-[11px] md:text-xs px-3 py-1 rounded-full shadow-lg max-w-[90%] text-center">
+                  {angleGuidanceMessage}
                 </div>
               )}
               {isModelLoading && (

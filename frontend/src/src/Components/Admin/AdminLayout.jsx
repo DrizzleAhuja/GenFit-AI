@@ -7,7 +7,7 @@ const AdminLayout = () => {
 
   // Client-side route protection
   if (user.role !== "admin") {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/no-page-found" replace state={{ reason: "access" }} />;
   }
 
   return (

@@ -42,6 +42,7 @@ import AdminSupport from "./pages/Admin/Support";
 import AdminIncome from "./pages/Admin/Income";
 import AdminChallenges from "./pages/Admin/Challenges";
 import Community from "./pages/Community/Community.jsx";
+import NoPageFound from "./pages/NoPageFound/NoPageFound.jsx";
 
 
 
@@ -132,6 +133,9 @@ function App() {
             <Route path="challenges" element={<AdminChallenges />} />
 
           </Route>
+
+          <Route path="/no-page-found" element={<NoPageFound />} />
+          <Route path="*" element={<NoPageFound />} />
         </Routes>
 
 
