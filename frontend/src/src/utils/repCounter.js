@@ -136,8 +136,9 @@ export class RepCounter {
         up: 0.8,   // Knee higher toward hip
       },
       jumping_jack: {
-        down: 0.4, // Arms and legs closer
-        up: 0.8,   // Arms and legs wider
+        // Tuned for distance-ratio metric so open phase is reachable in practice
+        down: 0.32, // Arms and legs closer
+        up: 0.62,   // Arms and legs wider
       },
       mountain_climber: {
         down: 0.4, // Knee toward chest

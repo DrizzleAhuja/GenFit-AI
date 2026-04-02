@@ -50,7 +50,44 @@ function averageSideAngle(landmarks, namesPerSide) {
   return leftAngle || rightAngle || null;
 }
 
+// Centralized thresholds for all exercises available in PostureCoach
+const EXERCISE_ANALYSIS_THRESHOLDS = {
+  squat: { minKneeAngle: 60, maxKneeAngle: 130, idealKneeAngle: 100 },
+  pushup: {
+    minBodyLine: 150,
+    maxElbowBottom: 160,
+    minElbowBottom: 70,
+    idealBodyLine: 100,
+    idealElbowShifted: 100,
+  },
+  bicep_curl: { minElbowAngle: 40, maxElbowAngle: 160, idealElbowAngle: 80 },
+  lunge: { minKneeAngle: 60, maxKneeAngle: 140, idealKneeAngle: 90 },
+  plank: { minBodyAngle: 165, maxBodyAngle: 185, idealBodyAngle: 180 },
+  shoulder_press: { minElbowTop: 70, maxElbowBottom: 150, idealElbowAngle: 100 },
+  lateral_raise: { minTorsoArm: 60, maxTorsoArm: 120, idealTorsoArm: 90 },
+  deadlift: { minHipAngle: 60, maxHipAngle: 150, idealHipAngle: 120 },
+  bent_over_row: { maxTorsoAngle: 140, maxRowAngle: 160, idealTorsoAngle: 110, idealRowShifted: 100 },
+  tricep_extension: { minElbowAngle: 40, maxElbowAngle: 170, idealElbowAngle: 80 },
+  side_plank: { minBodyAngle: 165, maxBodyAngle: 195, idealBodyAngle: 180 },
+  high_knees: { maxKneeAngle: 140, idealKneeAngle: 90 },
+  jumping_jack: { minLegRatio: 1.2, minArmRatio: 1.2, idealLegRatio: 1.5, idealArmRatio: 1.5 },
+  mountain_climber: { minBodyAngle: 150, maxKneeAngle: 140, idealBodyAngle: 170, idealKneeAngle: 90 },
+  posture: {
+    minBodyAngle: 165,
+    maxBodyAngle: 195,
+    minNeckAngle: 150,
+    maxNeckAngle: 210,
+    shoulderDeltaMax: 30,
+    minKneeOverAnkle: 160,
+    maxKneeOverAnkle: 200,
+    idealBodyAngle: 180,
+    idealNeckAngle: 180,
+    idealKneeOverAnkle: 180,
+  },
+};
+
 function analyzeSquat(landmarks) {
+  const t = EXERCISE_ANALYSIS_THRESHOLDS.squat;
   const leftHip = getPoint(landmarks, "left_hip");
   const rightHip = getPoint(landmarks, "right_hip");
   const leftKnee = getPoint(landmarks, "left_knee");
@@ -72,10 +109,10 @@ function analyzeSquat(landmarks) {
     issues.push("Unable to see legs clearly – step back and ensure full body is in frame.");
     isCorrect = false;
   } else {
-    if (kneeAngle < 60) {
+    if (kneeAngle < t.minKneeAngle) {
       issues.push("You are squatting too deep – stop before your knees go below ~60°.");
       isCorrect = false;
-    } else if (kneeAngle > 130) {
+    } else if (kneeAngle > t.maxKneeAngle) {
       issues.push("Go a bit lower – bend your knees more to engage quads and glutes.");
       isCorrect = false;
     }
@@ -84,7 +121,7 @@ function analyzeSquat(landmarks) {
   return {
     exerciseType: "squat",
     isCorrect,
-    score: kneeAngle == null ? 0 : Math.max(0, Math.min(100, 140 - Math.abs(100 - kneeAngle))),
+    score: kneeAngle == null ? 0 : Math.max(0, Math.min(100, 140 - Math.abs(t.idealKneeAngle - kneeAngle))),
     metrics: { kneeAngle },
     issues,
     tips: [
@@ -96,6 +133,7 @@ function analyzeSquat(landmarks) {
 }
 
 function analyzePushup(landmarks) {
+  const t = EXERCISE_ANALYSIS_THRESHOLDS.pushup;
   const leftShoulder = getPoint(landmarks, "left_shoulder");
   const rightShoulder = getPoint(landmarks, "right_shoulder");
   const leftElbow = getPoint(landmarks, "left_elbow");
@@ -130,15 +168,15 @@ function analyzePushup(landmarks) {
     issues.push("Move back so your whole body is visible from shoulders to feet.");
     isCorrect = false;
   } else {
-    if (bodyLine < 150) {
+    if (bodyLine < t.minBodyLine) {
       issues.push("Keep your body in a straight line – avoid sagging hips.");
       isCorrect = false;
     }
-    if (elbowAngle > 160) {
+    if (elbowAngle > t.maxElbowBottom) {
       issues.push("Lower yourself more – bend your elbows to around 90° at the bottom.");
       isCorrect = false;
     }
-    if (elbowAngle < 70) {
+    if (elbowAngle < t.minElbowBottom) {
       issues.push("Don't go excessively deep – stop around 90° at the elbow.");
       isCorrect = false;
     }
@@ -155,8 +193,8 @@ function analyzePushup(landmarks) {
             Math.min(
               100,
               50 -
-                Math.abs(100 - bodyLine) / 2 -
-                Math.abs(100 - (elbowAngle + 40)) / 2
+                Math.abs(t.idealBodyLine - bodyLine) / 2 -
+                Math.abs(t.idealElbowShifted - (elbowAngle + 40)) / 2
             )
           ),
     metrics: { elbowAngle, bodyLineAngle: bodyLine },
@@ -170,6 +208,7 @@ function analyzePushup(landmarks) {
 }
 
 function analyzeBicepCurl(landmarks) {
+  const t = EXERCISE_ANALYSIS_THRESHOLDS.bicep_curl;
   const leftShoulder = getPoint(landmarks, "left_shoulder");
   const leftElbow = getPoint(landmarks, "left_elbow");
   const leftWrist = getPoint(landmarks, "left_wrist");
@@ -190,11 +229,11 @@ function analyzeBicepCurl(landmarks) {
     issues.push("Ensure at least one full arm is clearly visible from shoulder to wrist.");
     isCorrect = false;
   } else {
-    if (elbowAngle > 160) {
+    if (elbowAngle > t.maxElbowAngle) {
       issues.push("Arms are almost straight – curl up more to contract the biceps.");
       isCorrect = false;
     }
-    if (elbowAngle < 40) {
+    if (elbowAngle < t.minElbowAngle) {
       issues.push("Don't bring the dumbbells too high; stop slightly before your elbows fully close.");
       isCorrect = false;
     }
@@ -206,7 +245,7 @@ function analyzeBicepCurl(landmarks) {
     score:
       elbowAngle == null
         ? 0
-        : Math.max(0, Math.min(100, 120 - Math.abs(80 - elbowAngle) * 1.5)),
+        : Math.max(0, Math.min(100, 120 - Math.abs(t.idealElbowAngle - elbowAngle) * 1.5)),
     metrics: { elbowAngle },
     issues,
     tips: [
@@ -218,6 +257,7 @@ function analyzeBicepCurl(landmarks) {
 }
 
 function analyzeLunge(landmarks) {
+  const t = EXERCISE_ANALYSIS_THRESHOLDS.lunge;
   const frontKnee =
     getPoint(landmarks, "left_knee") || getPoint(landmarks, "right_knee");
   const frontHip =
@@ -236,11 +276,11 @@ function analyzeLunge(landmarks) {
     );
     isCorrect = false;
   } else {
-    if (kneeAngle > 140) {
+    if (kneeAngle > t.maxKneeAngle) {
       issues.push("Bend your front knee more; aim for roughly 90° at the bottom.");
       isCorrect = false;
     }
-    if (kneeAngle < 60) {
+    if (kneeAngle < t.minKneeAngle) {
       issues.push("Do not allow the front knee to collapse too much; keep it near 90°.");
       isCorrect = false;
     }
@@ -252,7 +292,7 @@ function analyzeLunge(landmarks) {
     score:
       kneeAngle == null
         ? 0
-        : Math.max(0, Math.min(100, 120 - Math.abs(90 - kneeAngle) * 2)),
+        : Math.max(0, Math.min(100, 120 - Math.abs(t.idealKneeAngle - kneeAngle) * 2)),
     metrics: { kneeAngle },
     issues,
     tips: [
@@ -264,6 +304,7 @@ function analyzeLunge(landmarks) {
 }
 
 function analyzePlank(landmarks) {
+  const t = EXERCISE_ANALYSIS_THRESHOLDS.plank;
   const leftShoulder = getPoint(landmarks, "left_shoulder");
   const rightShoulder = getPoint(landmarks, "right_shoulder");
   const leftHip = getPoint(landmarks, "left_hip");
@@ -287,11 +328,11 @@ function analyzePlank(landmarks) {
     );
     isCorrect = false;
   } else {
-    if (bodyAngle < 165) {
+    if (bodyAngle < t.minBodyAngle) {
       issues.push("Lift your hips slightly to form a straight line from shoulders to heels.");
       isCorrect = false;
     }
-    if (bodyAngle > 185) {
+    if (bodyAngle > t.maxBodyAngle) {
       issues.push("Lower your hips; avoid piking them up too high.");
       isCorrect = false;
     }
@@ -303,7 +344,7 @@ function analyzePlank(landmarks) {
     score:
       bodyAngle == null
         ? 0
-        : Math.max(0, Math.min(100, 120 - Math.abs(180 - bodyAngle) * 2)),
+        : Math.max(0, Math.min(100, 120 - Math.abs(t.idealBodyAngle - bodyAngle) * 2)),
     metrics: { bodyAngle },
     issues,
     tips: [
@@ -318,6 +359,7 @@ function analyzePlank(landmarks) {
  * Shoulder press – focus on vertical pressing path and elbow extension.
  */
 function analyzeShoulderPress(landmarks) {
+  const t = EXERCISE_ANALYSIS_THRESHOLDS.shoulder_press;
   const shoulderElbowWristAngle = averageSideAngle(landmarks, {
     a: "shoulder",
     b: "elbow",
@@ -333,11 +375,11 @@ function analyzeShoulderPress(landmarks) {
     );
     isCorrect = false;
   } else {
-    if (shoulderElbowWristAngle < 70) {
+    if (shoulderElbowWristAngle < t.minElbowTop) {
       issues.push("Press the weight higher – fully extend your elbows at the top.");
       isCorrect = false;
     }
-    if (shoulderElbowWristAngle > 150) {
+    if (shoulderElbowWristAngle > t.maxElbowBottom) {
       issues.push("Lower the weight under control – don't lock out aggressively.");
       isCorrect = false;
     }
@@ -349,7 +391,7 @@ function analyzeShoulderPress(landmarks) {
     score:
       shoulderElbowWristAngle == null
         ? 0
-        : Math.max(0, Math.min(100, 120 - Math.abs(100 - shoulderElbowWristAngle) * 1.2)),
+        : Math.max(0, Math.min(100, 120 - Math.abs(t.idealElbowAngle - shoulderElbowWristAngle) * 1.2)),
     metrics: { shoulderElbowWristAngle },
     issues,
     tips: [
@@ -364,6 +406,7 @@ function analyzeShoulderPress(landmarks) {
  * Lateral raise – arm should move roughly out to the side to shoulder height.
  */
 function analyzeLateralRaise(landmarks) {
+  const t = EXERCISE_ANALYSIS_THRESHOLDS.lateral_raise;
   const shoulder = getPoint(landmarks, "left_shoulder") || getPoint(landmarks, "right_shoulder");
   const elbow = getPoint(landmarks, "left_elbow") || getPoint(landmarks, "right_elbow");
   const wrist = getPoint(landmarks, "left_wrist") || getPoint(landmarks, "right_wrist");
@@ -381,11 +424,11 @@ function analyzeLateralRaise(landmarks) {
     );
     isCorrect = false;
   } else {
-    if (torsoArmAngle < 60) {
+    if (torsoArmAngle < t.minTorsoArm) {
       issues.push("Raise your arms higher – aim for shoulder height.");
       isCorrect = false;
     }
-    if (torsoArmAngle > 120) {
+    if (torsoArmAngle > t.maxTorsoArm) {
       issues.push("Avoid swinging the arms too high; stop around shoulder height.");
       isCorrect = false;
     }
@@ -397,7 +440,7 @@ function analyzeLateralRaise(landmarks) {
     score:
       torsoArmAngle == null
         ? 0
-        : Math.max(0, Math.min(100, 120 - Math.abs(90 - torsoArmAngle) * 2)),
+        : Math.max(0, Math.min(100, 120 - Math.abs(t.idealTorsoArm - torsoArmAngle) * 2)),
     metrics: { armAngle, torsoArmAngle },
     issues,
     tips: [
@@ -412,6 +455,7 @@ function analyzeLateralRaise(landmarks) {
  * Deadlift – hip hinge with neutral back.
  */
 function analyzeDeadlift(landmarks) {
+  const t = EXERCISE_ANALYSIS_THRESHOLDS.deadlift;
   const leftShoulder = getPoint(landmarks, "left_shoulder");
   const rightShoulder = getPoint(landmarks, "right_shoulder");
   const leftHip = getPoint(landmarks, "left_hip");
@@ -434,11 +478,11 @@ function analyzeDeadlift(landmarks) {
     );
     isCorrect = false;
   } else {
-    if (hipAngle < 60) {
+    if (hipAngle < t.minHipAngle) {
       issues.push("Don't collapse into the bottom – keep some bend at the hips, not just the knees.");
       isCorrect = false;
     }
-    if (hipAngle > 150) {
+    if (hipAngle > t.maxHipAngle) {
       issues.push("Push your hips back more to initiate the deadlift with a hinge, not just a squat.");
       isCorrect = false;
     }
@@ -450,7 +494,7 @@ function analyzeDeadlift(landmarks) {
     score:
       hipAngle == null
         ? 0
-        : Math.max(0, Math.min(100, 120 - Math.abs(120 - hipAngle) * 1.5)),
+        : Math.max(0, Math.min(100, 120 - Math.abs(t.idealHipAngle - hipAngle) * 1.5)),
     metrics: { hipAngle },
     issues,
     tips: [
@@ -465,6 +509,7 @@ function analyzeDeadlift(landmarks) {
  * Bent‑over row – hinge plus arm pull.
  */
 function analyzeBentOverRow(landmarks) {
+  const t = EXERCISE_ANALYSIS_THRESHOLDS.bent_over_row;
   const shoulder = getPoint(landmarks, "left_shoulder") || getPoint(landmarks, "right_shoulder");
   const hip = getPoint(landmarks, "left_hip") || getPoint(landmarks, "right_hip");
   const knee = getPoint(landmarks, "left_knee") || getPoint(landmarks, "right_knee");
@@ -483,11 +528,11 @@ function analyzeBentOverRow(landmarks) {
     );
     isCorrect = false;
   } else {
-    if (torsoAngle > 140) {
+    if (torsoAngle > t.maxTorsoAngle) {
       issues.push("Hinge more at the hips – your torso should lean forward for a good row position.");
       isCorrect = false;
     }
-    if (rowAngle > 160) {
+    if (rowAngle > t.maxRowAngle) {
       issues.push("Pull your elbow back further to fully engage the upper back.");
       isCorrect = false;
     }
@@ -504,8 +549,8 @@ function analyzeBentOverRow(landmarks) {
             Math.min(
               100,
               60 -
-                Math.abs(110 - torsoAngle) / 2 -
-                Math.abs(100 - (rowAngle + 20)) / 2
+                Math.abs(t.idealTorsoAngle - torsoAngle) / 2 -
+                Math.abs(t.idealRowShifted - (rowAngle + 20)) / 2
             )
           ),
     metrics: { torsoAngle, rowAngle },
@@ -522,6 +567,7 @@ function analyzeBentOverRow(landmarks) {
  * Tricep extension – elbow as the pivot, upper arm stable.
  */
 function analyzeTricepExtension(landmarks) {
+  const t = EXERCISE_ANALYSIS_THRESHOLDS.tricep_extension;
   const shoulder = getPoint(landmarks, "left_shoulder") || getPoint(landmarks, "right_shoulder");
   const elbow = getPoint(landmarks, "left_elbow") || getPoint(landmarks, "right_elbow");
   const wrist = getPoint(landmarks, "left_wrist") || getPoint(landmarks, "right_wrist");
@@ -535,11 +581,11 @@ function analyzeTricepExtension(landmarks) {
     issues.push("Make sure your upper arm and forearm are visible for tricep extension.");
     isCorrect = false;
   } else {
-    if (elbowAngle > 170) {
+    if (elbowAngle > t.maxElbowAngle) {
       issues.push("Avoid hyper‑extending the elbows; stop just short of full lockout.");
       isCorrect = false;
     }
-    if (elbowAngle < 40) {
+    if (elbowAngle < t.minElbowAngle) {
       issues.push("Don't let the elbows collapse too much; keep control at the bottom.");
       isCorrect = false;
     }
@@ -551,7 +597,7 @@ function analyzeTricepExtension(landmarks) {
     score:
       elbowAngle == null
         ? 0
-        : Math.max(0, Math.min(100, 120 - Math.abs(80 - elbowAngle) * 1.5)),
+        : Math.max(0, Math.min(100, 120 - Math.abs(t.idealElbowAngle - elbowAngle) * 1.5)),
     metrics: { elbowAngle },
     issues,
     tips: [
@@ -566,6 +612,7 @@ function analyzeTricepExtension(landmarks) {
  * Side plank – body in a straight line sideways.
  */
 function analyzeSidePlank(landmarks) {
+  const t = EXERCISE_ANALYSIS_THRESHOLDS.side_plank;
   const shoulder = getPoint(landmarks, "left_shoulder") || getPoint(landmarks, "right_shoulder");
   const hip = getPoint(landmarks, "left_hip") || getPoint(landmarks, "right_hip");
   const ankle =
@@ -585,11 +632,11 @@ function analyzeSidePlank(landmarks) {
     );
     isCorrect = false;
   } else {
-    if (bodyAngle < 165) {
+    if (bodyAngle < t.minBodyAngle) {
       issues.push("Lift your hips so your body forms a straight line from shoulder to ankle.");
       isCorrect = false;
     }
-    if (bodyAngle > 195) {
+    if (bodyAngle > t.maxBodyAngle) {
       issues.push("Avoid piking hips up too high; stay in a straight line.");
       isCorrect = false;
     }
@@ -601,7 +648,7 @@ function analyzeSidePlank(landmarks) {
     score:
       bodyAngle == null
         ? 0
-        : Math.max(0, Math.min(100, 120 - Math.abs(180 - bodyAngle) * 2)),
+        : Math.max(0, Math.min(100, 120 - Math.abs(t.idealBodyAngle - bodyAngle) * 2)),
     metrics: { bodyAngle },
     issues,
     tips: [
@@ -616,6 +663,7 @@ function analyzeSidePlank(landmarks) {
  * High knees – focus on knee lift.
  */
 function analyzeHighKnees(landmarks) {
+  const t = EXERCISE_ANALYSIS_THRESHOLDS.high_knees;
   const hip = getPoint(landmarks, "left_hip") || getPoint(landmarks, "right_hip");
   const knee = getPoint(landmarks, "left_knee") || getPoint(landmarks, "right_knee");
   const ankle = getPoint(landmarks, "left_ankle") || getPoint(landmarks, "right_ankle");
@@ -629,7 +677,7 @@ function analyzeHighKnees(landmarks) {
     issues.push("Move back so at least one full leg is visible from hip to ankle.");
     isCorrect = false;
   } else {
-    if (kneeAngle > 140) {
+    if (kneeAngle > t.maxKneeAngle) {
       issues.push("Drive your knee higher toward hip level.");
       isCorrect = false;
     }
@@ -641,7 +689,7 @@ function analyzeHighKnees(landmarks) {
     score:
       kneeAngle == null
         ? 0
-        : Math.max(0, Math.min(100, 120 - Math.abs(90 - kneeAngle) * 2)),
+        : Math.max(0, Math.min(100, 120 - Math.abs(t.idealKneeAngle - kneeAngle) * 2)),
     metrics: { kneeAngle },
     issues,
     tips: [
@@ -656,6 +704,7 @@ function analyzeHighKnees(landmarks) {
  * Jumping jack – arm and leg spread together.
  */
 function analyzeJumpingJack(landmarks) {
+  const t = EXERCISE_ANALYSIS_THRESHOLDS.jumping_jack;
   const leftAnkle = getPoint(landmarks, "left_ankle");
   const rightAnkle = getPoint(landmarks, "right_ankle");
   const leftWrist = getPoint(landmarks, "left_wrist");
@@ -682,11 +731,11 @@ function analyzeJumpingJack(landmarks) {
     const legRatio = legSpread / hipWidth;
     const armRatio = armSpread / hipWidth;
 
-    if (legRatio < 1.2) {
+    if (legRatio < t.minLegRatio) {
       issues.push("Jump your feet wider apart to increase leg range.");
       isCorrect = false;
     }
-    if (armRatio < 1.2) {
+    if (armRatio < t.minArmRatio) {
       issues.push("Raise your arms higher overhead during each jack.");
       isCorrect = false;
     }
@@ -700,8 +749,8 @@ function analyzeJumpingJack(landmarks) {
           Math.min(
             100,
             60 -
-              Math.abs(1.5 - legSpread / hipWidth) * 30 -
-              Math.abs(1.5 - armSpread / hipWidth) * 30
+              Math.abs(t.idealLegRatio - legSpread / hipWidth) * 30 -
+              Math.abs(t.idealArmRatio - armSpread / hipWidth) * 30
           )
         );
 
@@ -723,6 +772,7 @@ function analyzeJumpingJack(landmarks) {
  * Mountain climber – knee drive toward chest in plank.
  */
 function analyzeMountainClimber(landmarks) {
+  const t = EXERCISE_ANALYSIS_THRESHOLDS.mountain_climber;
   const shoulder = getPoint(landmarks, "left_shoulder") || getPoint(landmarks, "right_shoulder");
   const hip = getPoint(landmarks, "left_hip") || getPoint(landmarks, "right_hip");
   const knee = getPoint(landmarks, "left_knee") || getPoint(landmarks, "right_knee");
@@ -740,11 +790,11 @@ function analyzeMountainClimber(landmarks) {
     );
     isCorrect = false;
   } else {
-    if (bodyAngle < 150) {
+    if (bodyAngle < t.minBodyAngle) {
       issues.push("Keep your body straighter – avoid letting hips sag.");
       isCorrect = false;
     }
-    if (kneeAngle > 140) {
+    if (kneeAngle > t.maxKneeAngle) {
       issues.push("Drive your knee closer to your chest on each rep.");
       isCorrect = false;
     }
@@ -761,8 +811,8 @@ function analyzeMountainClimber(landmarks) {
             Math.min(
               100,
               60 -
-                Math.abs(170 - bodyAngle) / 2 -
-                Math.abs(90 - kneeAngle) / 2
+                Math.abs(t.idealBodyAngle - bodyAngle) / 2 -
+                Math.abs(t.idealKneeAngle - kneeAngle) / 2
             )
           ),
     metrics: { bodyAngle, kneeAngle },
@@ -776,6 +826,7 @@ function analyzeMountainClimber(landmarks) {
 }
 
 function analyzeGeneralPosture(landmarks) {
+  const t = EXERCISE_ANALYSIS_THRESHOLDS.posture;
   const leftShoulder = getPoint(landmarks, "left_shoulder");
   const rightShoulder = getPoint(landmarks, "right_shoulder");
   const leftHip = getPoint(landmarks, "left_hip");
@@ -832,13 +883,13 @@ function analyzeGeneralPosture(landmarks) {
     );
     isCorrect = false;
   } else {
-    if (bodyAngle < 165) {
+    if (bodyAngle < t.minBodyAngle) {
       issues.push(
         "You may be leaning forward or rounding your back. Stand tall with shoulders stacked over hips."
       );
       isCorrect = false;
     }
-    if (bodyAngle > 195) {
+    if (bodyAngle > t.maxBodyAngle) {
       issues.push(
         "You may be arching your lower back. Gently tuck your pelvis and brace your core."
       );
@@ -847,7 +898,7 @@ function analyzeGeneralPosture(landmarks) {
   }
 
   // Head/neck forward posture
-  if (neckAngle != null && (neckAngle < 150 || neckAngle > 210)) {
+  if (neckAngle != null && (neckAngle < t.minNeckAngle || neckAngle > t.maxNeckAngle)) {
     issues.push(
       "Bring your head back in line with your shoulders – avoid craning your neck forward."
     );
@@ -857,14 +908,14 @@ function analyzeGeneralPosture(landmarks) {
   // Shoulder height symmetry (side tilt)
   if (leftShoulder && rightShoulder) {
     const shoulderDelta = Math.abs(leftShoulder.y - rightShoulder.y);
-    if (shoulderDelta > 30) {
+    if (shoulderDelta > t.shoulderDeltaMax) {
       issues.push("Try to keep both shoulders at the same height; avoid leaning to one side.");
       isCorrect = false;
     }
   }
 
   // Knee‑over‑ankle alignment
-  if (kneeOverAnkleAngle != null && (kneeOverAnkleAngle < 160 || kneeOverAnkleAngle > 200)) {
+  if (kneeOverAnkleAngle != null && (kneeOverAnkleAngle < t.minKneeOverAnkle || kneeOverAnkleAngle > t.maxKneeOverAnkle)) {
     issues.push(
       "Distribute your weight evenly so knees track roughly above the ankles, not collapsing inward or pushing too far forward."
     );
@@ -882,9 +933,9 @@ function analyzeGeneralPosture(landmarks) {
             Math.min(
               100,
               80 -
-                Math.abs(180 - bodyAngle) * 1.2 -
-                (neckAngle != null ? Math.abs(180 - neckAngle) * 0.6 : 0) -
-                (kneeOverAnkleAngle != null ? Math.abs(180 - kneeOverAnkleAngle) * 0.4 : 0)
+                Math.abs(t.idealBodyAngle - bodyAngle) * 1.2 -
+                (neckAngle != null ? Math.abs(t.idealNeckAngle - neckAngle) * 0.6 : 0) -
+                (kneeOverAnkleAngle != null ? Math.abs(t.idealKneeOverAnkle - kneeOverAnkleAngle) * 0.4 : 0)
             )
           ),
     metrics: { bodyAngle, neckAngle, kneeOverAnkleAngle },

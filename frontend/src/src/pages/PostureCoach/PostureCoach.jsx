@@ -195,37 +195,67 @@ const EXERCISE_GROUPS = [
 // Flat list for lookups (first occurrence per id for display fallback)
 const EXERCISES = EXERCISE_GROUPS.flatMap((g) => g.exercises);
 
-function isFullBodyVisibleFromPose(pose) {
+const DEFAULT_FRONTEND_THRESHOLDS = {
+  keypointScoreVisible: 0.3,
+  keypointConfidenceThreshold: 0.5,
+  minKeypointsForConfFilter: 8,
+  minVisibilityRatio: 0.5,
+  smoothLandmarkWindow: 15,
+  requiredTrackingZones: ["shoulders", "hips", "knees"],
+};
+
+const FRONTEND_EXERCISE_THRESHOLDS = {
+  squat: { ...DEFAULT_FRONTEND_THRESHOLDS },
+  pushup: { ...DEFAULT_FRONTEND_THRESHOLDS, requiredTrackingZones: ["shoulders", "hips", "ankles", "elbows"] },
+  lunge: { ...DEFAULT_FRONTEND_THRESHOLDS, requiredTrackingZones: ["shoulders", "hips", "knees", "ankles"] },
+  bicep_curl: { ...DEFAULT_FRONTEND_THRESHOLDS, minVisibilityRatio: 0.45, requiredTrackingZones: ["shoulders", "elbows", "wrists"] },
+  shoulder_press: { ...DEFAULT_FRONTEND_THRESHOLDS, requiredTrackingZones: ["shoulders", "elbows", "wrists"] },
+  lateral_raise: { ...DEFAULT_FRONTEND_THRESHOLDS, requiredTrackingZones: ["shoulders", "elbows", "wrists", "hips"] },
+  deadlift: { ...DEFAULT_FRONTEND_THRESHOLDS, requiredTrackingZones: ["shoulders", "hips", "knees"] },
+  bent_over_row: { ...DEFAULT_FRONTEND_THRESHOLDS, requiredTrackingZones: ["shoulders", "hips", "elbows", "wrists"] },
+  tricep_extension: { ...DEFAULT_FRONTEND_THRESHOLDS, minVisibilityRatio: 0.45, requiredTrackingZones: ["shoulders", "elbows", "wrists"] },
+  plank: { ...DEFAULT_FRONTEND_THRESHOLDS, requiredTrackingZones: ["shoulders", "hips", "ankles"] },
+  side_plank: { ...DEFAULT_FRONTEND_THRESHOLDS, requiredTrackingZones: ["shoulders", "hips", "ankles"] },
+  high_knees: { ...DEFAULT_FRONTEND_THRESHOLDS, requiredTrackingZones: ["hips", "knees", "ankles"] },
+  jumping_jack: { ...DEFAULT_FRONTEND_THRESHOLDS, minVisibilityRatio: 0.55, requiredTrackingZones: ["shoulders", "hips", "ankles", "wrists"] },
+  mountain_climber: { ...DEFAULT_FRONTEND_THRESHOLDS, requiredTrackingZones: ["shoulders", "hips", "knees", "ankles"] },
+  posture: { ...DEFAULT_FRONTEND_THRESHOLDS, requiredTrackingZones: ["nose", "shoulders", "hips", "knees", "ankles"] },
+};
+
+function getFrontendExerciseThresholds(exerciseType) {
+  return FRONTEND_EXERCISE_THRESHOLDS[exerciseType] || DEFAULT_FRONTEND_THRESHOLDS;
+}
+
+function isFullBodyVisibleFromPose(pose, exerciseType, thresholds) {
   if (!pose?.keypoints?.length) return false;
 
-  // Consider "full body visible" only when we can see the whole chain:
-  // shoulders + hips + knees + ankles (at least one side for each).
+  const th = thresholds || getFrontendExerciseThresholds(exerciseType);
   const keypointsByName = new Map();
   for (const kp of pose.keypoints) {
     if (!kp) continue;
     const name = kp.name || kp.part || kp.id;
     if (!name) continue;
-    if ((kp.score || 0) <= 0.3) continue;
+    if ((kp.score || 0) < th.keypointScoreVisible) continue;
     keypointsByName.set(String(name).toLowerCase(), kp);
   }
 
   const has = (n) => keypointsByName.has(n);
-  const shoulders = has("left_shoulder") || has("right_shoulder");
-  const hips = has("left_hip") || has("right_hip");
-  const knees = has("left_knee") || has("right_knee");
-  // Ankles can be unreliable depending on crop/lighting, so treat them as optional.
-  // We still require shoulders + hips + knees so we don't read issues when only the target
-  // limb/body part is visible.
-  return shoulders && hips && knees;
+  const zoneCheck = {
+    shoulders: has("left_shoulder") || has("right_shoulder"),
+    hips: has("left_hip") || has("right_hip"),
+    knees: has("left_knee") || has("right_knee"),
+    ankles: has("left_ankle") || has("right_ankle"),
+    elbows: has("left_elbow") || has("right_elbow"),
+    wrists: has("left_wrist") || has("right_wrist"),
+    nose: has("nose"),
+  };
+
+  return (th.requiredTrackingZones || []).every((zone) => Boolean(zoneCheck[zone]));
 }
 
 // -------- Narration + accuracy helpers (practical improvements) --------
 // 1) Temporal smoothing: average landmarks over last frames
 // 4) Confidence filtering: ignore low-confidence keypoints
-const SMOOTH_LANDMARK_WINDOW = 15;
-const KEYPOINT_CONFIDENCE_THRESHOLD = 0.5;
-const MIN_KEYPOINTS_FOR_CONF_FILTER = 8;
-
 function toLandmarksFromPoseKeypoints(keypoints) {
   return (keypoints || []).map((kp) => ({
     name: kp?.name || kp?.part || kp?.id,
@@ -235,13 +265,13 @@ function toLandmarksFromPoseKeypoints(keypoints) {
   }));
 }
 
-function filterLandmarksByConfidence(landmarks) {
-  return (landmarks || []).filter((kp) => (kp?.score || 0) >= KEYPOINT_CONFIDENCE_THRESHOLD);
+function filterLandmarksByConfidence(landmarks, confidenceThreshold) {
+  return (landmarks || []).filter((kp) => (kp?.score || 0) >= confidenceThreshold);
 }
 
-function shouldUseFilteredLandmarks(landmarks) {
-  return (landmarks || []).filter((kp) => (kp?.score || 0) >= KEYPOINT_CONFIDENCE_THRESHOLD).length >=
-    MIN_KEYPOINTS_FOR_CONF_FILTER;
+function shouldUseFilteredLandmarks(landmarks, confidenceThreshold, minKeypointsForConfFilter) {
+  return (landmarks || []).filter((kp) => (kp?.score || 0) >= confidenceThreshold).length >=
+    minKeypointsForConfFilter;
 }
 
 function averageLandmarksFromFrames(frames) {
@@ -833,25 +863,25 @@ export default function PostureCoach() {
 
       let text;
       if (!a) {
-        text = `Rep ${repNumber}. Keep going slowly.`;
+        text = `Rep ${repNumber} for ${selectedExerciseLabel}. Keep going slowly.`;
       } else if (fullBodyVisible) {
         if (isCorrect) {
-          text = `Rep ${repNumber}. Good rep. Great control. Keep going slowly.`;
+          text = `Rep ${repNumber} for ${selectedExerciseLabel}. Good rep. Great control.`;
         } else {
           const firstIssue = issues[0];
           text = firstIssue
-            ? `Rep ${repNumber}. Fix: ${firstIssue}. Keep your form steady.`
-            : `Rep ${repNumber}. Needs adjustment. Keep your form steady.`;
+            ? `Rep ${repNumber} for ${selectedExerciseLabel}. Fix: ${firstIssue}`
+            : `Rep ${repNumber} for ${selectedExerciseLabel}. Needs adjustment.`;
         }
       } else {
         // If only the target body part is visible, do not read issue details.
         // Avoid saying "good/bad" from possibly stale analysis; just keep you moving.
-        text = `Rep ${repNumber}. Rep counted. Keep your form steady and slow.`;
+        text = `Rep ${repNumber} for ${selectedExerciseLabel}. I cannot validate form until full body is visible.`;
       }
 
       speakText(text, rate);
     },
-    [speakText]
+    [selectedExerciseLabel, speakText]
   );
 
   const captureLoop = useCallback(async () => {
@@ -878,19 +908,19 @@ export default function PostureCoach() {
       const poses = await detectorRef.current.estimatePoses(video);
       const pose = poses[0];
       if (pose) {
+        const exerciseThresholds = getFrontendExerciseThresholds(exercise);
         // Check overall body visibility based on keypoint confidence
         const visibleKeypoints = pose.keypoints.filter(
-          (kp) => kp && (kp.score || 0) > 0.3
+          (kp) => kp && (kp.score || 0) >= exerciseThresholds.keypointScoreVisible
         );
         const visibilityRatio =
           pose.keypoints.length > 0
             ? visibleKeypoints.length / pose.keypoints.length
             : 0;
 
-        // Require at least ~50% of keypoints confidently visible
-        const bodyVisible = visibilityRatio >= 0.5;
+        const bodyVisible = visibilityRatio >= exerciseThresholds.minVisibilityRatio;
 
-        const fullBodyVisible = isFullBodyVisibleFromPose(pose);
+        const fullBodyVisible = isFullBodyVisibleFromPose(pose, exercise, exerciseThresholds);
         currentFrameVisibilityRef.current = { bodyVisible, fullBodyVisible };
 
         const ctx = canvas.getContext("2d");
@@ -906,14 +936,23 @@ export default function PostureCoach() {
           // Update rep counter only when body is visible
           // Build landmarks and apply confidence filtering
           const rawLandmarks = toLandmarksFromPoseKeypoints(pose.keypoints);
-          const highConfLandmarks = filterLandmarksByConfidence(rawLandmarks);
-          const repLandmarks = shouldUseFilteredLandmarks(rawLandmarks)
+          const highConfLandmarks = filterLandmarksByConfidence(
+            rawLandmarks,
+            exerciseThresholds.keypointConfidenceThreshold
+          );
+          const repLandmarks = shouldUseFilteredLandmarks(
+            rawLandmarks,
+            exerciseThresholds.keypointConfidenceThreshold,
+            exerciseThresholds.minKeypointsForConfFilter
+          )
             ? highConfLandmarks
-            : rawLandmarks.filter((kp) => (kp?.score || 0) > 0.3);
+            : rawLandmarks.filter(
+                (kp) => (kp?.score || 0) >= exerciseThresholds.keypointScoreVisible
+              );
 
           // 1) Temporal smoothing: keep last N frames of (filtered) landmarks
           landmarkHistoryRef.current.push(repLandmarks);
-          if (landmarkHistoryRef.current.length > SMOOTH_LANDMARK_WINDOW) {
+          if (landmarkHistoryRef.current.length > exerciseThresholds.smoothLandmarkWindow) {
             landmarkHistoryRef.current.shift();
           }
           const smoothedLandmarks = averageLandmarksFromFrames(landmarkHistoryRef.current);
@@ -933,14 +972,7 @@ export default function PostureCoach() {
             }
 
             if (repResult.newRep) {
-              // Always increment; never set to repResult.reps so count can't jump down if counter resets
-              repCountRef.current += 1;
-              setReps(repCountRef.current);
-              // Trigger animation
-              setNewRepAnimation(true);
-              setTimeout(() => setNewRepAnimation(false), 500);
-
-              const currentRep = repCountRef.current;
+              const attemptedRep = repCountRef.current + 1;
               const fullBodyVisibleSnapshot = currentFrameVisibilityRef.current.fullBodyVisible;
 
               // Pace: compute rep pace right at the moment the rep is detected.
@@ -969,32 +1001,46 @@ export default function PostureCoach() {
                     if (res?.success && res.analysis) {
                       analysisRef.current = res.analysis;
                       setAnalysis(res.analysis);
-                      speakRepNarration(currentRep, {
-                        analysisOverride: res.analysis,
-                        fullBodyVisibleOverride: true,
-                        rateOverride: rate,
-                      });
+                      // Count only correct reps after posture validation.
+                      if (res.analysis.isCorrect) {
+                        repCountRef.current += 1;
+                        setReps(repCountRef.current);
+                        setNewRepAnimation(true);
+                        setTimeout(() => setNewRepAnimation(false), 500);
+                        speakRepNarration(repCountRef.current, {
+                          analysisOverride: res.analysis,
+                          fullBodyVisibleOverride: true,
+                          rateOverride: rate,
+                        });
+                      } else {
+                        const issue =
+                          Array.isArray(res.analysis.issues) && res.analysis.issues[0]
+                            ? res.analysis.issues[0]
+                            : "Form is not correct.";
+                        speakText(
+                          `Rep ${attemptedRep} for ${selectedExerciseLabel} not counted. ${issue}`,
+                          rate
+                        );
+                      }
                     } else {
-                      speakRepNarration(currentRep, {
-                        analysisOverride: null,
-                        fullBodyVisibleOverride: true,
-                        rateOverride: rate,
-                      });
+                      speakText(
+                        `Rep ${attemptedRep} for ${selectedExerciseLabel} not counted. I could not validate posture.`,
+                        rate
+                      );
                     }
                   })
                   .catch(() => {
-                    speakRepNarration(currentRep, {
-                      analysisOverride: null,
-                      fullBodyVisibleOverride: true,
-                      rateOverride: rate,
-                    });
+                    speakText(
+                      `Rep ${attemptedRep} for ${selectedExerciseLabel} not counted. I could not validate posture.`,
+                      rate
+                    );
                   });
               } else {
-                // If full body isn't visible, do not read issue details.
-                speakRepNarration(currentRep, {
-                  fullBodyVisibleOverride: false,
-                  rateOverride: rate,
-                });
+                // If full body isn't visible, do not count the rep.
+                speakText(
+                  `Rep ${attemptedRep} for ${selectedExerciseLabel} not counted. Show full body in frame.`,
+                  rate
+                );
               }
             }
           }
@@ -1038,7 +1084,7 @@ export default function PostureCoach() {
     }
 
     loopRef.current = requestAnimationFrame(captureLoop);
-  }, [drawSkeleton, exercise, isRunning, speakRepNarration, user?._id]);
+  }, [drawSkeleton, exercise, isRunning, selectedExerciseLabel, speakRepNarration, speakText, user?._id]);
 
   useEffect(() => {
     if (isRunning) {
