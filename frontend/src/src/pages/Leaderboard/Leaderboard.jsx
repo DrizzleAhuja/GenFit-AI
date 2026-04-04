@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { selectUser } from "../../redux/userSlice";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
@@ -324,10 +325,65 @@ export default function Leaderboard() {
           box-shadow: 0 0 20px rgba(139, 92, 246, 0.35);
         }
 
-        .scroll-container {
+        .leaderboard-split-scroll {
           max-height: 600px;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .scroll-container {
           overflow-y: auto;
           padding-right: 0.5rem;
+          min-height: 0;
+          flex: 1 1 auto;
+        }
+
+        .scroll-container.scroll-only {
+          max-height: 600px;
+        }
+
+        .sticky-me-panel {
+          flex-shrink: 0;
+          margin-top: 0.5rem;
+          padding-top: 0.75rem;
+          border-top: 2px solid rgba(34, 211, 238, 0.45);
+          background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(2, 6, 23, 0.98) 100%);
+          border-radius: 0 0 1rem 1rem;
+          box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.9);
+        }
+
+        .sticky-me-label {
+          font-size: 0.7rem;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: rgba(34, 211, 238, 0.9);
+          text-align: center;
+          margin-bottom: 0.5rem;
+        }
+
+        .sticky-me-panel .leaderboard-row {
+          margin-bottom: 0;
+        }
+
+        .quick-log-link {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 2.5rem;
+          min-height: 2.5rem;
+          border-radius: 0.5rem;
+          border: 1px solid rgba(34, 211, 238, 0.35);
+          background: rgba(34, 211, 238, 0.08);
+          font-size: 1.125rem;
+          line-height: 1;
+          transition: background 0.15s, border-color 0.15s, transform 0.15s;
+        }
+
+        .quick-log-link:hover {
+          background: rgba(139, 92, 246, 0.2);
+          border-color: rgba(139, 92, 246, 0.55);
+          transform: scale(1.05);
         }
 
         .scroll-container::-webkit-scrollbar {
@@ -462,8 +518,18 @@ export default function Leaderboard() {
                             {milestoneMsg ? (
                               <span className="font-medium text-cyan-300">{milestoneMsg} </span>
                             ) : null}
-                            Overtake <span className="font-bold text-purple-400">{nameAbove}</span> by earning {pointsNeeded} points. 
-                            (Just <span className="font-bold text-cyan-400">{workoutsNeeded} workout{workoutsNeeded > 1 ? 's' : ''}</span>!)
+                            Overtake <span className="font-bold text-purple-400">{nameAbove}</span> by earning{" "}
+                            {pointsNeeded} points{" "}
+                            <span className="whitespace-nowrap">
+                              (Just{" "}
+                              <Link
+                                to="/Workout"
+                                className="inline-flex items-baseline font-bold text-cyan-300 underline decoration-cyan-400/70 decoration-2 underline-offset-2 hover:text-white hover:decoration-white rounded px-1.5 py-0.5 hover:bg-cyan-500/20 transition-colors"
+                              >
+                                {workoutsNeeded} workout{workoutsNeeded > 1 ? "s" : ""}
+                              </Link>
+                              !)
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -535,49 +601,92 @@ export default function Leaderboard() {
                 How to Earn Points
               </h2>
             </div>
+            <p className="text-sm text-gray-400 mb-4">
+              Tap a quick-log icon to jump straight to the screen where you can earn that reward.
+            </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="info-item">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="text-2xl">📊</div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="text-2xl shrink-0">📊</div>
                     <span className="text-gray-200 font-medium">BMI Save/Update</span>
                   </div>
-                  <span className="text-2xl font-black bg-gradient-to-r from-[#22D3EE] to-[#8B5CF6] bg-clip-text text-transparent">
-                    +10
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-2xl font-black bg-gradient-to-r from-[#22D3EE] to-[#8B5CF6] bg-clip-text text-transparent">
+                      +10
+                    </span>
+                    <Link
+                      to="/CurrentBMI"
+                      className="quick-log-link"
+                      title="Open BMI calculator"
+                      aria-label="Quick log: BMI (plus 10 points)"
+                    >
+                      📝
+                    </Link>
+                  </div>
                 </div>
               </div>
               <div className="info-item">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="text-2xl">💪</div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="text-2xl shrink-0">💪</div>
                     <span className="text-gray-200 font-medium">Workout Plan Generated</span>
                   </div>
-                  <span className="text-2xl font-black bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE] bg-clip-text text-transparent">
-                    +20
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-2xl font-black bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE] bg-clip-text text-transparent">
+                      +20
+                    </span>
+                    <Link
+                      to="/my-workout-plan"
+                      className="quick-log-link"
+                      title="Open my workout plan"
+                      aria-label="Quick log: workout plan (plus 20 points)"
+                    >
+                      📋
+                    </Link>
+                  </div>
                 </div>
               </div>
               <div className="info-item">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="text-2xl">✅</div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="text-2xl shrink-0">✅</div>
                     <span className="text-gray-200 font-medium">Workout Day Completed</span>
                   </div>
-                  <span className="text-2xl font-black bg-gradient-to-r from-[#FACC15] to-[#F97316] bg-clip-text text-transparent">
-                    +20
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-2xl font-black bg-gradient-to-r from-[#FACC15] to-[#F97316] bg-clip-text text-transparent">
+                      +20
+                    </span>
+                    <Link
+                      to="/Workout"
+                      className="quick-log-link"
+                      title="Open workouts"
+                      aria-label="Quick log: complete a workout day (plus 20 points)"
+                    >
+                      🏋️
+                    </Link>
+                  </div>
                 </div>
               </div>
               <div className="info-item">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="text-2xl">🥗</div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="text-2xl shrink-0">🥗</div>
                     <span className="text-gray-200 font-medium">Diet Chart Generated</span>
                   </div>
-                  <span className="text-2xl font-black bg-gradient-to-r from-[#A855F7] to-[#22D3EE] bg-clip-text text-transparent">
-                    +20
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-2xl font-black bg-gradient-to-r from-[#A855F7] to-[#22D3EE] bg-clip-text text-transparent">
+                      +20
+                    </span>
+                    <Link
+                      to="/diet-chart"
+                      className="quick-log-link"
+                      title="Open diet chart"
+                      aria-label="Quick log: diet chart (plus 20 points)"
+                    >
+                      🥗
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>
@@ -693,30 +802,74 @@ export default function Leaderboard() {
               </button>
             </div>
 
-            {/* Leaderboard Content */}
-            <div className="scroll-container">
-              {activeTab === 'weekly' ? (
-                weekly.length > 0 ? (
-                  weekly.map((u, i) => <Row key={u._id || i} u={u} i={i} weeklyMode />)
-                ) : (
-                  <div className="text-center text-gray-400 py-12">
-                    <div className="text-6xl mb-4">📊</div>
-                    <p className="text-xl">No weekly data available yet</p>
-                    <p className="text-sm mt-2">Start earning points to appear on the leaderboard!</p>
-                  </div>
-                )
+            {/* Leaderboard Content — scroll others; pin signed-in user to bottom when ranked */}
+            {activeTab === "weekly" ? (
+              weekly.length > 0 ? (
+                (() => {
+                  const list = weekly;
+                  const myIdx = user?.email
+                    ? list.findIndex((u) => u.email === user.email)
+                    : -1;
+                  const me = myIdx >= 0 ? list[myIdx] : null;
+                  const others = me ? list.filter((u) => u.email !== user.email) : list;
+                  return (
+                    <div className="leaderboard-split-scroll">
+                      <div className="scroll-container">
+                        {others.map((u) => {
+                          const i = list.findIndex((x) => x.email === u.email);
+                          return (
+                            <Row key={u._id || u.email || i} u={u} i={i} weeklyMode />
+                          );
+                        })}
+                      </div>
+                      {me && (
+                        <div className="sticky-me-panel">
+                          <div className="sticky-me-label">Your rank</div>
+                          <Row u={me} i={myIdx} weeklyMode />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()
               ) : (
-                allTime.length > 0 ? (
-                  allTime.map((u, i) => <Row key={u._id || i} u={u} i={i} />)
-                ) : (
-                  <div className="text-center text-gray-400 py-12">
-                    <div className="text-6xl mb-4">🏆</div>
-                    <p className="text-xl">No all-time data available yet</p>
-                    <p className="text-sm mt-2">Be the first to earn points!</p>
+                <div className="scroll-container scroll-only text-center text-gray-400 py-12">
+                  <div className="text-6xl mb-4">📊</div>
+                  <p className="text-xl">No weekly data available yet</p>
+                  <p className="text-sm mt-2">Start earning points to appear on the leaderboard!</p>
+                </div>
+              )
+            ) : allTime.length > 0 ? (
+              (() => {
+                const list = allTime;
+                const myIdx = user?.email
+                  ? list.findIndex((u) => u.email === user.email)
+                  : -1;
+                const me = myIdx >= 0 ? list[myIdx] : null;
+                const others = me ? list.filter((u) => u.email !== user.email) : list;
+                return (
+                  <div className="leaderboard-split-scroll">
+                    <div className="scroll-container">
+                      {others.map((u) => {
+                        const i = list.findIndex((x) => x.email === u.email);
+                        return <Row key={u._id || u.email || i} u={u} i={i} />;
+                      })}
+                    </div>
+                    {me && (
+                      <div className="sticky-me-panel">
+                        <div className="sticky-me-label">Your rank</div>
+                        <Row u={me} i={myIdx} />
+                      </div>
+                    )}
                   </div>
-                )
-              )}
-            </div>
+                );
+              })()
+            ) : (
+              <div className="scroll-container scroll-only text-center text-gray-400 py-12">
+                <div className="text-6xl mb-4">🏆</div>
+                <p className="text-xl">No all-time data available yet</p>
+                <p className="text-sm mt-2">Be the first to earn points!</p>
+              </div>
+            )}
           </div>
         </div>
         </section>
