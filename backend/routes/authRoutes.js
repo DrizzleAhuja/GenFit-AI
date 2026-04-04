@@ -1872,10 +1872,11 @@ ${userNote ? `User note / context: ${userNote}` : ""}
     });
   }
 });
-// Log daily calorie intake (aggregated per day per user)
+// Log daily calorie intake — merges into the same calendar day (UTC) so users can add many foods.
 router.post("/calorie-intake/log", async (req, res) => {
   try {
-    const { userId, totalCalories, date, source, notes, items, waterIntake } = req.body || {};
+    const { userId, totalCalories, date, source, notes, items, waterIntake, mealType: bodyMealType } =
+      req.body || {};
 
     if (!userId) {
       return res.status(400).json({
@@ -1893,34 +1894,114 @@ router.post("/calorie-intake/log", async (req, res) => {
     }
 
     const logDate = date ? new Date(date) : new Date();
+    const dayStr = logDate.toISOString().slice(0, 10);
+    const startUtc = new Date(`${dayStr}T00:00:00.000Z`);
+    const endUtc = new Date(`${dayStr}T23:59:59.999Z`);
 
-    const safeItems =
-      Array.isArray(items) && items.length > 0
-        ? items
-            .filter(
-              (it) =>
-                it &&
-                typeof it.name === "string" &&
-                typeof it.caloriesPerItem === "number" &&
-                typeof it.totalCalories === "number"
-            )
-            .map((it) => ({
-              name: it.name,
-              caloriesPerItem: it.caloriesPerItem,
-              quantity: typeof it.quantity === "number" ? it.quantity : 1,
-              totalCalories: it.totalCalories,
-              mealType: it.mealType || "Other",
-            }))
-        : [];
+    const MEALS = ["Breakfast", "Lunch", "Evening Snack", "Dinner", "Other"];
+    const defaultMeal =
+      typeof bodyMealType === "string" && MEALS.includes(bodyMealType) ? bodyMealType : "Other";
+
+    const rawItems = Array.isArray(items) ? items : [];
+
+    const safeItems = rawItems
+      .map((it) => {
+        if (!it) return null;
+        const name =
+          typeof it.name === "string"
+            ? it.name.trim()
+            : String(it.name ?? "")
+                .trim();
+        if (!name) return null;
+
+        const cpi = Number(it.caloriesPerItem ?? it.estimated_calories);
+        const qtyRaw = Number(it.quantity);
+        const qty = Number.isFinite(qtyRaw) && qtyRaw > 0 ? qtyRaw : 1;
+        let tc = Number(it.totalCalories);
+        if (!Number.isFinite(tc) || tc < 0) {
+          tc = Number.isFinite(cpi) && cpi >= 0 ? cpi * qty : NaN;
+        }
+        if (!Number.isFinite(cpi) || cpi < 0 || !Number.isFinite(tc) || tc < 0) return null;
+
+        const mt =
+          typeof it.mealType === "string" && MEALS.includes(it.mealType) ? it.mealType : defaultMeal;
+
+        return {
+          name,
+          caloriesPerItem: cpi,
+          quantity: qty,
+          totalCalories: tc,
+          mealType: mt,
+        };
+      })
+      .filter(Boolean);
+
+    const tcBody = Number(totalCalories);
+    if (safeItems.length === 0 && Number.isFinite(tcBody) && tcBody > 0) {
+      safeItems.push({
+        name: "Meal",
+        caloriesPerItem: tcBody,
+        quantity: 1,
+        totalCalories: tcBody,
+        mealType: defaultMeal,
+      });
+    }
+
+    const calorieDelta = safeItems.reduce((s, it) => s + (Number(it.totalCalories) || 0), 0);
+    const addWaterRaw = Number(waterIntake);
+    const addWaterSafe = Number.isFinite(addWaterRaw) && addWaterRaw > 0 ? addWaterRaw : 0;
+
+    if (safeItems.length === 0 && addWaterSafe <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Nothing to log. Describe what you ate or add water.",
+      });
+    }
+
+    const todays = await CalorieIntakeLog.find({
+      userId: user._id,
+      date: { $gte: startUtc, $lte: endUtc },
+    }).sort({ updatedAt: -1 });
+
+    const targetLog =
+      todays.find((l) => Array.isArray(l.items) && l.items.length > 0) || todays[0] || null;
+
+    if (targetLog && (safeItems.length > 0 || addWaterSafe > 0)) {
+      for (const it of safeItems) {
+        targetLog.items.push(it);
+      }
+      targetLog.totalCalories = (Number(targetLog.totalCalories) || 0) + calorieDelta;
+      if (addWaterSafe) {
+        targetLog.waterIntake = (Number(targetLog.waterIntake) || 0) + addWaterSafe;
+      }
+      if (notes && String(notes).trim()) {
+        const n = String(notes).trim();
+        targetLog.notes = targetLog.notes ? `${targetLog.notes}\n${n}` : n;
+      }
+      if (source) {
+        if (targetLog.source && targetLog.source !== source) {
+          targetLog.source = "mixed";
+        } else if (!targetLog.source) {
+          targetLog.source = source;
+        }
+      }
+      targetLog.markModified("items");
+      await targetLog.save();
+      return res.status(200).json({
+        success: true,
+        log: targetLog,
+        merged: true,
+      });
+    }
 
     const log = await CalorieIntakeLog.create({
       userId: user._id,
-      totalCalories: totalCalories || 0,
+      totalCalories: calorieDelta,
       source: source || "image",
       notes: notes || undefined,
       date: logDate,
       items: safeItems,
-      waterIntake: waterIntake || 0,
+      waterIntake: addWaterSafe,
     });
 
     return res.status(201).json({
@@ -2009,19 +2090,151 @@ User input: "${text}"
     let raw = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
     raw = raw.trim();
 
-    // Strip Accidental Markdown code formatting
-    if (raw.startsWith("\`\`\`")) {
-      raw = raw.replace(/^\`\`\`[a-zA-Z]*\n?/, "").replace(/\`\`\`$/, "").trim();
+    if (raw.startsWith("```")) {
+      raw = raw.replace(/^```[a-zA-Z]*\n?/, "").replace(/```$/, "").trim();
     }
 
-    let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch (e) {
-      console.error("Failed to parse Text Estimate JSON:", raw);
-      return res.status(500).json({
+    const tryParseJsonObject = (str) => {
+      try {
+        return JSON.parse(str);
+      } catch {
+        return null;
+      }
+    };
+
+    let parsed = tryParseJsonObject(raw);
+    if (!parsed) {
+      const start = raw.indexOf("{");
+      const end = raw.lastIndexOf("}");
+      if (start !== -1 && end > start) {
+        parsed = tryParseJsonObject(raw.slice(start, end + 1));
+      }
+    }
+
+    if (!parsed) {
+      console.error("Text estimate: primary JSON parse failed, using regex fallback. Raw:", raw);
+      try {
+        const items = [];
+        const nameMatches = [...raw.matchAll(/"name"\s*:\s*"([^"\n]+)/g)];
+        const calMatches = [
+          ...raw.matchAll(/"estimated_calories"\s*:\s*([0-9]+(?:\.[0-9]+)?)/g),
+        ];
+        const maxLen = Math.max(nameMatches.length, calMatches.length);
+        for (let i = 0; i < maxLen; i++) {
+          const name = nameMatches[i]?.[1]?.trim() || `Food ${i + 1}`;
+          const calories = calMatches[i] ? Number(calMatches[i][1]) : 0;
+          items.push({
+            name,
+            estimated_calories: calories,
+          });
+        }
+        const totalFromKeys = items.reduce(
+          (acc, it) => acc + (Number(it.estimated_calories) || 0),
+          0
+        );
+        const totalMatch = raw.match(
+          /"total_estimated_calories"\s*:\s*([0-9]+(?:\.[0-9]+)?)/
+        );
+        const totalFromField = totalMatch ? Number(totalMatch[1]) : NaN;
+        parsed = {
+          food_items: items,
+          total_estimated_calories: Number.isFinite(totalFromField)
+            ? totalFromField
+            : totalFromKeys,
+          mealType: mealType || "Other",
+        };
+      } catch (fallbackErr) {
+        console.error("Text estimate regex fallback failed:", fallbackErr.message);
+        parsed = null;
+      }
+    }
+
+    const heuristicFromUserText = (userText) => {
+      const t = String(userText || "").trim().toLowerCase();
+      if (!t) return null;
+      const original = String(userText || "").trim();
+      if (/\bmilk\b/.test(t)) {
+        const isPlant = /\b(almond|soy|oat|coconut|cashew)\b/.test(t);
+        const kcal = isPlant ? 80 : /\b(skim|low[-\s]?fat|toned)\b/.test(t) ? 90 : 150;
+        return {
+          food_items: [{ name: original || "1 glass milk", estimated_calories: kcal }],
+          total_estimated_calories: kcal,
+          mealType: mealType || "Other",
+        };
+      }
+      return null;
+    };
+
+    const totalBeforeNormalize = Number(parsed?.total_estimated_calories);
+    const hasTotalBefore =
+      Number.isFinite(totalBeforeNormalize) && totalBeforeNormalize > 0;
+    if (
+      !parsed ||
+      !Array.isArray(parsed.food_items) ||
+      parsed.food_items.length === 0
+    ) {
+      const h = heuristicFromUserText(text);
+      if (h) {
+        parsed = h;
+      } else if (!parsed) {
+        return res.status(500).json({
+          success: false,
+          error: "Failed to parse AI response. Please try being more specific.",
+        });
+      } else if (!hasTotalBefore) {
+        return res.status(422).json({
+          success: false,
+          error:
+            "Could not estimate calories for that text. Try adding amount and food name (e.g. 250 ml milk).",
+        });
+      }
+    }
+
+    const MEAL_TYPES = ["Breakfast", "Lunch", "Evening Snack", "Dinner", "Other"];
+    if (parsed.food_items && Array.isArray(parsed.food_items)) {
+      parsed.food_items = parsed.food_items
+        .map((row) => {
+          const name =
+            typeof row.name === "string"
+              ? row.name.trim()
+              : String(row.name ?? "")
+                  .trim();
+          const estimated_calories = Number(row.estimated_calories);
+          if (!name || !Number.isFinite(estimated_calories) || estimated_calories < 0) return null;
+          return { name, estimated_calories };
+        })
+        .filter(Boolean);
+    }
+    let totalEst = Number(parsed.total_estimated_calories);
+    if (!Number.isFinite(totalEst) || totalEst < 0) {
+      totalEst = (parsed.food_items || []).reduce(
+        (acc, row) => acc + (Number(row.estimated_calories) || 0),
+        0
+      );
+    }
+    parsed.total_estimated_calories = totalEst;
+    if (typeof parsed.mealType === "string" && MEAL_TYPES.includes(parsed.mealType)) {
+      // keep
+    } else if (mealType && MEAL_TYPES.includes(mealType)) {
+      parsed.mealType = mealType;
+    }
+
+    if (!parsed.food_items?.length) {
+      const h = heuristicFromUserText(text);
+      if (h) {
+        parsed.food_items = h.food_items;
+        parsed.total_estimated_calories = h.total_estimated_calories;
+        if (mealType && MEAL_TYPES.includes(mealType)) parsed.mealType = mealType;
+      }
+    }
+    const hasTotal =
+      Number.isFinite(Number(parsed.total_estimated_calories)) &&
+      Number(parsed.total_estimated_calories) > 0;
+    if (!parsed.food_items?.length && !hasTotal) {
+      return res.status(422).json({
         success: false,
-        error: "Failed to parse AI response. Please try being more specific.",
+        error:
+          "Could not estimate calories for that text. Try rephrasing with amount and food name (e.g. 250 ml milk).",
       });
     }
 

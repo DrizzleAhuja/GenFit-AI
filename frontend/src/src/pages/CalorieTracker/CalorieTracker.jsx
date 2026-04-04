@@ -101,12 +101,6 @@ export default function CalorieTracker() {
       setNotice({ type: "error", text: "Please enter what you ate." });
       return;
     }
-    const lenErr = validateLength(text, 1, LIMITS.MEAL_TEXT_MAX, "Meal description");
-    if (lenErr) {
-      setNotice({ type: "error", text: lenErr });
-      return;
-    }
-
     setLoadingMeals((prev) => ({ ...prev, [mealType]: true }));
     try {
       // 1. Get estimate from Gemini
@@ -118,16 +112,17 @@ export default function CalorieTracker() {
       // 2. Save to backend
       const payload = {
         userId: user._id,
+        mealType,
         totalCalories: total_estimated_calories || 0,
         source: "text",
         waterIntake: 0,
-        items: (food_items || []).map(f => ({
+        items: (food_items || []).map((f) => ({
           name: f.name,
-          caloriesPerItem: f.estimated_calories,
+          caloriesPerItem: Number(f.estimated_calories) || 0,
           quantity: 1,
-          totalCalories: f.estimated_calories,
-          mealType: mealType
-        }))
+          totalCalories: Number(f.estimated_calories) || 0,
+          mealType,
+        })),
       };
 
       await axios.post(`${API_BASE_URL}${API_ENDPOINTS.CALORIE_INTAKE}/log`, payload);
@@ -141,7 +136,14 @@ export default function CalorieTracker() {
 
     } catch (err) {
       console.error(err);
-      setNotice({ type: "error", text: "Failed to log meal. Please try again." });
+      const apiMsg = err.response?.data?.error || err.response?.data?.details;
+      setNotice({
+        type: "error",
+        text:
+          typeof apiMsg === "string" && apiMsg.trim()
+            ? apiMsg
+            : "Failed to log meal. Please try again.",
+      });
     } finally {
       setLoadingMeals((prev) => ({ ...prev, [mealType]: false }));
     }
@@ -213,16 +215,21 @@ export default function CalorieTracker() {
       // 2. Save log to backend
       const payload = {
         userId: user._id,
+        mealType,
         totalCalories: totalCaloriesForQuantity,
         source: "image",
         waterIntake: 0,
-        items: (food_items || []).map(f => ({
-          name: f.name,
-          caloriesPerItem: f.estimated_calories,
-          quantity: imageQuantity,
-          totalCalories: f.estimated_calories * imageQuantity,
-          mealType: mealType
-        }))
+        items: (food_items || []).map((f) => {
+          const c = Number(f.estimated_calories) || 0;
+          const q = Number(imageQuantity) || 1;
+          return {
+            name: f.name,
+            caloriesPerItem: c,
+            quantity: q,
+            totalCalories: c * q,
+            mealType,
+          };
+        }),
       };
 
       await axios.post(`${API_BASE_URL}${API_ENDPOINTS.CALORIE_INTAKE}/log`, payload);
@@ -557,7 +564,6 @@ export default function CalorieTracker() {
                             </button>
                             <input
                               type="text"
-                              maxLength={LIMITS.MEAL_TEXT_MAX}
                               value={inputs[meal.id] || ""}
                               onChange={(e) => setInputs(prev => ({ ...prev, [meal.id]: e.target.value }))}
                               placeholder={`E.g., "2 parathas with curd" or "1 chicken sandwich"`}
