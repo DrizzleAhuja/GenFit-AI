@@ -563,6 +563,43 @@ export default function CalorieTracker() {
               </p>
             </header>
 
+            {/* Stays under main nav (fixed/sticky); keeps today's total visible while scrolling meals */}
+            <div
+              className="sticky z-40 top-16 lg:top-[4.75rem] -mx-4 sm:mx-0 sm:rounded-xl mb-6 flex flex-wrap items-center gap-3 sm:gap-4 border border-[#22D3EE]/25 bg-[#05010d]/92 backdrop-blur-xl px-4 py-3 shadow-[0_8px_32px_rgba(15,23,42,0.65)]"
+              aria-live="polite"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#8B5CF6]/40 to-[#22D3EE]/25 border border-[#8B5CF6]/40 shadow-[0_0_18px_rgba(139,92,246,0.25)]">
+                  <Flame className="w-6 h-6 text-[#FACC15]" aria-hidden />
+                </div>
+                <div className="min-w-0">
+                  <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-gray-500">
+                    Total calories
+                  </span>
+                  <span className="text-2xl sm:text-3xl font-black text-white tabular-nums tracking-tight">
+                    {Math.round(totalCaloriesToday)}
+                    <span className="text-base sm:text-lg font-semibold text-[#22D3EE] ml-1.5">kcal</span>
+                  </span>
+                </div>
+              </div>
+              {targetCal ? (
+                <div className="flex flex-wrap items-center gap-2 sm:ml-auto sm:border-l sm:border-[#1F2937] sm:pl-4">
+                  <span className="text-xs text-gray-400">
+                    Target <span className="text-gray-200 font-semibold">{targetCal}</span> kcal
+                  </span>
+                  {calPct !== null ? (
+                    <span className="inline-flex items-center rounded-full border border-[#22D3EE]/35 bg-[#22D3EE]/10 px-2.5 py-0.5 text-xs font-bold text-[#22D3EE]">
+                      {calPct}% of goal
+                    </span>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="text-[11px] text-gray-500 sm:ml-auto max-w-[14rem] sm:max-w-none">
+                  Add BMI for a daily target and progress %.
+                </p>
+              )}
+            </div>
+
             {notice && (
               <div
                 className={`mb-6 rounded-2xl border px-4 py-3 flex items-start justify-between gap-3 shadow-lg ${
@@ -841,11 +878,19 @@ export default function CalorieTracker() {
                           // Text Input Area
                           <div className="relative flex items-center gap-3 mt-2">
                             <button
+                              type="button"
                               onClick={() => openScanner(meal.id)}
-                              title="Scan Food Image"
-                              className="shrink-0 flex items-center justify-center p-3 rounded-xl bg-[#1F2937]/80 text-gray-300 hover:text-white hover:bg-[#374151] border border-gray-700 transition-colors shadow-sm"
+                              title="Scan food with camera"
+                              aria-label={`Open camera scanner for ${meal.label}`}
+                              className="group shrink-0 flex flex-col items-center justify-center gap-0.5 rounded-2xl px-3 py-2.5 sm:px-4 sm:py-3 min-w-[4.25rem] sm:min-w-[4.75rem] bg-gradient-to-br from-[#8B5CF6]/45 via-[#7C3AED]/35 to-[#22D3EE]/25 text-white border-2 border-[#A855F7]/70 hover:border-[#22D3EE] hover:from-[#8B5CF6]/60 hover:via-[#7C3AED]/45 hover:to-[#22D3EE]/40 shadow-[0_0_22px_rgba(139,92,246,0.45)] hover:shadow-[0_0_28px_rgba(34,211,238,0.5)] transition-all duration-200 ring-2 ring-[#8B5CF6]/20 hover:ring-[#22D3EE]/35"
                             >
-                              <Camera className="w-5 h-5 text-[#8B5CF6]" />
+                              <Camera
+                                className="w-7 h-7 sm:w-8 sm:h-8 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.4)] group-hover:scale-105 transition-transform"
+                                strokeWidth={2.35}
+                              />
+                              <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-white/95 leading-none">
+                                Photo
+                              </span>
                             </button>
                             <input
                               type="text"
