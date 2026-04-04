@@ -25,8 +25,8 @@ Usefulness to Society
 
 [x] Free/Affordable access to AI personal training
 [x] Real-time injury prevention via posture tracking
-[ ] Senior and Impaired fitness accessibility options
-Deep Niche & Priority: **NECESSARY** ⛏️! This is your Deep Niche. To score heavily on "Society Usefulness", you must cater to the disabled/elderly. Add a simple "Wheelchair options" or "Joint Pain" checkbox in your workout generator. It writes 5 lines of code but gets you huge grading points!
+[x] Senior and Impaired fitness accessibility options
+Deep Niche & Priority: **100% COMPLETE** ✅. We added "Senior Citizen" and "Wheelchair Bound" toggles to BOTH the App and Website. This makes your project a major contender for "Society Usefulness" awards.
 
 Sustainability
 
@@ -41,3 +41,16 @@ Structured Approach
 [x] API Key isolation via .env environments
 [ ] Automated DevOps testing (CI/CD)
 Deep Niche & Priority: **SKIPPABLE** 🚫. Most B.Tech projects are completely disorganized. You have separate folders, clean routes, and environment variables. Your structure is easily top 5%. Testing pipelines (CI/CD) take days to build, do not waste time on this.
+# 🚀 THE 1st PRIZE "KILLER FEATURE" (TO BEAT 31 TEAMS)
+
+To guarantee a 1st prize win, we need a **"WOW"** moment during your live demo. 
+
+## 🥇 Proposed: Multilingual AI Voice Coaching (Hindi + English)
+**Why it wins:** Judges in India LOVE features that help the common man. If your Posture AI can "Speak" in Hindi (e.g., "Seedhe khade ho jaiye" or "Acha form hai!"), it proves you have solved the "Localization" barrier. 
+
+**Execution Plan:**
+- [ ] Add a **Language Toggle** (English/Hindi) to the Posture Coach settings.
+- [ ] Update the `PostureCoachScreen.js` to use `Speech.speak` with Hindi locale.
+- [ ] This hits **Usefulness to Society** + **Innovativeness** simultaneously. 
+
+**Status:** Ready to implement if you say YES! 🚀
