@@ -34,7 +34,9 @@ import {
   ChevronRight,
   Dumbbell,
   LineChart,
+  ListOrdered,
 } from "lucide-react";
+import OnboardingGuide from "../../Components/OnboardingGuide";
 
 // Features page colors: #8B5CF6, #22D3EE, #FACC15, bg #020617 / #05010d, border #1F2937
 const COLORS = {
@@ -755,7 +757,7 @@ export default function Home() {
                   </h1>
 
                   {/* Subheading with Type Animation */}
-                  <div className="text-base sm:text-lg md:text-xl lg:text-2xl mb-8 max-w-2xl mx-auto lg:mx-0 leading-relaxed text-gray-300 h-[60px] md:h-auto">
+                  <div className="text-base sm:text-lg md:text-xl lg:text-2xl mb-6 max-w-2xl mx-auto lg:mx-0 leading-relaxed text-gray-300 h-[60px] md:h-auto">
                     <TypeAnimation
                       sequence={[
                         "GenFit AI watches your movements for perfect form.",
@@ -769,6 +771,41 @@ export default function Home() {
                       speed={50}
                       repeat={Infinity}
                     />
+                  </div>
+
+                  <div className="mb-8 max-w-2xl mx-auto lg:mx-0 rounded-2xl border border-[#8B5CF6]/25 bg-[#020617]/70 backdrop-blur-sm p-4 sm:p-5 shadow-[0_8px_32px_rgba(15,23,42,0.6)]">
+                    <div className="flex items-center gap-2 mb-3">
+                      <ListOrdered className="w-4 h-4 text-[#FACC15] shrink-0" />
+                      <span className="text-xs font-bold uppercase tracking-[0.15em] text-[#22D3EE]">
+                        Start here after you sign in
+                      </span>
+                    </div>
+                    <ol className="text-sm text-gray-300 space-y-2.5 leading-snug list-none">
+                      <li className="flex gap-3">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#8B5CF6]/30 text-xs font-bold text-white">
+                          1
+                        </span>
+                        <span>
+                          <strong className="text-white">BMI</strong> — one-time setup for targets, diet, and safer plans.
+                        </span>
+                      </li>
+                      <li className="flex gap-3">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#8B5CF6]/30 text-xs font-bold text-white">
+                          2
+                        </span>
+                        <span>
+                          <strong className="text-white">Workouts</strong> — generate a plan and log sessions to track progress.
+                        </span>
+                      </li>
+                      <li className="flex gap-3">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#8B5CF6]/30 text-xs font-bold text-white">
+                          3
+                        </span>
+                        <span>
+                          <strong className="text-white">Calorie tracker</strong> — log food and hydration alongside training.
+                        </span>
+                      </li>
+                    </ol>
                   </div>
 
                   {/* CTA Buttons */}
@@ -968,6 +1005,13 @@ export default function Home() {
                   </button>
                 </div>
               )}
+
+              <OnboardingGuide
+                loading={loading}
+                bmiHistory={bmiHistory}
+                sessionLogs={sessionLogs}
+                calorieHistory={calorieHistory}
+              />
 
               {/* Header – Features style */}
               <header className="text-center md:text-left mb-6 sm:mb-8 lg:mb-10">
