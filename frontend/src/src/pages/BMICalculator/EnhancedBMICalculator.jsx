@@ -1016,24 +1016,28 @@ export default function EnhancedBMICalculator() {
                 <div className="space-y-4 sm:space-y-6 order-1 lg:order-2">
                   {/* BMI Result */}
                   {bmiResult && (
-                    <div className="relative rounded-xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-4 sm:p-6 shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
-                      <h3 className="text-lg sm:text-xl lg:text-2xl font-bold mb-3 sm:mb-4 flex items-center">
+                    <div className="relative rounded-xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-4 sm:p-6 shadow-[0_18px_45px_rgba(15,23,42,0.8)] overflow-hidden">
+                      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE] rounded-t-xl" />
+                      <h3 className="text-lg sm:text-xl lg:text-2xl font-bold mb-4 sm:mb-5 flex items-center pt-1">
                         <FaCheckCircle className="mr-2 sm:mr-3 text-green-400 text-base sm:text-lg lg:text-xl" />
                         <span className="text-sm sm:text-base lg:text-lg">Your BMI Result</span>
                       </h3>
                       <div className="text-center">
+                        <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 mb-2">
+                          Body Mass Index
+                        </p>
                         <div
-                          className={`inline-flex items-center justify-center w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-full ${getBMIBgColor(
-                            bmiResult.bmi
-                          )} mb-3 sm:mb-4`}
+                          className={`inline-flex flex-col items-center justify-center w-28 h-28 sm:w-32 sm:h-32 lg:w-36 lg:h-36 rounded-full ${getBMIBgColor(
+                            roundBmiOneDecimal(Number(bmiResult.bmi))
+                          )} mb-3 sm:mb-4 shadow-lg ring-2 ring-white/10`}
                         >
-                          <span className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">
-                            {bmiResult.bmi}
+                          <span className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tabular-nums tracking-tight">
+                            {formatBmiOneDecimal(bmiResult.bmi)}
                           </span>
                         </div>
                         <p
                           className={`text-lg sm:text-xl lg:text-2xl font-semibold ${getBMIColor(
-                            bmiResult.bmi
+                            roundBmiOneDecimal(Number(bmiResult.bmi))
                           )}`}
                         >
                           {bmiResult.category}

@@ -404,20 +404,32 @@ export default function BMICalculator() {
             </div>
 
             {bmi && (
-              <div className="mt-8 p-4 bg-gray-700 rounded-lg border border-gray-600">
-                <h3 className="text-lg font-semibold mb-2 text-white">
-                  Your Results
+              <div className="mt-8 p-5 bg-gray-700/90 rounded-xl border border-gray-600 overflow-hidden relative">
+                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE]" />
+                <h3 className="text-lg font-semibold mb-4 text-white pt-1">
+                  Your BMI result
                 </h3>
-                <div className="flex items-center justify-between">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-2">
+                  Body Mass Index
+                </p>
+                <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
                   <div>
-                    <p className="text-gray-300">Your BMI:</p>
-                    <p className={`text-3xl font-bold ${getBMIColor(bmi)}`}>
-                      {bmi}
+                    <p className="text-gray-400 text-sm mb-1">BMI</p>
+                    <p
+                      className={`text-4xl font-black tabular-nums tracking-tight ${getBMIColor(
+                        roundBmiOneDecimal(Number(bmi))
+                      )}`}
+                    >
+                      {formatBmiOneDecimal(bmi)}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-gray-300">Category:</p>
-                    <p className={`text-xl font-semibold ${getBMIColor(bmi)}`}>
+                  <div className="sm:text-right">
+                    <p className="text-gray-400 text-sm mb-1">Category</p>
+                    <p
+                      className={`text-xl font-semibold ${getBMIColor(
+                        roundBmiOneDecimal(Number(bmi))
+                      )}`}
+                    >
                       {category}
                     </p>
                   </div>
