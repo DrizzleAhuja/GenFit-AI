@@ -7,7 +7,6 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
   FaWeight,
-  FaRulerVertical,
   FaBirthdayCake,
   FaVenusMars,
   FaHistory,
@@ -18,14 +17,21 @@ import {
   BMI_LIMITS,
   validateBmiForm,
   bmiCategoryFromValue,
-  heightMetersFromFtIn,
+  computeBmiFromForm,
+  ftInToCm,
+  cmToFtIn,
+  kgToLb,
+  lbToKg,
 } from "./bmiFormValidation";
 
 export default function BMICalculator() {
   const user = useSelector(selectUser);
-  const [weight, setWeight] = useState("");
+  const [heightUnit, setHeightUnit] = useState("imperial");
+  const [weightUnit, setWeightUnit] = useState("kg");
   const [heightFeet, setHeightFeet] = useState("");
   const [heightInches, setHeightInches] = useState("");
+  const [heightCm, setHeightCm] = useState("");
+  const [weight, setWeight] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("male");
   const [bmi, setBmi] = useState(null);
@@ -59,13 +65,56 @@ export default function BMICalculator() {
     });
   };
 
+  const weightLbMin = Math.ceil(kgToLb(BMI_LIMITS.weightKgMin));
+  const weightLbMax = Math.floor(kgToLb(BMI_LIMITS.weightKgMax));
+
+  const buildForm = () => ({
+    heightUnit,
+    weightUnit,
+    heightFeet,
+    heightInches,
+    heightCm,
+    weight,
+    age,
+  });
+
+  const switchHeightUnit = (next) => {
+    if (next === heightUnit) return;
+    clearError(["heightFeet", "heightInches", "height", "heightCm"]);
+    if (next === "metric") {
+      if (heightFeet !== "" && heightInches !== "") {
+        const cm = Math.round(ftInToCm(heightFeet, heightInches) * 10) / 10;
+        setHeightCm(String(cm));
+      }
+      setHeightUnit("metric");
+    } else {
+      const cm = parseFloat(String(heightCm).trim().replace(",", "."));
+      if (Number.isFinite(cm) && cm > 0) {
+        const { feet, inches } = cmToFtIn(cm);
+        setHeightFeet(String(feet));
+        setHeightInches(String(inches));
+      }
+      setHeightUnit("imperial");
+    }
+  };
+
+  const switchWeightUnit = (next) => {
+    if (next === weightUnit) return;
+    clearError(["weight"]);
+    const w = String(weight).trim().replace(",", ".");
+    const n = parseFloat(w);
+    if (Number.isFinite(n) && n > 0) {
+      if (weightUnit === "kg" && next === "lb") {
+        setWeight(String(Math.round(kgToLb(n) * 10) / 10));
+      } else if (weightUnit === "lb" && next === "kg") {
+        setWeight(String(Math.round(lbToKg(n) * 100) / 100));
+      }
+    }
+    setWeightUnit(next);
+  };
+
   const calculateBMI = () => {
-    const form = {
-      heightFeet,
-      heightInches,
-      weight,
-      age,
-    };
+    const form = buildForm();
     const { ok, errors, firstMessage } = validateBmiForm(form);
     if (!ok) {
       setFieldErrors(errors);
@@ -74,28 +123,34 @@ export default function BMICalculator() {
     }
     setFieldErrors({});
 
-    const heightInMeters = heightMetersFromFtIn(heightFeet, heightInches);
-    const weightKg = parseFloat(String(weight).trim().replace(",", "."));
-    const bmiNum = weightKg / (heightInMeters * heightInMeters);
+    const { weightKg, heightFeet: hf, heightInches: hi, bmiNum } =
+      computeBmiFromForm(form);
     const calculatedBMI = bmiNum.toFixed(2);
     const bmiCategory = bmiCategoryFromValue(bmiNum);
 
     setBmi(calculatedBMI);
     setCategory(bmiCategory);
-    saveBMI(calculatedBMI, bmiCategory, weightKg);
+    saveBMI(calculatedBMI, bmiCategory, hf, hi, weightKg, bmiNum);
   };
 
-  const saveBMI = async (calculatedBMI, bmiCategory, weightKg) => {
+  const saveBMI = async (
+    calculatedBMI,
+    bmiCategory,
+    apiFeet,
+    apiInches,
+    weightKg,
+    bmiNum
+  ) => {
     try {
       await axios.post(`${API_BASE_URL}${API_ENDPOINTS.BMI}/save`, {
         email: user.email,
-        heightFeet: parseInt(heightFeet, 10),
-        heightInches: parseInt(heightInches, 10),
+        heightFeet: apiFeet,
+        heightInches: apiInches,
         weight: weightKg,
         age: parseInt(age, 10),
         diseases: [],
         allergies: [],
-        bmi: parseFloat(calculatedBMI),
+        bmi: bmiNum,
         category: bmiCategory,
       });
       toast.success("BMI saved successfully");
@@ -118,6 +173,13 @@ export default function BMICalculator() {
 
   const inputErr = (key) =>
     fieldErrors[key] ? "border-red-500 focus:border-red-400" : "border-gray-600";
+
+  const unitBtn = (on) =>
+    `flex-1 py-2 px-2 rounded-md text-xs font-semibold transition-all ${
+      on
+        ? "bg-gradient-to-r from-green-500 to-blue-600 text-white shadow"
+        : "text-gray-400 hover:text-white"
+    }`;
 
   return (
     <div className="min-h-screen bg-gray-900 py-12 px-4 sm:px-6 lg:px-8 text-gray-100">
@@ -178,15 +240,144 @@ export default function BMICalculator() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center">
-                  <FaWeight className="mr-2 text-gray-400" /> Weight (kg)
-                </label>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                  <label className="text-sm font-medium text-gray-300 flex items-center">
+                    <GiBodyHeight className="mr-2 text-gray-400" /> Height
+                  </label>
+                  <div className="flex rounded-lg border border-gray-600 p-1 bg-gray-700/80">
+                    <button
+                      type="button"
+                      onClick={() => switchHeightUnit("imperial")}
+                      className={unitBtn(heightUnit === "imperial")}
+                    >
+                      ft / in
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => switchHeightUnit("metric")}
+                      className={unitBtn(heightUnit === "metric")}
+                    >
+                      cm
+                    </button>
+                  </div>
+                </div>
+                {heightUnit === "imperial" ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="relative">
+                        <input
+                          type="number"
+                          placeholder="Feet"
+                          value={heightFeet}
+                          min={BMI_LIMITS.feetMin}
+                          max={BMI_LIMITS.feetMax}
+                          step={1}
+                          onChange={(e) => {
+                            clearError(["heightFeet", "height"]);
+                            setHeightFeet(e.target.value);
+                          }}
+                          className={`w-full p-3 rounded-lg bg-gray-700 border focus:ring-1 focus:ring-green-500 text-white ${inputErr(
+                            "heightFeet"
+                          )}`}
+                        />
+                        <span className="absolute right-3 top-3 text-gray-400 text-sm">
+                          ft
+                        </span>
+                        {fieldErrors.heightFeet && (
+                          <p className="text-xs text-red-400 mt-1">
+                            {fieldErrors.heightFeet}
+                          </p>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          placeholder="Inches"
+                          value={heightInches}
+                          min={0}
+                          max={11}
+                          step={1}
+                          onChange={(e) => {
+                            clearError(["heightInches", "height"]);
+                            setHeightInches(e.target.value);
+                          }}
+                          className={`w-full p-3 rounded-lg bg-gray-700 border focus:ring-1 focus:ring-green-500 text-white ${inputErr(
+                            "heightInches"
+                          )}`}
+                        />
+                        <span className="absolute right-3 top-3 text-gray-400 text-sm">
+                          in
+                        </span>
+                        {fieldErrors.heightInches && (
+                          <p className="text-xs text-red-400 mt-1">
+                            {fieldErrors.heightInches}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    {fieldErrors.height && (
+                      <p className="text-xs text-red-400 mt-2">
+                        {fieldErrors.height}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <div className="relative">
+                    <input
+                      type="number"
+                      placeholder="e.g. 175"
+                      value={heightCm}
+                      min={BMI_LIMITS.heightCmMin}
+                      max={BMI_LIMITS.heightCmMax}
+                      step="0.1"
+                      onChange={(e) => {
+                        clearError(["heightCm"]);
+                        setHeightCm(e.target.value);
+                      }}
+                      className={`w-full p-3 rounded-lg bg-gray-700 border focus:ring-1 focus:ring-green-500 text-white pr-12 ${inputErr(
+                        "heightCm"
+                      )}`}
+                    />
+                    <span className="absolute right-3 top-3 text-gray-400 text-sm">
+                      cm
+                    </span>
+                    {fieldErrors.heightCm && (
+                      <p className="text-xs text-red-400 mt-1">
+                        {fieldErrors.heightCm}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                  <label className="text-sm font-medium text-gray-300 flex items-center">
+                    <FaWeight className="mr-2 text-gray-400" /> Weight
+                  </label>
+                  <div className="flex rounded-lg border border-gray-600 p-1 bg-gray-700/80">
+                    <button
+                      type="button"
+                      onClick={() => switchWeightUnit("kg")}
+                      className={unitBtn(weightUnit === "kg")}
+                    >
+                      kg
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => switchWeightUnit("lb")}
+                      className={unitBtn(weightUnit === "lb")}
+                    >
+                      lb
+                    </button>
+                  </div>
+                </div>
                 <input
                   type="number"
-                  placeholder="e.g. 72.5 kg"
+                  placeholder={weightUnit === "kg" ? "e.g. 72.5" : "e.g. 160"}
                   value={weight}
-                  min={BMI_LIMITS.weightKgMin}
-                  max={BMI_LIMITS.weightKgMax}
+                  min={weightUnit === "lb" ? weightLbMin : BMI_LIMITS.weightKgMin}
+                  max={weightUnit === "lb" ? weightLbMax : BMI_LIMITS.weightKgMax}
                   step="0.01"
                   onChange={(e) => {
                     clearError(["weight"]);
@@ -198,67 +389,6 @@ export default function BMICalculator() {
                 />
                 {fieldErrors.weight && (
                   <p className="text-xs text-red-400 mt-1">{fieldErrors.weight}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center">
-                  <GiBodyHeight className="mr-2 text-gray-400" /> Height
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="relative">
-                    <input
-                      type="number"
-                      placeholder="Feet"
-                      value={heightFeet}
-                      min={BMI_LIMITS.feetMin}
-                      max={BMI_LIMITS.feetMax}
-                      step={1}
-                      onChange={(e) => {
-                        clearError(["heightFeet", "height"]);
-                        setHeightFeet(e.target.value);
-                      }}
-                      className={`w-full p-3 rounded-lg bg-gray-700 border focus:ring-1 focus:ring-green-500 text-white ${inputErr(
-                        "heightFeet"
-                      )}`}
-                    />
-                    <span className="absolute right-3 top-3 text-gray-400">
-                      ft
-                    </span>
-                    {fieldErrors.heightFeet && (
-                      <p className="text-xs text-red-400 mt-1">
-                        {fieldErrors.heightFeet}
-                      </p>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      placeholder="Inches"
-                      value={heightInches}
-                      min={0}
-                      max={11}
-                      step={1}
-                      onChange={(e) => {
-                        clearError(["heightInches", "height"]);
-                        setHeightInches(e.target.value);
-                      }}
-                      className={`w-full p-3 rounded-lg bg-gray-700 border focus:ring-1 focus:ring-green-500 text-white ${inputErr(
-                        "heightInches"
-                      )}`}
-                    />
-                    <span className="absolute right-3 top-3 text-gray-400">
-                      in
-                    </span>
-                    {fieldErrors.heightInches && (
-                      <p className="text-xs text-red-400 mt-1">
-                        {fieldErrors.heightInches}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                {fieldErrors.height && (
-                  <p className="text-xs text-red-400 mt-2">{fieldErrors.height}</p>
                 )}
               </div>
 
