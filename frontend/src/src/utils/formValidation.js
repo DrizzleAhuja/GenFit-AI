@@ -1,5 +1,7 @@
 /** Shared client-side limits and helpers to keep forms consistent across the app. */
 
+import { BMI_LIMITS } from "../pages/BMICalculator/bmiFormValidation";
+
 export const LIMITS = {
   CONTACT_NAME_MAX: 120,
   CONTACT_MESSAGE_MIN: 10,
@@ -20,8 +22,9 @@ export const LIMITS = {
   PROFILE_NAME_MIN: 1,
   PROFILE_NAME_MAX: 80,
   PROFILE_HEALTH_TEXT_MAX: 2000,
-  WEIGHT_MIN_KG: 30,
-  WEIGHT_MAX_KG: 350,
+  /** Same as BMI calculator (bmiFormValidation BMI_LIMITS) */
+  WEIGHT_MIN_KG: BMI_LIMITS.weightKgMin,
+  WEIGHT_MAX_KG: BMI_LIMITS.weightKgMax,
   MEAL_TEXT_MAX: 2000,
   FITBOT_MESSAGE_MAX: 4000,
   OTP_LENGTH: 6,
@@ -54,14 +57,16 @@ export function validateLength(value, min, max, fieldLabel) {
  * @returns {string|null} error message or null if valid
  */
 export function validateWorkoutWeights(goal, currentWeightStr, targetWeightStr) {
+  const minKg = LIMITS.WEIGHT_MIN_KG;
+  const maxKg = LIMITS.WEIGHT_MAX_KG;
   const cw = parseFloat(String(currentWeightStr ?? "").replace(",", "."));
-  if (!Number.isFinite(cw) || cw < LIMITS.WEIGHT_MIN_KG || cw > LIMITS.WEIGHT_MAX_KG) {
-    return "Current weight must be a number between 30 and 350 kg.";
+  if (!Number.isFinite(cw) || cw < minKg || cw > maxKg) {
+    return `Current weight must be a number between ${minKg} and ${maxKg} kg (same range as the BMI calculator).`;
   }
   if (goal === "lose_weight" || goal === "gain_weight") {
     const tw = parseFloat(String(targetWeightStr ?? "").replace(",", "."));
-    if (!Number.isFinite(tw) || tw < LIMITS.WEIGHT_MIN_KG || tw > LIMITS.WEIGHT_MAX_KG) {
-      return "Target weight must be a number between 30 and 350 kg.";
+    if (!Number.isFinite(tw) || tw < minKg || tw > maxKg) {
+      return `Target weight must be a number between ${minKg} and ${maxKg} kg (same range as the BMI calculator).`;
     }
     if (goal === "lose_weight" && tw >= cw) {
       return "For weight loss, target weight must be below your current weight.";

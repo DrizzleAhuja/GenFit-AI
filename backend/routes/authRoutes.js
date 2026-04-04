@@ -25,6 +25,12 @@ const {
   inferMacrosFromCalories,
   getSuggestedFoodsForMeal,
 } = require("../utils/nutritionTargets");
+const {
+  WEIGHT_KG_MIN,
+  WEIGHT_KG_MAX,
+  AGE_MIN,
+  AGE_MAX,
+} = require("../utils/bmiLimits");
 
 function getGoogleFitRedirectUri(req) {
   // Must match an Authorized redirect URI in Google Cloud Console
@@ -215,6 +221,37 @@ router.post("/generate-plan", async (req, res) => {
       return res
         .status(400)
         .json({ error: "All required fields are missing or invalid" });
+    }
+
+    const cwNum = Number(currentWeight);
+    if (!Number.isFinite(cwNum) || cwNum < WEIGHT_KG_MIN || cwNum > WEIGHT_KG_MAX) {
+      return res.status(400).json({
+        error: `Current weight must be between ${WEIGHT_KG_MIN} and ${WEIGHT_KG_MAX} kg (same range as BMI).`,
+      });
+    }
+    if (fitnessGoal === "lose_weight" || fitnessGoal === "gain_weight") {
+      const twNum = Number(targetWeight);
+      if (!Number.isFinite(twNum) || twNum < WEIGHT_KG_MIN || twNum > WEIGHT_KG_MAX) {
+        return res.status(400).json({
+          error: `Target weight must be between ${WEIGHT_KG_MIN} and ${WEIGHT_KG_MAX} kg (same range as BMI).`,
+        });
+      }
+      if (fitnessGoal === "lose_weight" && twNum >= cwNum) {
+        return res.status(400).json({
+          error: "For weight loss, target weight must be below current weight.",
+        });
+      }
+      if (fitnessGoal === "gain_weight" && twNum <= cwNum) {
+        return res.status(400).json({
+          error: "For weight gain, target weight must be above current weight.",
+        });
+      }
+    }
+    const bmiAgeNum = Number(bmiData?.age);
+    if (!Number.isFinite(bmiAgeNum) || bmiAgeNum < AGE_MIN || bmiAgeNum > AGE_MAX) {
+      return res.status(400).json({
+        error: `BMI record age must be between ${AGE_MIN} and ${AGE_MAX} years (same range as BMI calculator).`,
+      });
     }
 
     // Find user by email
