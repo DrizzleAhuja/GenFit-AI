@@ -30,6 +30,24 @@ const DIET_TYPE_OPTIONS = [
   { id: "eggetarian", label: "Eggetarian", icon: "🥚", color: "from-yellow-500 to-amber-500" },
 ];
 
+/** Merge profile + latest BMI health lists (BMI often holds diseases/allergies; User may be empty). */
+function mergeHealthArrays(...sources) {
+  const out = [];
+  const seen = new Set();
+  for (const src of sources) {
+    const arr = Array.isArray(src) ? src : [];
+    for (const item of arr) {
+      const s = String(item ?? "").trim();
+      if (!s) continue;
+      const key = s.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(s);
+    }
+  }
+  return out;
+}
+
 const SUBSTITUTION_BY_DIET = {
   vegetarian: [
     "Paneer dishes → tofu, chickpeas, or extra dal for protein.",
@@ -66,6 +84,15 @@ export default function DietChartGenerator() {
   const user = useSelector(selectUser);
   const navigate = useNavigate();
   const location = useLocation();
+
+  const resolvedDiseases = useMemo(
+    () => mergeHealthArrays(user?.diseases, bmiData?.diseases),
+    [user?.diseases, bmiData?.diseases]
+  );
+  const resolvedAllergies = useMemo(
+    () => mergeHealthArrays(user?.allergies, bmiData?.allergies),
+    [user?.allergies, bmiData?.allergies]
+  );
   
   // Check if we need to auto-refresh (new day)
   const todayDate = new Date().toDateString();
@@ -278,8 +305,8 @@ export default function DietChartGenerator() {
         currentWeight:
           activeWorkoutPlan.generatedParams?.currentWeight || bmiData.weight,
         targetWeight: targetWeight,
-        diseases: user.diseases || [],
-        allergies: user.allergies || [],
+        diseases: resolvedDiseases,
+        allergies: resolvedAllergies,
         activeWorkoutPlan: activeWorkoutPlan,
         // New preferences
         dietType: dietType,
@@ -633,8 +660,8 @@ export default function DietChartGenerator() {
                         Diseases
                       </p>
                       <p className="font-semibold text-sm text-gray-200 break-words">
-                        {user?.diseases && user.diseases.length > 0
-                          ? user.diseases.join(", ")
+                        {resolvedDiseases.length > 0
+                          ? resolvedDiseases.join(", ")
                           : "None"}
                       </p>
                     </div>
@@ -644,8 +671,8 @@ export default function DietChartGenerator() {
                         Allergies
                       </p>
                       <p className="font-semibold text-sm text-gray-200 break-words">
-                        {user?.allergies && user.allergies.length > 0
-                          ? user.allergies.join(", ")
+                        {resolvedAllergies.length > 0
+                          ? resolvedAllergies.join(", ")
                           : "None"}
                       </p>
                     </div>

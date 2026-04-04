@@ -3127,6 +3127,33 @@ router.post("/generate-diet-chart", async (req, res) => {
       latestBMI ? "Found" : "Not found"
     );
 
+    const mergeHealthArrays = (...sources) => {
+      const out = [];
+      const seen = new Set();
+      for (const src of sources) {
+        const arr = Array.isArray(src) ? src : [];
+        for (const item of arr) {
+          const s = String(item ?? "").trim();
+          if (!s) continue;
+          const key = s.toLowerCase();
+          if (seen.has(key)) continue;
+          seen.add(key);
+          out.push(s);
+        }
+      }
+      return out;
+    };
+    const diseasesForDiet = mergeHealthArrays(
+      diseases,
+      user.diseases,
+      latestBMI?.diseases
+    );
+    const allergiesForDiet = mergeHealthArrays(
+      allergies,
+      user.allergies,
+      latestBMI?.allergies
+    );
+
     // Determine diet type label
     const dietTypeLabel = dietType === "vegetarian" ? "Pure Vegetarian (No eggs, no meat)" 
       : dietType === "eggetarian" ? "Eggetarian (Vegetarian + Eggs allowed)"
@@ -3151,8 +3178,8 @@ USER DETAILS:
 - Fitness Goal: ${fitnessGoal.replace(/_/g, " ")}
 - Current Weight: ${currentWeight}kg
 - Target Weight: ${targetWeight || "Not specified"}kg
-- Health Conditions: ${diseases?.length > 0 ? diseases.join(", ") : "None"}
-- Allergies: ${allergies?.length > 0 ? allergies.join(", ") : "None"}`;
+- Health Conditions: ${diseasesForDiet.length > 0 ? diseasesForDiet.join(", ") : "None"}
+- Allergies: ${allergiesForDiet.length > 0 ? allergiesForDiet.join(", ") : "None"}`;
 
       if (latestBMI) {
         dietChartPrompt += `
@@ -3197,6 +3224,7 @@ IMPORTANT RULES:
 5. Include a small hydration tip at the end
 6. Make it practical and easy to prepare at home
 7. ${isSenior ? "IMPORTANT: The user is a SENIOR CITIZEN. Ensure all meals are easy to digest, soft, and nutrient-dense." : ""}
+8. CRITICAL: Do not include any ingredient that matches the user's listed allergies. Choose foods appropriate for the listed health conditions (or state safe substitutions if needed).
 
 Format each meal clearly with the meal name as a header, followed by food items with portions and calories.`;
 
@@ -3208,8 +3236,8 @@ Format each meal clearly with the meal name as a header, followed by food items 
     - Fitness Goal: ${fitnessGoal}
     - Current Weight: ${currentWeight}kg
     - Target Weight: ${targetWeight || "Not specified"}kg
-    - Diseases: ${diseases?.join(", ") || "None"}
-    - Allergies: ${allergies?.join(", ") || "None"}
+    - Diseases: ${diseasesForDiet.join(", ") || "None"}
+    - Allergies: ${allergiesForDiet.join(", ") || "None"}
     - Special Category: ${isSenior ? "Senior Citizen (Needs easy-to-digest, soft foods)" : "None"}
     `;
 
@@ -3232,7 +3260,7 @@ Format each meal clearly with the meal name as a header, followed by food items 
           } weeks`;
       }
 
-      dietChartPrompt += `\n\nProvide a detailed meal plan for each day of the week, including breakfast, lunch, dinner, and snacks. Specify portion sizes and calorie estimates. Ensure the plan is healthy, balanced, and considers the user's health conditions, fitness goal, and active workout plan. The diet chart should be suitable for the entire ${durationWeeks}-week duration, with general guidelines for variation week-to-week.`;
+      dietChartPrompt += `\n\nProvide a detailed meal plan for each day of the week, including breakfast, lunch, dinner, and snacks. Specify portion sizes and calorie estimates. Ensure the plan is healthy, balanced, strictly avoids listed allergens, respects listed diseases/conditions, aligns with the fitness goal, and matches the active workout plan. The diet chart should be suitable for the entire ${durationWeeks}-week duration, with general guidelines for variation week-to-week.`;
     }
 
     console.log("🤖 [DIET CHART GENERATE] Calling Gemini API...");

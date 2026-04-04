@@ -116,6 +116,9 @@ Please provide specific, actionable advice in 2-3 paragraphs. Be encouraging, pr
       aiSuggestions,
     });
     await newBMI.save();
+    user.diseases = Array.isArray(diseases) ? diseases.map((d) => String(d).trim()).filter(Boolean) : [];
+    user.allergies = Array.isArray(allergies) ? allergies.map((a) => String(a).trim()).filter(Boolean) : [];
+    await user.save();
     try { await awardPoints(user._id, 'bmi_save'); } catch (e) { console.error('Gamify award error:', safeErrorForLog(e)); }
 
     res.status(201).json({
@@ -263,6 +266,9 @@ Please provide specific, actionable advice in 2-3 paragraphs. Be encouraging, pr
       aiSuggestions,
     });
     await updatedBMI.save();
+    user.diseases = Array.isArray(diseases) ? diseases.map((d) => String(d).trim()).filter(Boolean) : [];
+    user.allergies = Array.isArray(allergies) ? allergies.map((a) => String(a).trim()).filter(Boolean) : [];
+    await user.save();
     try { await awardPoints(user._id, 'bmi_update'); } catch (e) { console.error('Gamify award error:', safeErrorForLog(e)); }
 
     res.status(200).json({
