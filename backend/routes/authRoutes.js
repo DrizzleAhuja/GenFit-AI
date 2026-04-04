@@ -272,6 +272,8 @@ router.post("/generate-plan", async (req, res) => {
       targetWeight,
       diseases, // Add diseases
       allergies, // Add allergies
+      isSenior,
+      isWheelchairBound
     } = req.body;
 
     // Validate required fields (updated to include new fields)
@@ -345,9 +347,11 @@ router.post("/generate-plan", async (req, res) => {
     ${specificGoalInstruction}
     The user's BMI data is: ${summarizeBmiForWorkoutPrompt(bmiData)}.
     Consider any health conditions from bmiData.diseases or bmiData.allergies to make the plan safe and effective. 
-    The user also has the following diseases: ${diseases.join(", ") || "None"}.
-    The user also has the following allergies: ${allergies.join(", ") || "None"
-      }.
+    The user also has the following allergies: ${allergies.join(", ") || "None"}.
+    
+    ${isSenior ? "IMPORTANT: The user is a SENIOR CITIZEN. Avoid high-impact jumping, extreme heavy loads, or dangerous balancing exercises. Focus on mobility, stability, and moderate resistance." : ""}
+    ${isWheelchairBound ? "CRITICAL: The user is WHEELCHAIR-BOUND. All exercises MUST be performable from a seated position or focus exclusively on upper-body/arm mobility. Do not include squats, lunges, or standing movements." : ""}
+
 
     OUTPUT REQUIREMENTS (STRICT):
     - Return a JSON ARRAY with EXACTLY ${daysPerWeek} objects (representing ONE week's schedule). No more, no less.
@@ -3081,6 +3085,7 @@ router.post("/generate-diet-chart", async (req, res) => {
       cuisineType,
       singleDayPlan,
       meals,
+      isSenior
     } = req.body;
 
     console.log("🤖 [DIET CHART GENERATE] Request received:", {
@@ -3191,6 +3196,7 @@ IMPORTANT RULES:
 4. Keep total daily calories appropriate for ${fitnessGoal.replace(/_/g, " ")}
 5. Include a small hydration tip at the end
 6. Make it practical and easy to prepare at home
+7. ${isSenior ? "IMPORTANT: The user is a SENIOR CITIZEN. Ensure all meals are easy to digest, soft, and nutrient-dense." : ""}
 
 Format each meal clearly with the meal name as a header, followed by food items with portions and calories.`;
 
@@ -3204,6 +3210,7 @@ Format each meal clearly with the meal name as a header, followed by food items 
     - Target Weight: ${targetWeight || "Not specified"}kg
     - Diseases: ${diseases?.join(", ") || "None"}
     - Allergies: ${allergies?.join(", ") || "None"}
+    - Special Category: ${isSenior ? "Senior Citizen (Needs easy-to-digest, soft foods)" : "None"}
     `;
 
       if (latestBMI) {

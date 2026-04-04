@@ -29,6 +29,8 @@ const WorkoutPlanGenerator = () => {
     goal: "",
     currentWeight: "",
     targetWeight: "",
+    isSenior: false,
+    isWheelchairBound: false,
   });
   const user = useSelector(selectUser);
   const [plan, setPlan] = useState(null);
@@ -135,6 +137,8 @@ const WorkoutPlanGenerator = () => {
         durationWeeks: calculatedDurationWeeks,
         targetWeight: formData.targetWeight,
         currentWeight: formData.currentWeight,
+        isSenior: formData.isSenior,
+        isWheelchairBound: formData.isWheelchairBound,
         diseases: user.diseases || [],
         allergies: user.allergies || [],
       };
@@ -275,6 +279,8 @@ const WorkoutPlanGenerator = () => {
         durationWeeks: calculatedDurationWeeks,
         targetWeight: formData.targetWeight,
         currentWeight: formData.currentWeight,
+        isSenior: formData.isSenior,
+        isWheelchairBound: formData.isWheelchairBound,
         diseases: user.diseases || [],
         allergies: user.allergies || [],
       };

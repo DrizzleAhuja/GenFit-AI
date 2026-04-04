@@ -61,6 +61,7 @@ export default function DietChartGenerator() {
   const [dietType, setDietType] = useState(() => localStorage.getItem("diet_preference_type") || "");
   const [cuisineType, setCuisineType] = useState(() => localStorage.getItem("diet_preference_cuisine") || "");
   const [lastGeneratedDate, setLastGeneratedDate] = useState(() => localStorage.getItem("diet_last_generated") || "");
+  const [isSenior, setIsSenior] = useState(false);
 
   const user = useSelector(selectUser);
   const navigate = useNavigate();
@@ -285,6 +286,7 @@ export default function DietChartGenerator() {
         cuisineType: cuisineType,
         singleDayPlan: true,
         meals: ["Breakfast", "Lunch", "Evening Snack", "Dinner"],
+        isSenior: isSenior,
       };
 
       console.log("🤖 [FRONTEND] Request data prepared:", {
@@ -823,14 +825,36 @@ export default function DietChartGenerator() {
                   </div>
                 </div>
                 
+                {/* Senior Citizen Toggle - Deep Niche */}
+                <div>
+                  <label className="text-sm font-semibold text-gray-300 mb-3 block flex items-center gap-2">
+                    <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></span>
+                    ♿ Special Accessibility
+                  </label>
+                  <button
+                    onClick={() => setIsSenior(!isSenior)}
+                    className={`w-full p-3 rounded-xl border-2 transition-all duration-300 flex items-center gap-3 ${
+                      isSenior
+                        ? "border-[#22D3EE] bg-cyan-500/20 text-white shadow-lg"
+                        : "border-[#1F2937] bg-[#020617]/60 text-gray-400"
+                    }`}
+                  >
+                    <span className="text-xl">👴</span>
+                    <span className="font-semibold text-sm">Senior Citizen Mode</span>
+                    {isSenior && <span className="ml-auto text-[#22D3EE]">✓</span>}
+                  </button>
+                </div>
+                
                 {/* Show selected preferences summary */}
-                {(dietType || cuisineType) && (
+                {(dietType || cuisineType || isSenior) && (
                   <div className="p-3 bg-gradient-to-r from-purple-500/10 to-indigo-500/10 rounded-xl border border-purple-500/20">
                     <p className="text-xs text-gray-400 mb-1">Selected:</p>
                     <p className="text-sm font-semibold text-white">
                       {dietType && DIET_TYPE_OPTIONS.find(o => o.id === dietType)?.label}
-                      {dietType && cuisineType && " • "}
-                      {cuisineType && CUISINE_OPTIONS.find(o => o.id === cuisineType)?.label}
+                      {dietType && (cuisineType || isSenior) && " • "}
+                      {cuisineType && CUISINE_OPTIONS.find(o => o.id === cuisineType)?.label} 
+                      {cuisineType && isSenior && " • "}
+                      {isSenior && "Senior Friendly"}
                     </p>
                   </div>
                 )}
