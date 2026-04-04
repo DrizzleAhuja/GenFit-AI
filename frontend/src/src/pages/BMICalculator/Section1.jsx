@@ -14,6 +14,12 @@ import {
 } from "react-icons/fa";
 import { GiBodyHeight } from "react-icons/gi";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
+import {
+  BMI_LIMITS,
+  validateBmiForm,
+  bmiCategoryFromValue,
+  heightMetersFromFtIn,
+} from "./bmiFormValidation";
 
 export default function BMICalculator() {
   const user = useSelector(selectUser);
@@ -25,6 +31,7 @@ export default function BMICalculator() {
   const [bmi, setBmi] = useState(null);
   const [category, setCategory] = useState("");
   const [history, setHistory] = useState([]);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     if (user?.email) fetchBMIHistory();
@@ -44,35 +51,51 @@ export default function BMICalculator() {
     }
   };
 
+  const clearError = (keys) => {
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      keys.forEach((k) => delete next[k]);
+      return next;
+    });
+  };
+
   const calculateBMI = () => {
-    if (!weight || !heightFeet || !heightInches || !age) {
-      toast.error("Please enter all details");
+    const form = {
+      heightFeet,
+      heightInches,
+      weight,
+      age,
+    };
+    const { ok, errors, firstMessage } = validateBmiForm(form);
+    if (!ok) {
+      setFieldErrors(errors);
+      toast.error(firstMessage || "Please fix the highlighted fields.");
       return;
     }
+    setFieldErrors({});
 
-    const heightInMeters =
-      parseInt(heightFeet) * 0.3048 + parseInt(heightInches) * 0.0254;
-    const calculatedBMI = (weight / (heightInMeters * heightInMeters)).toFixed(
-      2
-    );
-
-    let bmiCategory = "";
-    if (calculatedBMI < 18.5) bmiCategory = "Underweight";
-    else if (calculatedBMI < 24.9) bmiCategory = "Normal weight";
-    else if (calculatedBMI < 29.9) bmiCategory = "Overweight";
-    else if (calculatedBMI < 35) bmiCategory = "Obese";
-    else bmiCategory = "Morbid obesity";
+    const heightInMeters = heightMetersFromFtIn(heightFeet, heightInches);
+    const weightKg = parseFloat(String(weight).trim().replace(",", "."));
+    const bmiNum = weightKg / (heightInMeters * heightInMeters);
+    const calculatedBMI = bmiNum.toFixed(2);
+    const bmiCategory = bmiCategoryFromValue(bmiNum);
 
     setBmi(calculatedBMI);
     setCategory(bmiCategory);
-    saveBMI(calculatedBMI, bmiCategory);
+    saveBMI(calculatedBMI, bmiCategory, weightKg);
   };
 
-  const saveBMI = async (calculatedBMI, bmiCategory) => {
+  const saveBMI = async (calculatedBMI, bmiCategory, weightKg) => {
     try {
       await axios.post(`${API_BASE_URL}${API_ENDPOINTS.BMI}/save`, {
         email: user.email,
-        bmi: calculatedBMI,
+        heightFeet: parseInt(heightFeet, 10),
+        heightInches: parseInt(heightInches, 10),
+        weight: weightKg,
+        age: parseInt(age, 10),
+        diseases: [],
+        allergies: [],
+        bmi: parseFloat(calculatedBMI),
         category: bmiCategory,
       });
       toast.success("BMI saved successfully");
@@ -84,13 +107,17 @@ export default function BMICalculator() {
   };
 
   const getBMIColor = (bmiValue) => {
-    if (!bmiValue) return "text-gray-500";
-    if (bmiValue < 18.5) return "text-blue-500";
-    if (bmiValue < 24.9) return "text-green-500";
-    if (bmiValue < 29.9) return "text-yellow-500";
-    if (bmiValue < 35) return "text-orange-500";
+    const n = Number(bmiValue);
+    if (!Number.isFinite(n)) return "text-gray-500";
+    if (n < 18.5) return "text-blue-500";
+    if (n < 24.9) return "text-green-500";
+    if (n < 29.9) return "text-yellow-500";
+    if (n < 35) return "text-orange-500";
     return "text-red-500";
   };
+
+  const inputErr = (key) =>
+    fieldErrors[key] ? "border-red-500 focus:border-red-400" : "border-gray-600";
 
   return (
     <div className="min-h-screen bg-gray-900 py-12 px-4 sm:px-6 lg:px-8 text-gray-100">
@@ -118,11 +145,22 @@ export default function BMICalculator() {
                 </label>
                 <input
                   type="number"
-                  placeholder="Enter your age"
+                  placeholder="e.g. 28"
                   value={age}
-                  onChange={(e) => setAge(e.target.value)}
-                  className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white"
+                  min={BMI_LIMITS.ageMin}
+                  max={BMI_LIMITS.ageMax}
+                  step={1}
+                  onChange={(e) => {
+                    clearError(["age"]);
+                    setAge(e.target.value);
+                  }}
+                  className={`w-full p-3 rounded-lg bg-gray-700 border focus:ring-1 focus:ring-green-500 text-white ${inputErr(
+                    "age"
+                  )}`}
                 />
+                {fieldErrors.age && (
+                  <p className="text-xs text-red-400 mt-1">{fieldErrors.age}</p>
+                )}
               </div>
 
               <div>
@@ -145,11 +183,22 @@ export default function BMICalculator() {
                 </label>
                 <input
                   type="number"
-                  placeholder="Enter weight in kg"
+                  placeholder="e.g. 72.5 kg"
                   value={weight}
-                  onChange={(e) => setWeight(e.target.value)}
-                  className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white"
+                  min={BMI_LIMITS.weightKgMin}
+                  max={BMI_LIMITS.weightKgMax}
+                  step="0.01"
+                  onChange={(e) => {
+                    clearError(["weight"]);
+                    setWeight(e.target.value);
+                  }}
+                  className={`w-full p-3 rounded-lg bg-gray-700 border focus:ring-1 focus:ring-green-500 text-white ${inputErr(
+                    "weight"
+                  )}`}
                 />
+                {fieldErrors.weight && (
+                  <p className="text-xs text-red-400 mt-1">{fieldErrors.weight}</p>
+                )}
               </div>
 
               <div>
@@ -162,26 +211,55 @@ export default function BMICalculator() {
                       type="number"
                       placeholder="Feet"
                       value={heightFeet}
-                      onChange={(e) => setHeightFeet(e.target.value)}
-                      className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white"
+                      min={BMI_LIMITS.feetMin}
+                      max={BMI_LIMITS.feetMax}
+                      step={1}
+                      onChange={(e) => {
+                        clearError(["heightFeet", "height"]);
+                        setHeightFeet(e.target.value);
+                      }}
+                      className={`w-full p-3 rounded-lg bg-gray-700 border focus:ring-1 focus:ring-green-500 text-white ${inputErr(
+                        "heightFeet"
+                      )}`}
                     />
                     <span className="absolute right-3 top-3 text-gray-400">
                       ft
                     </span>
+                    {fieldErrors.heightFeet && (
+                      <p className="text-xs text-red-400 mt-1">
+                        {fieldErrors.heightFeet}
+                      </p>
+                    )}
                   </div>
                   <div className="relative">
                     <input
                       type="number"
                       placeholder="Inches"
                       value={heightInches}
-                      onChange={(e) => setHeightInches(e.target.value)}
-                      className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-green-500 focus:ring-1 focus:ring-green-500 text-white"
+                      min={0}
+                      max={11}
+                      step={1}
+                      onChange={(e) => {
+                        clearError(["heightInches", "height"]);
+                        setHeightInches(e.target.value);
+                      }}
+                      className={`w-full p-3 rounded-lg bg-gray-700 border focus:ring-1 focus:ring-green-500 text-white ${inputErr(
+                        "heightInches"
+                      )}`}
                     />
                     <span className="absolute right-3 top-3 text-gray-400">
                       in
                     </span>
+                    {fieldErrors.heightInches && (
+                      <p className="text-xs text-red-400 mt-1">
+                        {fieldErrors.heightInches}
+                      </p>
+                    )}
                   </div>
                 </div>
+                {fieldErrors.height && (
+                  <p className="text-xs text-red-400 mt-2">{fieldErrors.height}</p>
+                )}
               </div>
 
               <button
