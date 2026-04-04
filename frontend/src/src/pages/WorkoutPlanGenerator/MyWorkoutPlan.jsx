@@ -40,6 +40,7 @@ const MyWorkoutPlan = () => {
   const processedMarkCompleteRef = useRef(false);
   const [planDeleteId, setPlanDeleteId] = useState(null);
   const [planActionNotice, setPlanActionNotice] = useState(null);
+  const [skipDayLoading, setSkipDayLoading] = useState(false);
 
   // When returning from Virtual TA with "mark complete", mark the exercise once and clear state
   const pendingMarkComplete = location.state?.markExerciseComplete && location.state?.exerciseName;
@@ -111,6 +112,48 @@ const MyWorkoutPlan = () => {
         console.error("Error fetching today's workout:", err);
       }
       setTodayWorkout(null);
+    }
+  };
+
+  const handleSkipToday = async (reason) => {
+    if (!user?._id) return;
+    setSkipDayLoading(true);
+    try {
+      const res = await axios.post(
+        `${API_BASE_URL}${API_ENDPOINTS.AUTH}/workout-plan/skip-today`,
+        { userId: user._id, reason }
+      );
+      if (res.data?.success) {
+        setPlanActionNotice({ type: "success", text: res.data.message || "Updated." });
+        await fetchTodayWorkout();
+        await fetchPlans(true);
+      }
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || "Could not update today.";
+      setPlanActionNotice({ type: "error", text: msg });
+    } finally {
+      setSkipDayLoading(false);
+    }
+  };
+
+  const handleUnskipToday = async () => {
+    if (!user?._id) return;
+    setSkipDayLoading(true);
+    try {
+      const res = await axios.post(
+        `${API_BASE_URL}${API_ENDPOINTS.AUTH}/workout-plan/unskip-today`,
+        { userId: user._id }
+      );
+      if (res.data?.success) {
+        setPlanActionNotice({ type: "success", text: res.data.message || "Today's workout is back on." });
+        await fetchTodayWorkout();
+        await fetchPlans(true);
+      }
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || "Could not undo.";
+      setPlanActionNotice({ type: "error", text: msg });
+    } finally {
+      setSkipDayLoading(false);
     }
   };
 
@@ -951,6 +994,11 @@ const MyWorkoutPlan = () => {
                                     <FaCheckCircle className="mr-2" /> Completed!
                                   </span>
                                 )}
+                                {todayWorkout.isSkipped && !todayWorkout.isCompleted && (
+                                  <span className="px-3 sm:px-4 py-2 bg-emerald-600/90 rounded-xl text-white text-sm sm:text-base font-bold flex items-center w-fit shadow-lg border border-emerald-400/40">
+                                    Rest day logged
+                                  </span>
+                                )}
                               </div>
                               
                               <p className="text-purple-200 text-xs sm:text-sm mb-4">
@@ -987,7 +1035,91 @@ const MyWorkoutPlan = () => {
                                   )}
                                 </div>
                               )}
-                              
+
+                              {todayWorkout.isSkipped ? (
+                                <div className="mb-4 p-4 sm:p-5 rounded-2xl border border-emerald-500/35 bg-emerald-950/25 space-y-3">
+                                  <p className="text-emerald-100 font-semibold text-sm sm:text-base">
+                                    You told us you can&apos;t train today — that&apos;s logged as a planned rest, not a missed workout.
+                                  </p>
+                                  <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">
+                                    {todayWorkout.skipReason === "sick" &&
+                                      "Focus on recovery. When you feel better, pick up with your next scheduled session."}
+                                    {todayWorkout.skipReason === "low_mood" &&
+                                      "Low-energy days happen. A short walk or light stretch is enough if you want movement later."}
+                                    {(todayWorkout.skipReason === "rest" ||
+                                      todayWorkout.skipReason === "other" ||
+                                      !todayWorkout.skipReason) &&
+                                      "Your plan keeps going — use the next workout day when you are ready."}
+                                  </p>
+                                  {nextWorkoutDate && (
+                                    <p className="text-sm text-emerald-200/90">
+                                      Next session:{" "}
+                                      <strong>
+                                        {new Date(nextWorkoutDate).toLocaleDateString("en-US", {
+                                          weekday: "long",
+                                          month: "long",
+                                          day: "numeric",
+                                        })}
+                                      </strong>
+                                    </p>
+                                  )}
+                                  <div className="flex flex-col sm:flex-row flex-wrap gap-2 pt-1">
+                                    <button
+                                      type="button"
+                                      disabled={skipDayLoading}
+                                      onClick={handleUnskipToday}
+                                      className="text-sm font-semibold px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 transition-colors"
+                                    >
+                                      {skipDayLoading ? "Updating…" : "I can train today — undo rest day"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => navigate("/VirtualTA")}
+                                      className="text-sm font-semibold px-4 py-2.5 rounded-xl border border-emerald-500/50 text-emerald-200 hover:bg-emerald-950/50 transition-colors"
+                                    >
+                                      Posture Coach (gentle movement)
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  {!todayWorkout.isCompleted && (
+                                    <div className="mb-4 p-4 sm:p-5 rounded-2xl border border-slate-600/60 bg-[#0b1220]/90">
+                                      <p className="text-white font-semibold text-sm sm:text-base mb-1">
+                                        Can&apos;t do today&apos;s workout?
+                                      </p>
+                                      <p className="text-[11px] sm:text-xs text-gray-500 mb-3 leading-relaxed">
+                                        Choose one option — we mark today as a <span className="text-gray-400">planned rest</span>. That is separate from sessions you skip without logging (those may show as missed after the day passes).
+                                      </p>
+                                      <div className="flex flex-wrap gap-2">
+                                        <button
+                                          type="button"
+                                          disabled={skipDayLoading}
+                                          onClick={() => handleSkipToday("rest")}
+                                          className="text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white border border-slate-500/50 disabled:opacity-50"
+                                        >
+                                          Rest / busy
+                                        </button>
+                                        <button
+                                          type="button"
+                                          disabled={skipDayLoading}
+                                          onClick={() => handleSkipToday("sick")}
+                                          className="text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white border border-slate-500/50 disabled:opacity-50"
+                                        >
+                                          Sick
+                                        </button>
+                                        <button
+                                          type="button"
+                                          disabled={skipDayLoading}
+                                          onClick={() => handleSkipToday("low_mood")}
+                                          className="text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white border border-slate-500/50 disabled:opacity-50"
+                                        >
+                                          Low energy
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+
                               {todayWorkout.workoutContent ? (
                                 <>
                                   {/* Progress Indicator */}
@@ -1164,6 +1296,8 @@ const MyWorkoutPlan = () => {
                                 </>
                               ) : (
                                 <p className="text-gray-300 text-sm sm:text-base">No workout content available for today.</p>
+                              )}
+                                </>
                               )}
                               
                               {nextWorkoutDate && (

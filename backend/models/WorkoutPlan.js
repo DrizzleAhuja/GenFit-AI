@@ -56,8 +56,10 @@ const WorkoutPlanSchema = new mongoose.Schema(
                 date: { type: Date, required: true },
                 dayIndex: { type: Number, required: true },
                 weekNumber: { type: Number, required: true },
-                status: { type: String, enum: ['pending', 'completed', 'missed'], default: 'pending' },
+                status: { type: String, enum: ['pending', 'completed', 'missed', 'skipped'], default: 'pending' },
                 completedAt: { type: Date },
+                /** User chose rest / sick / etc. — does not count as a failed "missed" session */
+                skipReason: { type: String, maxlength: 120 },
             }, { _id: false })],
             default: [],
         },

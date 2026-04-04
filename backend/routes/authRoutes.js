@@ -765,6 +765,7 @@ router.get("/workout-plan/today/:userId", async (req, res) => {
           date: { $gte: today, $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000) }
         });
         
+        const isSkipped = todaySchedule.status === "skipped";
         todayWorkout = {
           scheduledDate: todaySchedule.date,
           dayIndex: dayIndex,
@@ -773,6 +774,8 @@ router.get("/workout-plan/today/:userId", async (req, res) => {
           workoutContent: workoutContent,
           completedSessionLog: completedSessionLog,
           isCompleted: isCompleted,
+          isSkipped,
+          skipReason: todaySchedule.skipReason || null,
         };
       }
     }
@@ -828,6 +831,122 @@ router.get("/workout-plan/today/:userId", async (req, res) => {
       error: "Failed to fetch today's workout",
       details: error.message,
     });
+  }
+});
+
+const SKIP_REASONS = new Set(["rest", "sick", "low_mood", "other"]);
+
+/** Mark today's scheduled session as voluntarily skipped (rest/sick) — not counted as "missed". */
+router.post("/workout-plan/skip-today", async (req, res) => {
+  try {
+    const { userId, reason } = req.body || {};
+    if (!userId) {
+      return res.status(400).json({ success: false, error: "userId is required" });
+    }
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ success: false, error: "User not found" });
+
+    let activePlan = await WorkoutPlan.findOne({ userId, isActive: true });
+    if (!activePlan) {
+      return res.status(404).json({ success: false, error: "No active workout plan" });
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const scheduled = (activePlan.scheduledDates || []).find((s) => {
+      const d = new Date(s.date);
+      d.setHours(0, 0, 0, 0);
+      return d.getTime() === today.getTime();
+    });
+
+    if (!scheduled) {
+      return res.status(400).json({
+        success: false,
+        error: "No workout is scheduled for today — enjoy your rest day.",
+      });
+    }
+    if (scheduled.status === "completed") {
+      return res.status(400).json({
+        success: false,
+        error: "Today's workout is already completed.",
+      });
+    }
+    if (scheduled.status === "skipped") {
+      return res.status(400).json({
+        success: false,
+        error: "You already logged that you can't train today.",
+      });
+    }
+    if (scheduled.status === "missed") {
+      return res.status(400).json({
+        success: false,
+        error: "This day was already marked missed. Use the plan as a guide and continue with your next session.",
+      });
+    }
+
+    const r = SKIP_REASONS.has(String(reason)) ? String(reason) : "other";
+    scheduled.status = "skipped";
+    scheduled.skipReason = r;
+    activePlan.markModified("scheduledDates");
+    await activePlan.save();
+
+    return res.status(200).json({
+      success: true,
+      message:
+        r === "sick"
+          ? "Rest up — we logged today as a planned rest. Come back when you feel better."
+          : "Got it — today is logged as a rest day. Your plan continues with the next session.",
+    });
+  } catch (error) {
+    console.error("skip-today error:", safeErrorForLog(error));
+    return res.status(500).json({ success: false, error: "Failed to update plan", details: error.message });
+  }
+});
+
+/** Undo voluntary skip if the user still wants to train today. */
+router.post("/workout-plan/unskip-today", async (req, res) => {
+  try {
+    const { userId } = req.body || {};
+    if (!userId) {
+      return res.status(400).json({ success: false, error: "userId is required" });
+    }
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ success: false, error: "User not found" });
+
+    const activePlan = await WorkoutPlan.findOne({ userId, isActive: true });
+    if (!activePlan) {
+      return res.status(404).json({ success: false, error: "No active workout plan" });
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const scheduled = (activePlan.scheduledDates || []).find((s) => {
+      const d = new Date(s.date);
+      d.setHours(0, 0, 0, 0);
+      return d.getTime() === today.getTime();
+    });
+
+    if (!scheduled || scheduled.status !== "skipped") {
+      return res.status(400).json({
+        success: false,
+        error: "Today is not marked as a voluntary rest day.",
+      });
+    }
+
+    scheduled.status = "pending";
+    scheduled.skipReason = undefined;
+    activePlan.markModified("scheduledDates");
+    await activePlan.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Today's workout is available again — train when you're ready.",
+    });
+  } catch (error) {
+    console.error("unskip-today error:", safeErrorForLog(error));
+    return res.status(500).json({ success: false, error: "Failed to update plan", details: error.message });
   }
 });
 
