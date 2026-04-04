@@ -4,3 +4,4 @@ frontend/dist
 *.log
 .DS_Store
 .vscode/
+FitSyncApp/
