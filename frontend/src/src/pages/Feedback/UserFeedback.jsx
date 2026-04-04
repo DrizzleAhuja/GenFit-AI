@@ -8,6 +8,7 @@ import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
 import { useTheme } from '../../context/ThemeContext';
 import { Send, Sparkles } from 'lucide-react';
+import { validateLength, LIMITS } from '../../utils/formValidation';
 
 export default function UserFeedback() {
   const { darkMode } = useTheme();
@@ -18,15 +19,20 @@ export default function UserFeedback() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!message) return toast.error("Please enter your feedback message.");
+    const topicTrim = topic.trim();
+    const msg = message.trim();
+    const topicErr = validateLength(topicTrim, 0, LIMITS.FEEDBACK_TOPIC_MAX, "Topic");
+    if (topicErr) return toast.error(topicErr);
+    const msgErr = validateLength(msg, LIMITS.FEEDBACK_MSG_MIN, LIMITS.FEEDBACK_MSG_MAX, "Message");
+    if (msgErr) return toast.error(msgErr);
     setLoading(true);
 
     try {
       await axios.post(`${API_BASE_URL}/api/messages`, {
         name: user ? `${user.firstName} ${user.lastName || ''}` : "Anonymous",
         email: user?.email || "anonymous@example.com",
-        item: topic || "General Feedback",
-        description: message,
+        item: topicTrim || "General Feedback",
+        description: msg,
         type: "feedback"
       });
       toast.success("Feedback submitted successfully!");
@@ -64,6 +70,7 @@ export default function UserFeedback() {
               <label className="block text-sm font-medium mb-1.5 text-gray-300">Feedback Topic</label>
               <input 
                 type="text"
+                maxLength={LIMITS.FEEDBACK_TOPIC_MAX}
                 value={topic} 
                 onChange={e => setTopic(e.target.value)} 
                 placeholder="e.g., General, Posture, Diet suggestion..." 
@@ -76,6 +83,7 @@ export default function UserFeedback() {
                 value={message} 
                 onChange={e => setMessage(e.target.value)} 
                 rows="5" 
+                maxLength={LIMITS.FEEDBACK_MSG_MAX}
                 placeholder="Tell us what you think or report issues..." 
                 className="w-full p-3 rounded-xl border border-purple-500/20 bg-[#0c0520]/60 text-white focus:ring-2 focus:ring-[#22D3EE]/40 focus:border-[#22D3EE] transition-all outline-none resize-none" 
                 required 

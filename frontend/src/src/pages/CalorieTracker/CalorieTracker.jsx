@@ -8,6 +8,7 @@ import { selectUser } from "../../redux/userSlice";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { validateLength, LIMITS } from "../../utils/formValidation";
 
 const MEAL_TYPES = [
   { id: "Breakfast", label: "Breakfast", icon: <Sunrise className="w-5 h-5 text-amber-400" /> },
@@ -95,9 +96,14 @@ export default function CalorieTracker() {
   };
 
   const logMealText = async (mealType) => {
-    const text = inputs[mealType];
-    if (!text?.trim()) {
+    const text = (inputs[mealType] ?? "").trim();
+    if (!text) {
       setNotice({ type: "error", text: "Please enter what you ate." });
+      return;
+    }
+    const lenErr = validateLength(text, 1, LIMITS.MEAL_TEXT_MAX, "Meal description");
+    if (lenErr) {
+      setNotice({ type: "error", text: lenErr });
       return;
     }
 
@@ -269,7 +275,20 @@ export default function CalorieTracker() {
 
   const saveEdit = async () => {
     if (!editEntry || !user?._id) return;
-    const qty = Math.max(0.25, Number(editEntry.quantity) || 1);
+    const nameTrim = (editEntry.name ?? "").trim();
+    const nameErr = validateLength(nameTrim, 1, LIMITS.CALORIE_ITEM_NAME_MAX, "Food name");
+    if (nameErr) {
+      setNotice({ type: "error", text: nameErr });
+      return;
+    }
+    const qty = Number(editEntry.quantity);
+    if (!Number.isFinite(qty) || qty < LIMITS.CALORIE_QTY_MIN || qty > LIMITS.CALORIE_QTY_MAX) {
+      setNotice({
+        type: "error",
+        text: `Quantity must be between ${LIMITS.CALORIE_QTY_MIN} and ${LIMITS.CALORIE_QTY_MAX}.`,
+      });
+      return;
+    }
     const cpi = Math.max(0, Number(editEntry.caloriesPerItem) || 0);
     const totalCalories = Math.round(qty * cpi);
     setSavingEdit(true);
@@ -278,7 +297,7 @@ export default function CalorieTracker() {
         `${API_BASE_URL}${API_ENDPOINTS.CALORIE_INTAKE}/log/${editEntry.logId}/item/${editEntry.itemId}`,
         {
           userId: user._id,
-          name: editEntry.name.trim(),
+          name: nameTrim,
           quantity: qty,
           caloriesPerItem: cpi,
           mealType: editEntry.mealType,
@@ -538,6 +557,7 @@ export default function CalorieTracker() {
                             </button>
                             <input
                               type="text"
+                              maxLength={LIMITS.MEAL_TEXT_MAX}
                               value={inputs[meal.id] || ""}
                               onChange={(e) => setInputs(prev => ({ ...prev, [meal.id]: e.target.value }))}
                               placeholder={`E.g., "2 parathas with curd" or "1 chicken sandwich"`}

@@ -7,6 +7,8 @@ import { useSelector } from "react-redux";
 import { selectUser } from "../../redux/userSlice";
 import { FaSpinner, FaClipboardList, FaSearch } from "react-icons/fa";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
+import { isValidOtpDigits, LIMITS } from "../../utils/formValidation";
+
 export default function Section1({ darkMode }) {
   const [reports, setReports] = useState([]);
   const [otpInputs, setOtpInputs] = useState({});
@@ -93,9 +95,10 @@ export default function Section1({ darkMode }) {
   };
 
   const handleOtpChange = (reportId, value) => {
+    const digits = String(value).replace(/\D/g, "").slice(0, LIMITS.OTP_LENGTH);
     setOtpInputs((prevOtpInputs) => ({
       ...prevOtpInputs,
-      [reportId]: value,
+      [reportId]: digits,
     }));
   };
 
@@ -364,6 +367,9 @@ export default function Section1({ darkMode }) {
                       </label>
                       <input
                         type="text"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={LIMITS.OTP_LENGTH}
                         id={`otp-${report._id}`}
                         className={`border p-2 rounded-md mt-1 w-67 mr-4 ${
                           darkMode

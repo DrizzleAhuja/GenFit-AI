@@ -8,6 +8,7 @@ import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
 import { useTheme } from '../../context/ThemeContext';
 import { LifeBuoy, Send, Sparkles } from 'lucide-react';
+import { validateLength, LIMITS } from '../../utils/formValidation';
 
 export default function UserSupport() {
   const { darkMode } = useTheme();
@@ -18,15 +19,18 @@ export default function UserSupport() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!description) return toast.error("Please describe your issue.");
+    if (!category) return toast.error("Please select a category.");
+    const desc = description.trim();
+    const descErr = validateLength(desc, LIMITS.SUPPORT_DESC_MIN, LIMITS.SUPPORT_DESC_MAX, "Description");
+    if (descErr) return toast.error(descErr);
     setLoading(true);
 
     try {
       await axios.post(`${API_BASE_URL}/api/messages`, {
         name: user ? `${user.firstName} ${user.lastName || ''}` : "Anonymous",
         email: user?.email || "anonymous@example.com",
-        item: category || "General Support",
-        description: description,
+        item: category,
+        description: desc,
         type: "support"
       });
       toast.success("Support ticket submitted successfully!");
@@ -65,6 +69,7 @@ export default function UserSupport() {
               <select 
                 value={category} 
                 onChange={e => setCategory(e.target.value)} 
+                required
                 className="w-full p-3 rounded-xl border border-purple-500/20 bg-[#0c0520]/60 text-white focus:ring-2 focus:ring-[#22D3EE]/40 focus:border-[#22D3EE] transition-all outline-none"
               >
                 <option value="" disabled className="bg-[#0c0520]">Select Category</option>
@@ -80,6 +85,7 @@ export default function UserSupport() {
                 value={description} 
                 onChange={e => setDescription(e.target.value)} 
                 rows="5" 
+                maxLength={LIMITS.SUPPORT_DESC_MAX}
                 placeholder="Describe your issue in detail..." 
                 className="w-full p-3 rounded-xl border border-purple-500/20 bg-[#0c0520]/60 text-white focus:ring-2 focus:ring-[#22D3EE]/40 focus:border-[#22D3EE] transition-all outline-none resize-none" 
                 required 

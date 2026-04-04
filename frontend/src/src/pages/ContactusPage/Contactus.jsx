@@ -7,6 +7,7 @@ import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
 import { useTheme } from '../../context/ThemeContext';
 import { Mail, Phone, MapPin, Send, Sparkles } from 'lucide-react';
+import { isValidEmail, validateLength, LIMITS } from '../../utils/formValidation';
 
 export default function Contactus() {
   const { darkMode } = useTheme();
@@ -15,16 +16,31 @@ export default function Contactus() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || !formData.message) {
+    const name = formData.name.trim();
+    const email = formData.email.trim();
+    const subject = formData.subject.trim();
+    const message = formData.message.trim();
+
+    if (!name || !email || !message) {
       return toast.error("Please fill all required fields.");
     }
+    if (!isValidEmail(email)) {
+      return toast.error("Please enter a valid email address.");
+    }
+    const nameErr = validateLength(name, 1, LIMITS.CONTACT_NAME_MAX, "Name");
+    if (nameErr) return toast.error(nameErr);
+    const subjErr = validateLength(subject, 0, LIMITS.CONTACT_SUBJECT_MAX, "Subject");
+    if (subjErr) return toast.error(subjErr);
+    const msgErr = validateLength(message, LIMITS.CONTACT_MESSAGE_MIN, LIMITS.CONTACT_MESSAGE_MAX, "Message");
+    if (msgErr) return toast.error(msgErr);
+
     setLoading(true);
     try {
       await axios.post(`${API_BASE_URL}/api/messages`, {
-        name: formData.name,
-        email: formData.email,
-        item: formData.subject || "No Subject",
-        description: formData.message
+        name,
+        email,
+        item: subject || "No Subject",
+        description: message
       });
       toast.success("Feedback sent successfully!");
       setFormData({ name: '', email: '', subject: '', message: '' });
@@ -119,6 +135,7 @@ export default function Contactus() {
                       type="text"
                       id="name"
                       required
+                      maxLength={LIMITS.CONTACT_NAME_MAX}
                       value={formData.name}
                       onChange={(e) => setFormData({...formData, name: e.target.value})}
                       className="w-full p-3 rounded-xl border border-[#1F2937] bg-[#020617] text-white focus:ring-2 focus:ring-[#22D3EE]/50 focus:border-[#22D3EE] transition-all"
@@ -142,6 +159,7 @@ export default function Contactus() {
                     <input
                       type="text"
                       id="subject"
+                      maxLength={LIMITS.CONTACT_SUBJECT_MAX}
                       value={formData.subject}
                       onChange={(e) => setFormData({...formData, subject: e.target.value})}
                       className="w-full p-3 rounded-xl border border-[#1F2937] bg-[#020617] text-white focus:ring-2 focus:ring-[#22D3EE]/50 focus:border-[#22D3EE] transition-all"
@@ -154,6 +172,7 @@ export default function Contactus() {
                       id="message"
                       rows="5"
                       required
+                      maxLength={LIMITS.CONTACT_MESSAGE_MAX}
                       value={formData.message}
                       onChange={(e) => setFormData({...formData, message: e.target.value})}
                       className="w-full p-3 rounded-xl border border-[#1F2937] bg-[#020617] text-white focus:ring-2 focus:ring-[#22D3EE]/50 focus:border-[#22D3EE] transition-all resize-none"

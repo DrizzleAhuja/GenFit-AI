@@ -18,6 +18,7 @@ import {
 import { GiWeightLiftingUp, GiRunningShoe, GiMuscleUp } from "react-icons/gi";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
 import { formatBmiOneDecimal } from "../BMICalculator/bmiFormValidation";
+import { validateWorkoutWeights } from "../../utils/formValidation";
 
 const WorkoutPlanGenerator = () => {
   const [formData, setFormData] = useState({
@@ -107,6 +108,12 @@ const WorkoutPlanGenerator = () => {
       return;
     }
 
+    const weightErr = validateWorkoutWeights(formData.goal, formData.currentWeight, formData.targetWeight);
+    if (weightErr) {
+      toast.error(weightErr);
+      return;
+    }
+
     setLoading(true);
     try {
       const calculatedDurationWeeks = calculateDurationWeeks(
@@ -168,6 +175,12 @@ const WorkoutPlanGenerator = () => {
   const confirmSavePlan = async () => {
     if (!savePlanName.trim()) {
       toast.error("Please enter a plan name.");
+      return;
+    }
+
+    const saveWeightErr = validateWorkoutWeights(formData.goal, formData.currentWeight, formData.targetWeight);
+    if (saveWeightErr) {
+      toast.error(saveWeightErr);
       return;
     }
 
@@ -235,6 +248,11 @@ const WorkoutPlanGenerator = () => {
     if (!bmiData) {
         toast.error("Please calculate your BMI first to get personalized workout plans.");
         return;
+    }
+    const regenWeightErr = validateWorkoutWeights(formData.goal, formData.currentWeight, formData.targetWeight);
+    if (regenWeightErr) {
+      toast.error(regenWeightErr);
+      return;
     }
     setLoading(true);
     try {

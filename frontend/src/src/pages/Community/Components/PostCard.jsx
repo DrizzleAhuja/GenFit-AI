@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import axios from "axios";
 import { FaHeart, FaRegHeart, FaComment, FaShareAlt } from "react-icons/fa";
 import { API_BASE_URL } from "../../../../config/api";
+import { toast } from "react-toastify";
+import { validateLength, LIMITS } from "../../../utils/formValidation";
 
 export default function PostCard({ post, currentUser, onLikeToggle }) {
   const [isLiked, setIsLiked] = useState(post.isLiked || false);
@@ -51,12 +53,18 @@ export default function PostCard({ post, currentUser, onLikeToggle }) {
 
   const handleAddComment = async (e) => {
     e.preventDefault();
-    if (!newComment.trim()) return;
+    const content = newComment.trim();
+    if (!content) return;
+    const err = validateLength(content, 1, LIMITS.COMMUNITY_COMMENT_MAX, "Comment");
+    if (err) {
+      toast.error(err);
+      return;
+    }
 
     try {
       const response = await axios.post(
         `${API_BASE_URL}/api/community/posts/${post._id}/comment`,
-        { content: newComment },
+        { content },
         { headers: { email: currentUser.email } }
       );
       if (response.data.success) {
@@ -65,6 +73,7 @@ export default function PostCard({ post, currentUser, onLikeToggle }) {
       }
     } catch (error) {
       console.error("Add comment error:", error);
+      toast.error(error.response?.data?.message || "Could not add your comment.");
     }
   };
 
@@ -170,6 +179,7 @@ export default function PostCard({ post, currentUser, onLikeToggle }) {
             <form onSubmit={handleAddComment} className="flex gap-2">
               <input
                 type="text"
+                maxLength={LIMITS.COMMUNITY_COMMENT_MAX}
                 placeholder="Write a comment…"
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}

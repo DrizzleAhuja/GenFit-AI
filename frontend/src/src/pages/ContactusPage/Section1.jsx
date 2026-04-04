@@ -182,6 +182,7 @@ import { selectUser } from "../../redux/userSlice";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { API_BASE_URL } from "../../../config/api";
+import { validateLength, LIMITS } from "../../utils/formValidation";
 
 const ContactUs = () => {
   const user = useSelector(selectUser);
@@ -215,8 +216,39 @@ const ContactUs = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!user?.email) {
+      toast.error("You must be signed in to submit.", { position: "top-center" });
+      return;
+    }
+
+    const name = formData.name.trim();
+    const rollNo = formData.rollNo.trim();
+    const item = formData.item.trim();
+    const description = formData.description.trim();
+    const reportId = formData.reportId.trim();
+
+    const nameErr = validateLength(name, 1, LIMITS.CONTACT_NAME_MAX, "Name");
+    if (nameErr) return toast.error(nameErr, { position: "top-center" });
+    const rollErr = validateLength(rollNo, 1, LIMITS.CONTACT_ROLL_MAX, "Roll number");
+    if (rollErr) return toast.error(rollErr, { position: "top-center" });
+    const itemErr = validateLength(item, 1, LIMITS.CONTACT_ITEM_MAX, "Item");
+    if (itemErr) return toast.error(itemErr, { position: "top-center" });
+    const descErr = validateLength(description, LIMITS.CONTACT_DESC_MIN, LIMITS.CONTACT_DESC_MAX, "Description");
+    if (descErr) return toast.error(descErr, { position: "top-center" });
+    const ridErr = validateLength(reportId, 0, LIMITS.CONTACT_REPORT_ID_MAX, "Report ID");
+    if (ridErr) return toast.error(ridErr, { position: "top-center" });
+
+    const payload = {
+      ...formData,
+      name,
+      rollNo,
+      item,
+      description,
+      reportId,
+    };
+
     try {
-      await axios.post(`${API_BASE_URL}/api/contact`, formData, {
+      await axios.post(`${API_BASE_URL}/api/contact`, payload, {
         headers: {
           Email: user.email,
         },
@@ -288,6 +320,7 @@ const ContactUs = () => {
           <input
             type="text"
             name="name"
+            maxLength={LIMITS.CONTACT_NAME_MAX}
             value={formData.name}
             onChange={handleChange}
             className="p-2 rounded-md w-full bg-gray-800 border-gray-600 text-white"
@@ -299,6 +332,7 @@ const ContactUs = () => {
           <input
             type="text"
             name="rollNo"
+            maxLength={LIMITS.CONTACT_ROLL_MAX}
             value={formData.rollNo}
             onChange={handleChange}
             className="p-2 rounded-md w-full bg-gray-800 border-gray-600 text-white"
@@ -322,6 +356,7 @@ const ContactUs = () => {
           <input
             type="text"
             name="item"
+            maxLength={LIMITS.CONTACT_ITEM_MAX}
             value={formData.item}
             onChange={handleChange}
             className="p-2 rounded-md w-full bg-gray-800 border-gray-600 text-white"
@@ -334,6 +369,7 @@ const ContactUs = () => {
           </label>
           <textarea
             name="description"
+            maxLength={LIMITS.CONTACT_DESC_MAX}
             value={formData.description}
             onChange={handleChange}
             className="p-2 rounded-md w-full h-32 bg-gray-800 border-gray-600 text-white"
@@ -347,6 +383,7 @@ const ContactUs = () => {
           <input
             type="text"
             name="reportId"
+            maxLength={LIMITS.CONTACT_REPORT_ID_MAX}
             value={formData.reportId}
             onChange={handleChange}
             className="p-2 rounded-md w-full bg-gray-800 border-gray-600 text-white"

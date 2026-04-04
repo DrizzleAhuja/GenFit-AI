@@ -9,6 +9,7 @@ import { useSelector } from "react-redux";
 import { selectUser } from "../../redux/userSlice";
 import { API_BASE_URL } from "../../../config/api";
 import { useTheme } from "../../context/ThemeContext";
+import { LIMITS } from "../../utils/formValidation";
 
 const FitBot = ({ defaultOpen = false }) => {
   const user = useSelector(selectUser);
@@ -135,11 +136,16 @@ Try using the microphone 🎤 or attaching an image 🖼️! 💪`;
 
   const sendMessage = async () => {
     if (!input.trim() && !imageBase64) return;
+    const text = input.trim();
+    if (text.length > LIMITS.FITBOT_MESSAGE_MAX) {
+      setError(`Message is too long (max ${LIMITS.FITBOT_MESSAGE_MAX} characters).`);
+      return;
+    }
 
     setLoading(true);
     setError(null);
 
-    const userMessage = { role: "user", content: input, imageBase64 };
+    const userMessage = { role: "user", content: text, imageBase64 };
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     setInput("");
@@ -358,6 +364,7 @@ Try using the microphone 🎤 or attaching an image 🖼️! 💪`;
             />
             <input
               type="text"
+              maxLength={LIMITS.FITBOT_MESSAGE_MAX}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}

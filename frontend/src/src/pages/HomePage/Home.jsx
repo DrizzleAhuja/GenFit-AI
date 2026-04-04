@@ -446,6 +446,10 @@ export default function Home() {
   };
 
   const handleUpgrade = async () => {
+    if (!user?._id || !user?.email) {
+      toast.error("Please sign in to upgrade to PRO.");
+      return;
+    }
     try {
       const res = await loadRazorpay();
       if (!res) {
@@ -455,7 +459,7 @@ export default function Home() {
       
       // 1. Create order
       const { data } = await axios.post(`${API_BASE_URL}/api/payment/create-order`, {
-        userId: user?._id
+        userId: user._id
       }, {
         withCredentials: true
       });
@@ -469,11 +473,19 @@ export default function Home() {
         order_id: data.order.id, // Updated from data.orderId to data.order.id
         handler: async function (response) {
           try {
+            if (
+              !response?.razorpay_order_id ||
+              !response?.razorpay_payment_id ||
+              !response?.razorpay_signature
+            ) {
+              toast.error("Payment response was incomplete. Please contact support if you were charged.");
+              return;
+            }
             const verifyRes = await axios.post(`${API_BASE_URL}/api/payment/verify`, {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
-              userId: user?._id
+              userId: user._id
             }, { withCredentials: true });
 
             if (verifyRes.data.success) {

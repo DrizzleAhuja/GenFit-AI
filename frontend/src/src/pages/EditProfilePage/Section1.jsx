@@ -8,6 +8,7 @@ import { selectUser, setUser } from "../../redux/userSlice";
 import { FiUser, FiMail, FiSave, FiArrowLeft, FiUpload } from "react-icons/fi";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
 import GamifyBadge from "../../Components/GamifyBadge";
+import { validateLength, LIMITS } from "../../utils/formValidation";
 
 const AVATARS = [
   "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
@@ -96,14 +97,32 @@ export default function EditProfile() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const firstName = formData.firstName.trim();
+    const lastName = formData.lastName.trim();
+    const fnErr = validateLength(firstName, LIMITS.PROFILE_NAME_MIN, LIMITS.PROFILE_NAME_MAX, "First name");
+    if (fnErr) {
+      toast.error(fnErr);
+      return;
+    }
+    const lnErr = validateLength(lastName, LIMITS.PROFILE_NAME_MIN, LIMITS.PROFILE_NAME_MAX, "Last name");
+    if (lnErr) {
+      toast.error(lnErr);
+      return;
+    }
+    const healthErr = validateLength(formData.diseasesAndAllergies, 0, LIMITS.PROFILE_HEALTH_TEXT_MAX, "Health notes");
+    if (healthErr) {
+      toast.error(healthErr);
+      return;
+    }
+
     try {
       const items = formData.diseasesAndAllergies.split(',').map(item => item.trim()).filter(item => item !== '');
       
       const res = await axios.put(
         `${API_BASE_URL}${API_ENDPOINTS.USERS}/${user._id}`,
         { 
-          firstName: formData.firstName,
-          lastName: formData.lastName,
+          firstName,
+          lastName,
           diseases: items, 
           allergies: items, 
           avatar: formData.avatar,
@@ -319,6 +338,7 @@ export default function EditProfile() {
                     type="text"
                     id="firstName"
                     name="firstName"
+                    maxLength={LIMITS.PROFILE_NAME_MAX}
                     value={formData.firstName}
                     onChange={handleChange}
                     className="block w-full pl-10 pr-3 py-3 rounded-md bg-[#020617]/60 border border-[#1F2937] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] focus:border-transparent"
@@ -343,6 +363,7 @@ export default function EditProfile() {
                     type="text"
                     id="lastName"
                     name="lastName"
+                    maxLength={LIMITS.PROFILE_NAME_MAX}
                     value={formData.lastName}
                     onChange={handleChange}
                     className="block w-full pl-10 pr-3 py-3 rounded-md bg-[#020617]/60 border border-[#1F2937] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] focus:border-transparent"
@@ -362,6 +383,7 @@ export default function EditProfile() {
                   <textarea
                     id="diseasesAndAllergies"
                     name="diseasesAndAllergies"
+                    maxLength={LIMITS.PROFILE_HEALTH_TEXT_MAX}
                     value={formData.diseasesAndAllergies}
                     onChange={handleChange}
                     rows="4"

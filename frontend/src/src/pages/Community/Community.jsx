@@ -8,6 +8,8 @@ import Footer from "../HomePage/Footer";
 import PostCard from "./Components/PostCard";
 import { useTheme } from "../../context/ThemeContext";
 import { Users, Send, Sparkles } from "lucide-react";
+import { toast } from "react-toastify";
+import { validateLength, LIMITS } from "../../utils/formValidation";
 
 export default function Community() {
   const { darkMode } = useTheme();
@@ -40,13 +42,19 @@ export default function Community() {
 
   const handlePostSubmit = async (e) => {
     e.preventDefault();
-    if (!newPostContent.trim()) return;
+    const content = newPostContent.trim();
+    if (!content) return;
+    const err = validateLength(content, 1, LIMITS.COMMUNITY_POST_MAX, "Post");
+    if (err) {
+      toast.error(err);
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       const response = await axios.post(
         `${API_BASE_URL}/api/community/posts`,
-        { content: newPostContent },
+        { content },
         { headers: { email: user.email } }
       );
       if (response.data.success) {
@@ -55,6 +63,7 @@ export default function Community() {
       }
     } catch (err) {
       console.error("Create post error:", err);
+      toast.error(err.response?.data?.message || "Could not publish your post. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -111,6 +120,7 @@ export default function Community() {
                     </div>
                     <textarea
                       rows={3}
+                      maxLength={LIMITS.COMMUNITY_POST_MAX}
                       className="flex-1 bg-[#0c0520]/80 border border-[#1F2937] rounded-xl p-3 sm:p-4 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-[#22D3EE]/70 focus:ring-1 focus:ring-[#22D3EE]/30 resize-none min-h-[88px]"
                       placeholder={`What's on your mind today, ${user.firstName || "there"}?`}
                       value={newPostContent}
