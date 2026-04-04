@@ -23,6 +23,7 @@ const {
   normalizeGoal,
   resolveFitnessGoal,
   inferMacrosFromCalories,
+  getSuggestedFoodsForMeal,
 } = require("../utils/nutritionTargets");
 
 function getGoogleFitRedirectUri(req) {
@@ -2583,13 +2584,42 @@ router.post("/calorie-intake/insights/:userId", async (req, res) => {
       const out = {};
       for (const slot of MEAL_SLOTS) {
         const lines = foodsByMeal[slot];
-        if (lines.length) {
-          out[slot] = `Logged: ${lines.join(", ")}. ${mealHint(slot)}`;
-        } else {
-          out[slot] = `Nothing logged yet—${mealHint(slot)}`;
-        }
+        const suggestedFoods = getSuggestedFoodsForMeal(slot, goalKey);
+        const insight = lines.length
+          ? `Logged: ${lines.join(", ")}. ${mealHint(slot)}`
+          : `Nothing logged yet—${mealHint(slot)}`;
+        out[slot] = { insight, suggestedFoods };
       }
       return out;
+    };
+
+    const mergeMealInsight = (slot, geminiVal, rulesSlot) => {
+      const rules = rulesSlot || { insight: "", suggestedFoods: getSuggestedFoodsForMeal(slot, goalKey) };
+      if (typeof geminiVal === "string" && geminiVal.trim()) {
+        return {
+          insight: geminiVal.trim(),
+          suggestedFoods: rules.suggestedFoods,
+        };
+      }
+      if (geminiVal && typeof geminiVal === "object") {
+        const ins =
+          typeof geminiVal.insight === "string"
+            ? geminiVal.insight.trim()
+            : typeof geminiVal.message === "string"
+              ? geminiVal.message.trim()
+              : "";
+        let foods = geminiVal.suggestedFoods ?? geminiVal.foods ?? geminiVal.suggestions;
+        if (!Array.isArray(foods)) foods = [];
+        foods = foods
+          .map((f) => String(f).trim())
+          .filter(Boolean)
+          .slice(0, 8);
+        return {
+          insight: ins || rules.insight,
+          suggestedFoods: foods.length ? foods : rules.suggestedFoods,
+        };
+      }
+      return rules;
     };
 
     if (!GEMINI_API_KEY) {
@@ -2619,16 +2649,21 @@ So far today total: ~${Math.round(sumCal)} kcal, P ~${Math.round(sumP)}g, C ~${M
 Foods logged TODAY by meal:
 ${perMealLines}
 
-Return ONLY valid JSON (no markdown fences). Keys must be exactly: "Breakfast", "Lunch", "Evening Snack", "Dinner".
-Each value: 1-2 short sentences tailored to THAT meal only—what they ate or a concrete idea if empty. Align tips with their goal (deficit vs surplus). Plain text inside strings.`;
+Return ONLY valid JSON (no markdown fences). Top-level keys must be exactly: "Breakfast", "Lunch", "Evening Snack", "Dinner".
+Each value must be an object with:
+- "insight": string, 1-2 short sentences for THAT meal only (comment on what they logged or encourage logging; align with deficit vs surplus).
+- "suggestedFoods": array of 3-5 short, realistic food ideas they could eat for that meal (mix Indian and common international options when appropriate). No brand names. Not medical advice.
 
-    let insightsByMeal = buildRulesInsightsByMeal();
+Example shape: {"Breakfast":{"insight":"...","suggestedFoods":["...","..."]},...}`;
+
+    const rulesInsights = buildRulesInsightsByMeal();
+    let insightsByMeal = { ...rulesInsights };
     try {
       const gr = await axios.post(
         `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
         {
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.45, maxOutputTokens: 600 },
+          generationConfig: { temperature: 0.45, maxOutputTokens: 1200 },
         },
         { headers: { "Content-Type": "application/json" }, timeout: 22000 }
       );
@@ -2642,8 +2677,7 @@ Each value: 1-2 short sentences tailored to THAT meal only—what they ate or a 
       if (j0 !== -1 && j1 > j0) raw = raw.slice(j0, j1 + 1);
       const parsed = JSON.parse(raw);
       for (const slot of MEAL_SLOTS) {
-        const v = parsed[slot];
-        if (typeof v === "string" && v.trim()) insightsByMeal[slot] = v.trim();
+        insightsByMeal[slot] = mergeMealInsight(slot, parsed[slot], rulesInsights[slot]);
       }
     } catch (parseErr) {
       console.error("Meal insights Gemini/parse error:", parseErr.message);

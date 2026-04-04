@@ -17,6 +17,35 @@ const MEAL_TYPES = [
   { id: "Dinner", label: "Dinner", icon: <Moon className="w-5 h-5 text-indigo-400" /> },
 ];
 
+const MEAL_INSIGHT_IDS = ["Breakfast", "Lunch", "Evening Snack", "Dinner"];
+
+/** API may return legacy string per meal or { insight, suggestedFoods }. */
+function normalizeInsightsByMeal(raw) {
+  const out = {};
+  for (const id of MEAL_INSIGHT_IDS) {
+    const v = raw?.[id];
+    if (v == null) {
+      out[id] = { insight: "", suggestedFoods: [] };
+      continue;
+    }
+    if (typeof v === "string") {
+      out[id] = { insight: v.trim(), suggestedFoods: [] };
+      continue;
+    }
+    const insight =
+      typeof v.insight === "string"
+        ? v.insight.trim()
+        : typeof v.message === "string"
+          ? v.message.trim()
+          : "";
+    let foods = v.suggestedFoods ?? v.foods ?? v.suggestions;
+    if (!Array.isArray(foods)) foods = [];
+    foods = foods.map((f) => String(f).trim()).filter(Boolean).slice(0, 8);
+    out[id] = { insight, suggestedFoods: foods };
+  }
+  return out;
+}
+
 function inferLocalMacros(kcal) {
   const k = Number(kcal);
   if (!Number.isFinite(k) || k <= 0) return { p: 0, c: 0, f: 0 };
@@ -124,13 +153,13 @@ export default function CalorieTracker() {
         `${API_BASE_URL}${API_ENDPOINTS.CALORIE_INTAKE}/insights/${user._id}`
       );
       if (res.data?.success && res.data.insightsByMeal) {
-        setInsightsByMeal(res.data.insightsByMeal);
+        setInsightsByMeal(normalizeInsightsByMeal(res.data.insightsByMeal));
       } else {
-        setInsightsByMeal({});
+        setInsightsByMeal(normalizeInsightsByMeal({}));
       }
     } catch (e) {
       console.error(e);
-      setInsightsByMeal({});
+      setInsightsByMeal(normalizeInsightsByMeal({}));
     } finally {
       setLoadingInsights(false);
     }
@@ -733,6 +762,9 @@ export default function CalorieTracker() {
                   const total = getMealTotal(meal.id);
                   const isLoggingText = loadingMeals[meal.id];
                   const isThisScannerActive = activeScanner === meal.id;
+                  const slotInsight = insightsByMeal[meal.id] || { insight: "", suggestedFoods: [] };
+                  const mealInsightEmptyTip =
+                    "Tips load automatically; use “Refresh meal tips” above if this stays empty.";
 
                   return (
                     <div key={meal.id} className={`${cardClass} overflow-hidden`}>
@@ -900,9 +932,24 @@ export default function CalorieTracker() {
                           <p className="text-xs text-gray-400 leading-relaxed min-h-[2.5rem]">
                             {loadingInsights
                               ? "Updating tip for this meal…"
-                              : insightsByMeal[meal.id] ||
-                                "Tips load automatically; use “Refresh meal tips” above if this stays empty."}
+                              : slotInsight.insight ||
+                                (slotInsight.suggestedFoods?.length ? "" : mealInsightEmptyTip)}
                           </p>
+                          {!loadingInsights && slotInsight.suggestedFoods?.length > 0 && (
+                            <div className="mt-2.5">
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1.5">
+                                Suggested foods
+                              </p>
+                              <ul className="space-y-1 text-xs text-[#A5B4FC] leading-snug">
+                                {slotInsight.suggestedFoods.map((f, i) => (
+                                  <li key={i} className="flex gap-2 pl-0.5">
+                                    <span className="text-[#22D3EE] shrink-0 select-none">•</span>
+                                    <span>{f}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

@@ -160,9 +160,104 @@ function inferMacrosFromCalories(kcal) {
   return { proteinG, carbsG: carbG, fatG };
 }
 
+const MEAL_SLOTS = ["Breakfast", "Lunch", "Evening Snack", "Dinner"];
+
+/** Short, concrete food ideas per meal aligned with goal (not medical advice). */
+const SUGGESTED_FOODS_BY_GOAL = {
+  lose_weight: {
+    Breakfast: [
+      "Greek yogurt with berries and chia",
+      "Vegetable omelet + one slice whole-wheat toast",
+      "Oats cooked in milk with cinnamon and apple",
+      "Moong dal chilla with mint chutney",
+    ],
+    Lunch: [
+      "Grilled chicken or fish + large salad, light dressing",
+      "Dal + 1–2 roti + generous sabzi (less oil)",
+      "Brown rice + rajma or chole (moderate portion) + salad",
+      "Tofu or paneer bowl with mixed vegetables",
+    ],
+    "Evening Snack": [
+      "Roasted makhana or chana",
+      "Apple or pear + small handful of nuts",
+      "Cucumber and carrot sticks with hummus",
+      "Masala chaas (buttermilk)",
+    ],
+    Dinner: [
+      "Grilled fish or chicken + steamed vegetables",
+      "Khichdi + cucumber raita",
+      "Clear soup + side salad",
+      "Grilled tofu + sautéed greens + small portion of rice",
+    ],
+  },
+  bulk: {
+    Breakfast: [
+      "Oats + banana + peanut butter + milk",
+      "Paratha with eggs or paneer bhurji",
+      "Protein smoothie (oats, milk, fruit, nut butter)",
+      "Idli/dosa + sambar + boiled eggs",
+    ],
+    Lunch: [
+      "Chicken biryani (regular portion) + raita",
+      "Rice + dal + chicken or paneer curry",
+      "Whole-wheat pasta + meat or paneer + vegetables",
+      "Quinoa bowl with beans, avocado, and cheese",
+    ],
+    "Evening Snack": [
+      "Greek yogurt + granola + fruit",
+      "Peanut butter sandwich on whole wheat",
+      "Trail mix + banana",
+      "Paneer cubes + dates",
+    ],
+    Dinner: [
+      "Roti + rich dal + paneer or meat curry",
+      "Salmon or paneer tikka + rice + vegetables",
+      "Burrito bowl (rice, beans, protein, guacamole)",
+      "Stir-fry noodles with egg or tofu",
+    ],
+  },
+  maintain: {
+    Breakfast: [
+      "Poha or upma with vegetables + curd",
+      "Eggs + toast + fruit",
+      "Cereal + milk + banana",
+      "Dosa + sambar (balanced portion)",
+    ],
+    Lunch: [
+      "Thali-style: roti, dal, sabzi, small rice",
+      "Chicken or paneer wrap + salad",
+      "Buddha bowl (grain + protein + greens)",
+      "Lentil soup + whole-grain bread",
+    ],
+    "Evening Snack": [
+      "Fruit + handful of nuts",
+      "Roasted chickpeas",
+      "Cheese + whole-grain crackers",
+      "Smoothie (yogurt + fruit)",
+    ],
+    Dinner: [
+      "Grilled protein + vegetables + roti or rice",
+      "Khichdi + pickle + salad",
+      "Fish curry + rice + cucumber salad",
+      "Tofu stir-fry + noodles or rice",
+    ],
+  },
+};
+
+function getSuggestedFoodsForMeal(slot, goalKey) {
+  const key = MEAL_SLOTS.includes(slot) ? slot : "Breakfast";
+  let pack = SUGGESTED_FOODS_BY_GOAL.maintain;
+  if (goalKey === "lose_weight") pack = SUGGESTED_FOODS_BY_GOAL.lose_weight;
+  else if (goalKey === "gain_weight" || goalKey === "build_muscles") {
+    pack = SUGGESTED_FOODS_BY_GOAL.bulk;
+  }
+  return [...(pack[key] || pack.Breakfast)];
+}
+
 module.exports = {
   computeNutritionTargets,
   normalizeGoal,
   resolveFitnessGoal,
   inferMacrosFromCalories,
+  getSuggestedFoodsForMeal,
 };
