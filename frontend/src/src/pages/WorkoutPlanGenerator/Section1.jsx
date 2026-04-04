@@ -4,8 +4,7 @@ import axios from "axios";
 import { useSelector } from "react-redux";
 import { selectUser } from "../../redux/userSlice";
 import { FiCopy, FiRefreshCw, FiClock, FiCalendar, FiSave, FiCheckCircle, FiTarget, FiTrendingUp } from "react-icons/fi";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   FaDumbbell,
@@ -1373,19 +1372,6 @@ const WorkoutPlanGenerator = () => {
           }
         }
       `}</style>
-
-      <ToastContainer 
-        position="bottom-right" 
-        autoClose={3000} 
-        hideProgressBar={false} 
-        newestOnTop={false} 
-        closeOnClick 
-        rtl={false} 
-        pauseOnFocusLoss 
-        draggable 
-        pauseOnHover 
-        theme="dark" 
-      />
 
       <div className="main-content">
         <div style={{ maxWidth: '80rem', margin: '0 auto' }}>

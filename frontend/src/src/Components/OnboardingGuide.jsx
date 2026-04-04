@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { X, Check, Scale, Dumbbell, Utensils, Sparkles, ArrowRight } from "lucide-react";
 
 const MODAL_KEY = "genfit_onboarding_modal_v1_done";
 const BANNER_KEY = "genfit_onboarding_banner_v1_dismissed";
 
-const steps = [
-  {
+const STEPS_BY_ID = {
+  bmi: {
     id: "bmi",
     title: "Calculate your BMI",
     description: "Unlock personalized calorie targets, diet charts, and safer workout plans.",
@@ -14,7 +14,7 @@ const steps = [
     cta: "Open BMI",
     Icon: Scale,
   },
-  {
+  workout: {
     id: "workout",
     title: "Train with a plan",
     description: "Generate a plan from Workout, then log sessions here to fill your dashboard.",
@@ -22,7 +22,7 @@ const steps = [
     cta: "Workouts",
     Icon: Dumbbell,
   },
-  {
+  nutrition: {
     id: "nutrition",
     title: "Log your meals",
     description: "Use Calorie Tracker to stay on budget and see intake trends on your home dashboard.",
@@ -30,15 +30,28 @@ const steps = [
     cta: "Calorie Tracker",
     Icon: Utensils,
   },
-];
+};
+
+function orderedStepIds(fitnessGoalHint) {
+  const g = String(fitnessGoalHint || "").toLowerCase();
+  if (/muscle|hypertrophy|strength|bulk|\bgain\b/.test(g)) return ["workout", "bmi", "nutrition"];
+  if (/lose|fat|weight\s*loss|cut|slim|deficit/.test(g)) return ["bmi", "nutrition", "workout"];
+  if (/\beat\b|diet|meal|nutrition|food/.test(g)) return ["nutrition", "bmi", "workout"];
+  return ["bmi", "workout", "nutrition"];
+}
 
 /**
  * First-time welcome modal + checklist until core actions are done (or user dismisses banner).
  */
-export default function OnboardingGuide({ loading, bmiHistory, sessionLogs, calorieHistory }) {
+export default function OnboardingGuide({ loading, bmiHistory, sessionLogs, calorieHistory, fitnessGoalHint }) {
   const [showModal, setShowModal] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(
     () => typeof window !== "undefined" && localStorage.getItem(BANNER_KEY) === "1"
+  );
+
+  const steps = useMemo(
+    () => orderedStepIds(fitnessGoalHint).map((id) => STEPS_BY_ID[id]).filter(Boolean),
+    [fitnessGoalHint]
   );
 
   const hasBmi = (bmiHistory?.length || 0) > 0;

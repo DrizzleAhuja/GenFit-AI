@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require("../models/User");
 const PostureSessionLog = require("../models/PostureSessionLog").default;
 const { checkAndIncrementLimit } = require("../utils/limitCheck");
+const { safeErrorForLog } = require("../utils/safeLog");
 
 /**
  * Utility: compute angle (in degrees) at point B between BA and BC.
@@ -967,7 +968,7 @@ router.post("/start-session", async (req, res) => {
 
     res.json({ success: true, message: "Session started" });
   } catch (error) {
-    console.error("VTA Start Session Error:", error);
+    console.error("VTA Start Session Error:", safeErrorForLog(error));
     res.status(500).json({ success: false, error: "Server error" });
   }
 });
@@ -1044,7 +1045,7 @@ router.post("/analyze", async (req, res) => {
       analysis: result,
     });
   } catch (err) {
-    console.error("Posture analysis error:", err);
+    console.error("Posture analysis error:", safeErrorForLog(err));
     return res.status(500).json({
       success: false,
       error: "Failed to analyze posture",
@@ -1101,7 +1102,7 @@ router.post("/session-log", async (req, res) => {
       session,
     });
   } catch (err) {
-    console.error("Posture session-log error:", err);
+    console.error("Posture session-log error:", safeErrorForLog(err));
     return res.status(500).json({
       success: false,
       error: "Failed to log posture session",
@@ -1145,7 +1146,7 @@ router.get("/sessions/:userId", async (req, res) => {
       sessions,
     });
   } catch (err) {
-    console.error("Posture sessions fetch error:", err);
+    console.error("Posture sessions fetch error:", safeErrorForLog(err));
     return res.status(500).json({
       success: false,
       error: "Failed to fetch posture sessions",

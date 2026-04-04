@@ -768,6 +768,37 @@ const MyWorkoutPlan = () => {
                     </div>
                   </div>
                   <div className="p-4 sm:p-6 space-y-6 sm:space-y-8">
+                    <div className="rounded-xl sm:rounded-2xl border border-cyan-500/30 bg-cyan-950/20 p-4 sm:p-5">
+                      <h4 className="text-cyan-200 font-bold text-sm sm:text-base mb-1 flex items-center gap-2">
+                        <FiClock className="text-cyan-400" />
+                        Rest &amp; deload
+                      </h4>
+                      <p className="text-[11px] sm:text-xs text-gray-500 mb-3 leading-relaxed">
+                        Coaching tips only — the app does not auto-adjust your plan. Use lighter loads or fewer sets in the gym when you need recovery.
+                      </p>
+                      <ul className="text-xs sm:text-sm text-gray-300 space-y-1.5 list-disc pl-4 marker:text-cyan-500/80 mb-3">
+                        <li>After 2–3 heavy weeks, use a deload: same exercises, ~10–20% less weight or one fewer set.</li>
+                        <li>Poor sleep or high stress? Cut session volume ~30% instead of skipping entirely.</li>
+                        <li>
+                          {
+                            "Missed days? Pick up with today's session — avoid stacking every missed workout into one day."
+                          }
+                        </li>
+                      </ul>
+                      {todayWorkout ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            document
+                              .getElementById("my-plan-todays-workout")
+                              ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                          }
+                          className="text-xs sm:text-sm font-semibold text-cyan-300 hover:text-cyan-100 border border-cyan-500/40 rounded-lg px-3 py-2 w-full sm:w-auto transition-colors hover:border-cyan-400/70 bg-cyan-950/30"
+                        >
+                          Jump to today&apos;s workout ↓
+                        </button>
+                      ) : null}
+                    </div>
                     <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 backdrop-blur rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-purple-500/20">
                       <p className="text-gray-200 mb-2 text-sm sm:text-base">
                         <span className="font-semibold text-purple-300">Plan Duration:</span>{" "}
@@ -906,7 +937,10 @@ const MyWorkoutPlan = () => {
 
                           {/* Show only today's workout instead of all days */}
                           {todayWorkout ? (
-                            <div className="mb-8 p-4 sm:p-6 bg-gradient-to-br from-blue-900/40 via-purple-900/40 to-blue-900/40 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl border-2 border-blue-500/30">
+                            <div
+                              id="my-plan-todays-workout"
+                              className="mb-8 p-4 sm:p-6 bg-gradient-to-br from-blue-900/40 via-purple-900/40 to-blue-900/40 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl border-2 border-blue-500/30 scroll-mt-24"
+                            >
                               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
                                 <h4 className="text-xl sm:text-2xl font-bold text-white flex items-center">
                                   <FaDumbbell className="mr-2 sm:mr-3 text-yellow-300 text-lg sm:text-xl" />

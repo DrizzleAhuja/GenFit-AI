@@ -31,6 +31,7 @@ const {
   AGE_MIN,
   AGE_MAX,
 } = require("../utils/bmiLimits");
+const { safeErrorForLog } = require("../utils/safeLog");
 
 function getGoogleFitRedirectUri(req) {
   // Must match an Authorized redirect URI in Google Cloud Console
@@ -71,6 +72,77 @@ const FITBOT_GROQ_MAX_RETRIES = 5;
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+/** Omit long fields (e.g. aiSuggestions) from BMI embedded in Gemini prompts — smaller payload, fewer timeouts. */
+function summarizeBmiForWorkoutPrompt(bmiData) {
+  if (!bmiData || typeof bmiData !== "object") return "{}";
+  try {
+    return JSON.stringify({
+      weight: bmiData.weight,
+      heightFeet: bmiData.heightFeet,
+      heightInches: bmiData.heightInches,
+      age: bmiData.age,
+      bmi: bmiData.bmi,
+      category: bmiData.category,
+      diseases: bmiData.diseases,
+      allergies: bmiData.allergies,
+      targetWeight: bmiData.targetWeight,
+      selectedPlan: bmiData.selectedPlan,
+    });
+  } catch {
+    return "{}";
+  }
+}
+
+function stripGeminiMarkdownFences(text) {
+  let s = String(text || "").trim();
+  if (s.startsWith("```")) {
+    s = s.replace(/^```[a-zA-Z]*\n?/, "").replace(/```\s*$/s, "").trim();
+  }
+  return s;
+}
+
+/** Parse JSON array from Gemini (workout week plan). */
+function parseGeminiJsonArray(rawText) {
+  const stripped = stripGeminiMarkdownFences(rawText);
+  try {
+    const v = JSON.parse(stripped);
+    return Array.isArray(v) ? v : null;
+  } catch {
+    const a0 = stripped.indexOf("[");
+    const a1 = stripped.lastIndexOf("]");
+    if (a0 !== -1 && a1 > a0) {
+      try {
+        const v = JSON.parse(stripped.slice(a0, a1 + 1));
+        return Array.isArray(v) ? v : null;
+      } catch {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+/** Parse JSON object from Gemini (meal insights). */
+function parseGeminiJsonObject(rawText) {
+  const stripped = stripGeminiMarkdownFences(rawText);
+  try {
+    const v = JSON.parse(stripped);
+    return v && typeof v === "object" && !Array.isArray(v) ? v : null;
+  } catch {
+    const j0 = stripped.indexOf("{");
+    const j1 = stripped.lastIndexOf("}");
+    if (j0 !== -1 && j1 > j0) {
+      try {
+        const v = JSON.parse(stripped.slice(j0, j1 + 1));
+        return v && typeof v === "object" && !Array.isArray(v) ? v : null;
+      } catch {
+        return null;
+      }
+    }
+  }
+  return null;
 }
 
 function groqRetryDelayMs(error) {
@@ -271,7 +343,7 @@ router.post("/generate-plan", async (req, res) => {
     const prompt = `Create a detailed ${fitnessGoal} workout plan for a ${gender} at ${strengthLevel} level, with ${daysPerWeek} sessions per week, and ${timeCommitment} minute sessions. 
     Focus on ${trainingMethod} and ${workoutType} equipment. 
     ${specificGoalInstruction}
-    The user's BMI data is: ${JSON.stringify(bmiData)}.
+    The user's BMI data is: ${summarizeBmiForWorkoutPrompt(bmiData)}.
     Consider any health conditions from bmiData.diseases or bmiData.allergies to make the plan safe and effective. 
     The user also has the following diseases: ${diseases.join(", ") || "None"}.
     The user also has the following allergies: ${allergies.join(", ") || "None"
@@ -318,13 +390,14 @@ router.post("/generate-plan", async (req, res) => {
           maxOutputTokens: 8000, // Increased token limit significantly for detailed plans (from 4000)
           topP: 0.9,
           topK: 20,
+          responseMimeType: "application/json",
         },
       },
       {
         headers: {
           "Content-Type": "application/json",
         },
-        timeout: 25000, // Increased timeout
+        timeout: 120000,
       }
     );
 
@@ -340,31 +413,14 @@ router.post("/generate-plan", async (req, res) => {
     }
     planContentRaw = planContentRaw.trim(); // Trim any leading/trailing whitespace
 
-    // Attempt to fix common JSON issues from AI, like unescaped quotes in strings
-    // This is a heuristic and might not catch all cases, but addresses common ones.
-    planContentRaw = planContentRaw.replace(
-      /"(\w+)":\s*"([^"]*)"([^",}\]]*)"([^"]*)"/g,
-      (match, p1, p2, p3, p4) => {
-        // This regex tries to find an unescaped double quote within a string value.
-        // It's tricky to get perfectly right with regex, but this will help with basic cases.
-        // A more robust solution might involve a JSON linter/formatter library.
-        return `"${p1}": "${p2}\'${p3.replace(/'/g, "\\'")}\'${p4}"`;
-      }
-    );
-
-    let planContent;
-    try {
-      planContent = JSON.parse(planContentRaw);
-      if (!Array.isArray(planContent)) {
-        throw new Error("AI did not return a valid JSON array.");
-      }
-    } catch (parseError) {
-      console.error("Error parsing AI generated plan:", parseError.message);
-      console.error("Raw AI response:", planContentRaw);
+    const planContent = parseGeminiJsonArray(planContentRaw);
+    if (!planContent || planContent.length === 0) {
+      console.error("Error parsing AI generated plan: empty or invalid JSON array");
+      console.error("Raw AI response (truncated):", String(planContentRaw).slice(0, 2000));
       return res.status(500).json({
         error: "Failed to parse AI generated workout plan",
-        details: parseError.message,
-        rawResponse: planContentRaw,
+        details: "Model did not return a valid JSON array. Try again.",
+        rawResponse: String(planContentRaw).slice(0, 4000),
       });
     }
 
@@ -389,13 +445,17 @@ router.post("/generate-plan", async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error generating workout plan:", error);
+    console.error("Error generating workout plan:", safeErrorForLog(error));
     if (error.response) {
       console.error("Gemini API response error:", error.response.data);
     }
+    const isTimeout =
+      error.code === "ECONNABORTED" || /timeout/i.test(String(error.message || ""));
     res.status(500).json({
       error: "Failed to generate workout plan",
-      details: error.message,
+      details: isTimeout
+        ? "The AI request timed out. Wait a moment and try again, or reduce sessions per week / session length if it keeps happening."
+        : error.message,
     });
   }
 });
@@ -540,7 +600,7 @@ router.post("/workout-plan/save", async (req, res) => {
       const { awardPoints } = require("../utils/gamify");
       await awardPoints(userId, "workout_generate");
     } catch (e) {
-      console.error("Gamify award error:", e);
+      console.error("Gamify award error:", safeErrorForLog(e));
     }
 
     try {
@@ -551,7 +611,7 @@ router.post("/workout-plan/save", async (req, res) => {
         type: "workout",
       });
     } catch (e) {
-      console.error("Notification error (workout save):", e);
+      console.error("Notification error (workout save):", safeErrorForLog(e));
     }
 
     res.status(201).json({
@@ -560,7 +620,7 @@ router.post("/workout-plan/save", async (req, res) => {
       plan: workoutPlan,
     });
   } catch (error) {
-    console.error("Error saving workout plan:", error);
+    console.error("Error saving workout plan:", safeErrorForLog(error));
     res.status(500).json({
       error: "Failed to save workout plan",
       details: error.message,
@@ -621,7 +681,7 @@ router.get("/workout-plan/active/:userId", async (req, res) => {
       sessionLogs,
     });
   } catch (error) {
-    console.error("Error fetching active workout plan:", error);
+    console.error("Error fetching active workout plan:", safeErrorForLog(error));
     res.status(500).json({
       error: "Failed to fetch active workout plan",
       details: error.message,
@@ -763,7 +823,7 @@ router.get("/workout-plan/today/:userId", async (req, res) => {
         : "No workout scheduled for today. Rest day!",
     });
   } catch (error) {
-    console.error("Error fetching today's workout:", error);
+    console.error("Error fetching today's workout:", safeErrorForLog(error));
     res.status(500).json({
       error: "Failed to fetch today's workout",
       details: error.message,
@@ -782,7 +842,7 @@ router.get("/workout-plan/:planId/sessions", async (req, res) => {
 
     res.status(200).json({ success: true, sessionLogs });
   } catch (error) {
-    console.error("Error fetching workout sessions for plan:", error);
+    console.error("Error fetching workout sessions for plan:", safeErrorForLog(error));
     res.status(500).json({
       error: "Failed to fetch workout sessions",
       details: error.message,
@@ -956,7 +1016,7 @@ router.post("/workout-session/log", async (req, res) => {
     try {
       const { awardPoints } = require("../utils/gamify");
       await awardPoints(userId, 'workout_log');
-    } catch (e) { console.error('Gamify award error:', e); }
+    } catch (e) { console.error('Gamify award error:', safeErrorForLog(e)); }
 
     // Link session to user if it's a new session
     if (!user.workoutSessionLogs.includes(workoutSession._id)) {
@@ -1125,7 +1185,7 @@ router.post("/workout-session/log", async (req, res) => {
         } catch (aiError) {
           console.error(
             `Error generating plan for week ${plan.currentWeek}:`,
-            aiError
+            safeErrorForLog(aiError)
           );
           // Continue without new plan
         }
@@ -1158,7 +1218,7 @@ router.post("/workout-session/log", async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error logging workout session:", error);
+    console.error("Error logging workout session:", safeErrorForLog(error));
     res.status(500).json({
       error: "Failed to log workout session",
       details: error.message,
@@ -1188,7 +1248,7 @@ router.get("/workout-plan/history/:userId", async (req, res) => {
       history,
     });
   } catch (error) {
-    console.error("Error fetching workout plan history:", error);
+    console.error("Error fetching workout plan history:", safeErrorForLog(error));
     res.status(500).json({
       error: "Failed to fetch workout plan history",
       details: error.message,
@@ -1238,7 +1298,7 @@ router.put("/workout-plan/update/:planId", async (req, res) => {
       plan: workoutPlan,
     });
   } catch (error) {
-    console.error("Error updating workout plan:", error);
+    console.error("Error updating workout plan:", safeErrorForLog(error));
     res.status(500).json({
       error: "Failed to update workout plan",
       details: error.message,
@@ -1278,7 +1338,7 @@ router.delete("/workout-plan/delete/:planId", async (req, res) => {
         "Workout plan, associated logs, and diet charts deleted successfully",
     });
   } catch (error) {
-    console.error("Error deleting workout plan:", error);
+    console.error("Error deleting workout plan:", safeErrorForLog(error));
     res.status(500).json({
       error: "Failed to delete workout plan",
       details: error.message,
@@ -1320,9 +1380,24 @@ router.post("/chat", async (req, res) => {
           if (activeWorkoutPlan) {
             userContext += summarizeActivePlanForPrompt(activeWorkoutPlan);
           }
+
+          try {
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+            const todayEnd = new Date();
+            todayEnd.setHours(23, 59, 59, 999);
+            const dayLogs = await CalorieIntakeLog.find({
+              userId: userObj._id,
+              date: { $gte: todayStart, $lte: todayEnd },
+            }).lean();
+            const todayIntakeKcal = dayLogs.reduce((s, l) => s + (Number(l.totalCalories) || 0), 0);
+            userContext += `Today calorie log (internal): ${Math.round(todayIntakeKcal)} kcal logged so far.\n`;
+          } catch (calCtxErr) {
+            console.error("Error fetching today calories for chat context:", safeErrorForLog(calCtxErr));
+          }
         }
       } catch (contextError) {
-        console.error("Error fetching user context:", contextError);
+        console.error("Error fetching user context:", safeErrorForLog(contextError));
       }
     }
 
@@ -1615,7 +1690,7 @@ If they ask about workouts without logging food, use other tools as needed.`;
                   const { awardPoints } = require("../utils/gamify");
                   await awardPoints(userObj._id, 'workout_log');
                 } catch (e) {
-                  console.error('Gamify error logging workout from chat:', e);
+                  console.error('Gamify error logging workout from chat:', safeErrorForLog(e));
                 }
                 
                 toolResult = JSON.stringify({ success: true, message: "Workout logged successfully", logId: log._id });
@@ -1695,7 +1770,7 @@ If they ask about workouts without logging food, use other tools as needed.`;
               toolResult = JSON.stringify({ error: `Tool ${functionName} not supported.` });
             }
           } catch (toolError) {
-            console.error(`Error executing tool ${functionName}:`, toolError);
+            console.error(`Error executing tool ${functionName}:`, safeErrorForLog(toolError));
             toolResult = JSON.stringify({ error: toolError.message });
           }
 
@@ -1728,7 +1803,7 @@ If they ask about workouts without logging food, use other tools as needed.`;
       response: botResponseText || "I've handled that for you.",
     });
   } catch (error) {
-    console.error("Error in chat endpoint:", error);
+    console.error("Error in chat endpoint:", safeErrorForLog(error));
     if (error.response) {
       console.error("Groq API response error:", JSON.stringify(error.response.data, null, 2));
     }
@@ -1943,7 +2018,7 @@ ${userNote ? `User note / context: ${userNote}` : ""}
       data: parsed,
     });
   } catch (error) {
-    console.error("Error in calorie-tracker/scan endpoint:", error);
+    console.error("Error in calorie-tracker/scan endpoint:", safeErrorForLog(error));
     if (error.response) {
       console.error("Gemini API response error:", error.response.data);
     }
@@ -2117,7 +2192,7 @@ router.post("/calorie-intake/log", async (req, res) => {
       log,
     });
   } catch (err) {
-    console.error("Calorie intake log error:", err);
+    console.error("Calorie intake log error:", safeErrorForLog(err));
     return res.status(500).json({
       success: false,
       error: "Failed to log calorie intake",
@@ -2389,7 +2464,7 @@ User input: "${text}"
       data: parsed,
     });
   } catch (error) {
-    console.error("Error in calorie-intake/estimate endpoint:", error);
+    console.error("Error in calorie-intake/estimate endpoint:", safeErrorForLog(error));
     return res.status(500).json({
       success: false,
       error: "Failed to estimate calories from text",
@@ -2434,7 +2509,7 @@ router.get("/calorie-intake/history/:userId", async (req, res) => {
       logs,
     });
   } catch (err) {
-    console.error("Calorie intake history error:", err);
+    console.error("Calorie intake history error:", safeErrorForLog(err));
     return res.status(500).json({
       success: false,
       error: "Failed to fetch calorie intake history",
@@ -2514,7 +2589,7 @@ router.get("/calorie-intake/targets/:userId", async (req, res) => {
       ...nt,
     });
   } catch (err) {
-    console.error("calorie-intake/targets error:", err);
+    console.error("calorie-intake/targets error:", safeErrorForLog(err));
     return res.status(500).json({
       success: false,
       error: "Failed to compute nutrition targets",
@@ -2695,34 +2770,37 @@ Example shape: {"Breakfast":{"insight":"...","suggestedFoods":["...","..."]},...
 
     const rulesInsights = buildRulesInsightsByMeal();
     let insightsByMeal = { ...rulesInsights };
+    let insightSource = "rules";
     try {
       const gr = await axios.post(
         `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
         {
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.45, maxOutputTokens: 1200 },
+          generationConfig: {
+            temperature: 0.45,
+            maxOutputTokens: 1200,
+            responseMimeType: "application/json",
+          },
         },
-        { headers: { "Content-Type": "application/json" }, timeout: 22000 }
+        { headers: { "Content-Type": "application/json" }, timeout: 60000 }
       );
-      let raw = gr.data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-      raw = String(raw).trim();
-      if (raw.startsWith("```")) {
-        raw = raw.replace(/^```[a-zA-Z]*\n?/, "").replace(/```$/, "").trim();
-      }
-      const j0 = raw.indexOf("{");
-      const j1 = raw.lastIndexOf("}");
-      if (j0 !== -1 && j1 > j0) raw = raw.slice(j0, j1 + 1);
-      const parsed = JSON.parse(raw);
-      for (const slot of MEAL_SLOTS) {
-        insightsByMeal[slot] = mergeMealInsight(slot, parsed[slot], rulesInsights[slot]);
+      const raw = gr.data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+      const parsed = parseGeminiJsonObject(raw);
+      if (parsed) {
+        for (const slot of MEAL_SLOTS) {
+          insightsByMeal[slot] = mergeMealInsight(slot, parsed[slot], rulesInsights[slot]);
+        }
+        insightSource = "gemini";
+      } else {
+        console.error("Meal insights: could not parse Gemini JSON; using rules fallback");
       }
     } catch (parseErr) {
       console.error("Meal insights Gemini/parse error:", parseErr.message);
     }
 
-    return res.json({ success: true, insightsByMeal, source: "gemini" });
+    return res.json({ success: true, insightsByMeal, source: insightSource });
   } catch (err) {
-    console.error("calorie-intake/insights error:", err);
+    console.error("calorie-intake/insights error:", safeErrorForLog(err));
     return res.status(500).json({
       success: false,
       error: "Failed to generate insights",
@@ -2804,7 +2882,7 @@ router.put("/calorie-intake/log/:logId/item/:itemId", async (req, res) => {
 
     return res.json({ success: true, log: log.toObject() });
   } catch (err) {
-    console.error("Calorie item update error:", err);
+    console.error("Calorie item update error:", safeErrorForLog(err));
     return res.status(500).json({
       success: false,
       error: "Failed to update food item",
@@ -2847,7 +2925,7 @@ router.delete("/calorie-intake/log/:logId/item/:itemId", async (req, res) => {
     await log.save();
     return res.json({ success: true, deleted: "item", log: log.toObject() });
   } catch (err) {
-    console.error("Calorie item delete error:", err);
+    console.error("Calorie item delete error:", safeErrorForLog(err));
     return res.status(500).json({
       success: false,
       error: "Failed to delete food item",
@@ -3100,7 +3178,7 @@ Format each meal clearly with the meal name as a header, followed by food items 
       },
     });
   } catch (error) {
-    console.error("Error generating diet chart:", error);
+    console.error("Error generating diet chart:", safeErrorForLog(error));
     if (error.response) {
       console.error("Gemini API response error:", error.response.data);
     }
@@ -3169,7 +3247,7 @@ router.post("/diet-chart/save", async (req, res) => {
       const { awardPoints } = require("../utils/gamify");
       await awardPoints(userId, "diet_chart");
     } catch (e) {
-      console.error("Gamify award error:", e);
+      console.error("Gamify award error:", safeErrorForLog(e));
     }
 
     try {
@@ -3181,7 +3259,7 @@ router.post("/diet-chart/save", async (req, res) => {
         type: "diet",
       });
     } catch (e) {
-      console.error("Notification error (diet chart save):", e);
+      console.error("Notification error (diet chart save):", safeErrorForLog(e));
     }
 
     res.status(201).json({
@@ -3190,7 +3268,7 @@ router.post("/diet-chart/save", async (req, res) => {
       dietChart: savedDietChart,
     });
   } catch (error) {
-    console.error("❌ [DIET CHART SAVE] Error saving diet chart:", error);
+    console.error("❌ [DIET CHART SAVE] Error saving diet chart:", safeErrorForLog(error));
     res.status(500).json({
       error: "Failed to save diet chart",
       details: error.message,
@@ -3236,7 +3314,7 @@ router.get("/diet-chart/:userId/:workoutPlanId", async (req, res) => {
       dietChart: dietChart,
     });
   } catch (error) {
-    console.error("❌ [DIET CHART GET] Error fetching diet chart:", error);
+    console.error("❌ [DIET CHART GET] Error fetching diet chart:", safeErrorForLog(error));
     res.status(500).json({
       error: "Failed to fetch diet chart",
       details: error.message,
@@ -3258,7 +3336,7 @@ router.get("/diet-charts/:userId", async (req, res) => {
       dietCharts: dietCharts,
     });
   } catch (error) {
-    console.error("Error fetching diet charts:", error);
+    console.error("Error fetching diet charts:", safeErrorForLog(error));
     res.status(500).json({
       error: "Failed to fetch diet charts",
       details: error.message,
@@ -3285,7 +3363,7 @@ router.delete("/diet-chart/:dietChartId", async (req, res) => {
       message: "Diet chart deleted successfully",
     });
   } catch (error) {
-    console.error("Error deleting diet chart:", error);
+    console.error("Error deleting diet chart:", safeErrorForLog(error));
     res.status(500).json({
       error: "Failed to delete diet chart",
       details: error.message,
@@ -3325,7 +3403,7 @@ Make it personal and encouraging. Do not use markdown like bolding.
 
     res.status(200).json({ success: true, insight: insight.trim() });
   } catch (error) {
-    console.error("Error generating AI insight:", error);
+    console.error("Error generating AI insight:", safeErrorForLog(error));
     res.status(500).json({ success: false, error: "Failed to generate AI insight" });
   }
 });
@@ -3388,7 +3466,7 @@ router.get("/google-fit/link", async (req, res) => {
     console.log('🔗 [Google Fit] Generated auth URL (first 100 chars):', authUrl.substring(0, 100) + '...');
     return res.redirect(authUrl);
   } catch (e) {
-    console.error("❌ [Google Fit] Link error:", e);
+    console.error("❌ [Google Fit] Link error:", safeErrorForLog(e));
     return res.status(500).json({ error: "Failed to start Google Fit linking", details: e.message });
   }
 });
@@ -3399,7 +3477,7 @@ router.get("/google-fit/callback", async (req, res) => {
     const { code, state, error } = req.query;
 
     if (error) {
-      console.error("Google Fit OAuth error:", error);
+      console.error("Google Fit OAuth error:", safeErrorForLog(error));
       return res.redirect(
         `${getFrontendRedirectBase()}/home?googleFit=error`
       );
@@ -3438,7 +3516,7 @@ router.get("/google-fit/callback", async (req, res) => {
       `${getFrontendRedirectBase()}/home?googleFit=linked`
     );
   } catch (e) {
-    console.error("Google Fit callback error:", e);
+    console.error("Google Fit callback error:", safeErrorForLog(e));
     return res.redirect(`${getFrontendRedirectBase()}/home?googleFit=error`);
   }
 });
@@ -3458,7 +3536,7 @@ router.get("/google-fit/status", async (req, res) => {
       lastSyncAt: user.googleFit?.lastSyncAt || null,
     });
   } catch (e) {
-    console.error("Google Fit status error:", e);
+    console.error("Google Fit status error:", safeErrorForLog(e));
     return res.status(500).json({ error: "Failed to fetch Google Fit status" });
   }
 });
@@ -3545,7 +3623,10 @@ router.get("/google-fit/steps/today", async (req, res) => {
       source: "google_fit",
     });
   } catch (e) {
-    console.error("Google Fit steps error:", e?.response?.data || e);
+    console.error(
+      "Google Fit steps error:",
+      e?.response?.data != null ? e.response.data : safeErrorForLog(e)
+    );
     return res.status(500).json({
       error: "Failed to fetch steps from Google Fit",
       details: e?.response?.data || e?.message,

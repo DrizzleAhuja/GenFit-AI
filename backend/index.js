@@ -5,6 +5,7 @@ const session = require("express-session");
 require("dotenv").config();
 require("./models/userLogModel");
 const { connectDB } = require("./db");
+const { safeErrorForLog } = require("./utils/safeLog");
 
 const authRoutes = require("./routes/authRoutes");
 const reportRoutes = require("./routes/reportRoutes");
@@ -201,8 +202,9 @@ app.use("/api/maintenance", maintenanceRoutes);
 
 // ✅ Error handling middleware
 app.use((err, req, res, next) => {
-  console.error("Server Error:", err.stack);
-  console.error("Error Message:", err.message);
+  const safe = safeErrorForLog(err);
+  console.error("Server Error:", safe.stack || safe.message);
+  console.error("Error Message:", safe.message);
   console.error("Request Origin:", req.headers.origin);
   console.error("Request Method:", req.method);
   console.error("Request Path:", req.path);

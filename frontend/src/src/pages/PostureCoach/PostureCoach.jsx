@@ -1203,6 +1203,21 @@ export default function PostureCoach() {
               </p>
             </header>
 
+            <div className="mt-6 mx-auto max-w-3xl rounded-2xl border border-[#1F2937] bg-[#020617]/70 backdrop-blur p-5 sm:p-6 text-left shadow-[0_12px_40px_rgba(15,23,42,0.6)]">
+              <h3 className="text-white font-semibold text-base sm:text-lg mb-3 flex items-center gap-2">
+                <Zap className="w-5 h-5 text-[#FACC15]" />
+                Desk reset (no camera)
+              </h3>
+              <p className="text-xs text-gray-500 mb-3">Two minutes between meetings — open chest, neck, and hips.</p>
+              <ol className="text-sm text-gray-300 space-y-2.5 list-decimal pl-4 marker:text-[#22D3EE]">
+                <li>Seated tall: inhale, reach arms overhead, exhale and relax shoulders down — 3 breaths.</li>
+                <li>Chin retraction: glide head back (double-chin motion) hold 5s, repeat 5×.</li>
+                <li>Thoracic open: hands behind head, gentle upper-back extension over chair — 8 slow reps.</li>
+                <li>Hip flexor: stand, rear-foot on chair seat, slight tuck of tailbone — 30s each side.</li>
+                <li>Wrist &amp; forearm: interlace fingers, press palms out, circle wrists — 30s.</li>
+              </ol>
+            </div>
+
             {workoutFromPlan && workoutFromPlan.exercise && (
               <div className="mt-4 mx-auto max-w-3xl rounded-xl bg-cyan-500/20 border border-cyan-400/50 backdrop-blur p-4 text-center">
                 <p className="text-cyan-100 font-semibold">

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
 import { useTheme } from "../../context/ThemeContext";
-import { Sparkles, Utensils, Droplet, Plus, Info, Coffee, Sun, Moon, Sunrise, Flame, Camera, X, Zap, Pencil, Trash2, Target, Activity, RefreshCw } from "lucide-react";
+import { Sparkles, Utensils, Droplet, Plus, Info, Coffee, Sun, Moon, Sunrise, Flame, Camera, X, Zap, Pencil, Trash2, Target, Activity, RefreshCw, Clock, RotateCcw } from "lucide-react";
 import { useSelector } from "react-redux";
 import { selectUser } from "../../redux/userSlice";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
@@ -18,6 +18,80 @@ const MEAL_TYPES = [
 ];
 
 const MEAL_INSIGHT_IDS = ["Breakfast", "Lunch", "Evening Snack", "Dinner"];
+
+const RECENT_FOODS_KEY = "genfit_recent_foods_v1";
+const PENDING_CAL_LOGS_KEY = "genfit_cal_pending_logs_v1";
+const MEAL_NUDGE_DISMISS_KEY = "genfit_meal_nudge_dismiss_date";
+
+function readRecentFoods() {
+  try {
+    const raw = localStorage.getItem(RECENT_FOODS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeRecentFoods(entries) {
+  localStorage.setItem(RECENT_FOODS_KEY, JSON.stringify(entries.slice(0, 18)));
+}
+
+function pushRecentFoodNames(names, mealType) {
+  const prev = readRecentFoods();
+  for (const name of names) {
+    const n = String(name || "").trim();
+    if (!n) continue;
+    const i = prev.findIndex((x) => String(x.name).toLowerCase() === n.toLowerCase());
+    if (i >= 0) prev.splice(i, 1);
+    prev.unshift({ name: n, mealType: mealType || "Breakfast", ts: Date.now() });
+  }
+  writeRecentFoods(prev);
+}
+
+function readPendingLogs() {
+  try {
+    const raw = localStorage.getItem(PENDING_CAL_LOGS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writePendingLogs(arr) {
+  localStorage.setItem(PENDING_CAL_LOGS_KEY, JSON.stringify(arr.slice(0, 20)));
+}
+
+/** Calendar date YYYY-MM-DD in the user's local timezone (not UTC — avoids "today" bar showing 0 outside UTC). */
+function localDateKey(input) {
+  const d = input instanceof Date ? input : new Date(input);
+  if (Number.isNaN(d.getTime())) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function buildWeekCalorieSeries(logs) {
+  const series = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - i);
+    const key = localDateKey(d);
+    let sum = 0;
+    (logs || []).forEach((log) => {
+      if (localDateKey(new Date(log.date)) === key) {
+        sum += Number(log.totalCalories) || 0;
+      }
+    });
+    series.push({
+      key,
+      label: d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric" }),
+      kcal: sum,
+    });
+  }
+  return series;
+}
 
 /** API may return legacy string per meal or { insight, suggestedFoods }. */
 function normalizeInsightsByMeal(raw) {
@@ -61,7 +135,7 @@ function getItemMacroGrams(item) {
   const f = Number(item.fatG);
   const hasStored =
     Number.isFinite(p) &&
-    (p > 0 || (Number(item.carbsG) || 0) > 0 || (Number(item.fatG) || 0) > 0);
+    (p > 0 || (Number.isFinite(c) && c > 0) || (Number.isFinite(f) && f > 0));
   if (hasStored) {
     return {
       p: Number.isFinite(p) ? p : 0,
@@ -127,6 +201,9 @@ export default function CalorieTracker() {
   const [insightsByMeal, setInsightsByMeal] = useState({});
   const [loadingTargets, setLoadingTargets] = useState(false);
   const [loadingInsights, setLoadingInsights] = useState(false);
+  const [recentFoods, setRecentFoods] = useState([]);
+  const [pendingLogCount, setPendingLogCount] = useState(0);
+  const [mealNudgeTick, setMealNudgeTick] = useState(0);
 
   const loadNutritionTargets = async () => {
     if (!user?._id) return;
@@ -166,6 +243,11 @@ export default function CalorieTracker() {
   };
 
   useEffect(() => {
+    setRecentFoods(readRecentFoods());
+    setPendingLogCount(readPendingLogs().length);
+  }, [user?._id]);
+
+  useEffect(() => {
     if (user?._id) {
       loadHistory();
       loadNutritionTargets();
@@ -173,6 +255,38 @@ export default function CalorieTracker() {
     }
     setupNotifications();
   }, [user]);
+
+  const flushPendingLogs = useCallback(async () => {
+    if (!user?._id) return;
+    const pending = readPendingLogs();
+    if (pending.length === 0) return;
+    const remaining = [];
+    for (const entry of pending) {
+      try {
+        await axios.post(`${API_BASE_URL}${API_ENDPOINTS.CALORIE_INTAKE}/log`, entry.payload);
+      } catch {
+        remaining.push(entry);
+      }
+    }
+    writePendingLogs(remaining);
+    setPendingLogCount(remaining.length);
+    if (remaining.length < pending.length) {
+      setNotice({
+        type: "success",
+        text: `Synced ${pending.length - remaining.length} meal log(s) that were saved offline.`,
+      });
+      await loadHistory();
+      loadInsights();
+    }
+  }, [user?._id]);
+
+  useEffect(() => {
+    const onOnline = () => {
+      flushPendingLogs();
+    };
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [flushPendingLogs]);
 
   useEffect(() => {
     if (!notice) return;
@@ -199,17 +313,15 @@ export default function CalorieTracker() {
 
   const loadHistory = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.CALORIE_INTAKE}/history/${user._id}?days=1`);
+      const res = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.CALORIE_INTAKE}/history/${user._id}?days=7`);
       if (res.data?.success) {
         const logs = res.data.logs || [];
         setHistory(logs);
-        
-        // Filter for today
-        const today = new Date().toISOString().slice(0, 10);
-        const todayItems = logs.filter(l => new Date(l.date).toISOString().slice(0, 10) === today);
+
+        const today = localDateKey(new Date());
+        const todayItems = logs.filter((l) => localDateKey(new Date(l.date)) === today);
         setTodayLogs(todayItems);
 
-        // Sum water for today
         const totalWater = todayItems.reduce((acc, log) => acc + (log.waterIntake || 0), 0);
         setWaterIntake(totalWater);
       }
@@ -226,17 +338,15 @@ export default function CalorieTracker() {
     }
     setLoadingMeals((prev) => ({ ...prev, [mealType]: true }));
     try {
-      // 1. Get estimate from Gemini
       const estimateRes = await axios.post(`${API_BASE_URL}${API_ENDPOINTS.CALORIE_INTAKE}/estimate`, { text, mealType });
       if (!estimateRes.data?.success) throw new Error("Failed to estimate calories");
-      
+
       const { food_items, total_estimated_calories } = estimateRes.data.data;
       const itemsPayload = (food_items || []).map((f) => mapFoodItemToPayload(f, mealType, 1));
       const sumP = itemsPayload.reduce((s, it) => s + (it.proteinG || 0), 0);
       const sumC = itemsPayload.reduce((s, it) => s + (it.carbsG || 0), 0);
       const sumF = itemsPayload.reduce((s, it) => s + (it.fatG || 0), 0);
 
-      // 2. Save to backend
       const payload = {
         userId: user._id,
         mealType,
@@ -246,16 +356,40 @@ export default function CalorieTracker() {
         items: itemsPayload,
       };
 
-      await axios.post(`${API_BASE_URL}${API_ENDPOINTS.CALORIE_INTAKE}/log`, payload);
+      try {
+        await axios.post(`${API_BASE_URL}${API_ENDPOINTS.CALORIE_INTAKE}/log`, payload);
+      } catch (saveErr) {
+        const offline = typeof navigator !== "undefined" && !navigator.onLine;
+        const networkFail = !saveErr.response && saveErr.message !== undefined;
+        if (offline || networkFail) {
+          const pending = readPendingLogs();
+          pending.push({ payload, savedAt: Date.now() });
+          writePendingLogs(pending);
+          setPendingLogCount(pending.length);
+          setNotice({
+            type: "success",
+            text: `Saved this meal on your device — we'll sync ${Math.round(total_estimated_calories)} kcal when you're back online. Tap "Sync pending logs" if needed.`,
+          });
+          setInputs((prev) => ({ ...prev, [mealType]: "" }));
+          pushRecentFoodNames(itemsPayload.map((i) => i.name), mealType);
+          setRecentFoods(readRecentFoods());
+          return;
+        }
+        throw saveErr;
+      }
 
-      setNotice({
-        type: "success",
-        text: `Logged ${Math.round(total_estimated_calories)} kcal for ${mealType} — about P ${sumP}g · C ${sumC}g · F ${sumF}g.`,
-      });
+      pushRecentFoodNames(itemsPayload.map((i) => i.name), mealType);
+      setRecentFoods(readRecentFoods());
+
+      let successText = `Logged ${Math.round(total_estimated_calories)} kcal for ${mealType} — about P ${sumP}g · C ${sumC}g · F ${sumF}g.`;
+      if ((food_items || []).length === 0 || (total_estimated_calories || 0) < 80) {
+        successText +=
+          " If that seems off, edit the entry or re-log with a clearer description (portion size helps).";
+      }
+      setNotice({ type: "success", text: successText });
       setInputs((prev) => ({ ...prev, [mealType]: "" }));
       await loadHistory();
       loadInsights();
-
     } catch (err) {
       console.error(err);
       const apiMsg = err.response?.data?.error || err.response?.data?.details;
@@ -349,14 +483,38 @@ export default function CalorieTracker() {
         items: itemsPayload,
       };
 
-      await axios.post(`${API_BASE_URL}${API_ENDPOINTS.CALORIE_INTAKE}/log`, payload);
+      try {
+        await axios.post(`${API_BASE_URL}${API_ENDPOINTS.CALORIE_INTAKE}/log`, payload);
+      } catch (saveErr) {
+        const offline = typeof navigator !== "undefined" && !navigator.onLine;
+        const networkFail = !saveErr.response && saveErr.message !== undefined;
+        if (offline || networkFail) {
+          const pending = readPendingLogs();
+          pending.push({ payload, savedAt: Date.now() });
+          writePendingLogs(pending);
+          setPendingLogCount(pending.length);
+          pushRecentFoodNames(itemsPayload.map((i) => i.name), mealType);
+          setRecentFoods(readRecentFoods());
+          closeScanner();
+          setNotice({
+            type: "success",
+            text: `Photo meal saved on this device — will sync ~${Math.round(totalCaloriesForQuantity)} kcal when online.`,
+          });
+          return;
+        }
+        throw saveErr;
+      }
 
-      setNotice({
-        type: "success",
-        text: `Scanned and logged ${Math.round(totalCaloriesForQuantity)} kcal for ${mealType} — about P ${sumP}g · C ${sumC}g · F ${sumF}g.`,
-      });
+      pushRecentFoodNames(itemsPayload.map((i) => i.name), mealType);
+      setRecentFoods(readRecentFoods());
 
-      // Reset image state
+      let scanMsg = `Scanned and logged ${Math.round(totalCaloriesForQuantity)} kcal for ${mealType} — about P ${sumP}g · C ${sumC}g · F ${sumF}g.`;
+      if ((food_items || []).length === 0 || totalCaloriesForQuantity < 70) {
+        scanMsg +=
+          " If this seems off, retake with better light, increase servings, or describe the meal in text.";
+      }
+      setNotice({ type: "success", text: scanMsg });
+
       closeScanner();
       await loadHistory();
       loadInsights();
@@ -536,6 +694,47 @@ export default function CalorieTracker() {
     );
   };
 
+  const hasLoggedMealSlot = useMemo(() => {
+    const out = { Breakfast: false, Lunch: false, "Evening Snack": false, Dinner: false };
+    todayLogs.forEach((log) => {
+      (log.items || []).forEach((item) => {
+        const mt = item.mealType || "Other";
+        if (mt in out && item._id) out[mt] = true;
+      });
+    });
+    return out;
+  }, [todayLogs]);
+
+  const mealTimeNudge = useMemo(() => {
+    void mealNudgeTick;
+    const todayKey = localDateKey(new Date());
+    if (typeof window !== "undefined" && localStorage.getItem(MEAL_NUDGE_DISMISS_KEY) === todayKey) {
+      return null;
+    }
+    const h = new Date().getHours();
+    if (h >= 6 && h < 11 && !hasLoggedMealSlot.Breakfast) {
+      return { slot: "Breakfast", text: "Haven’t logged breakfast yet?" };
+    }
+    if (h >= 11 && h < 15 && !hasLoggedMealSlot.Lunch) {
+      return { slot: "Lunch", text: "Time to log lunch while you remember portions." };
+    }
+    if (h >= 15 && h < 19 && !hasLoggedMealSlot["Evening Snack"]) {
+      return { slot: "Evening Snack", text: "Quick snack log keeps your day accurate." };
+    }
+    if (h >= 19 && h < 23 && !hasLoggedMealSlot.Dinner) {
+      return { slot: "Dinner", text: "Log dinner to close out your nutrition day." };
+    }
+    return null;
+  }, [hasLoggedMealSlot, mealNudgeTick]);
+
+  const weekCalorieSeries = useMemo(() => buildWeekCalorieSeries(history), [history]);
+  const weekMaxKcal = useMemo(() => Math.max(...weekCalorieSeries.map((d) => d.kcal), 1), [weekCalorieSeries]);
+
+  const dismissMealNudge = () => {
+    localStorage.setItem(MEAL_NUDGE_DISMISS_KEY, localDateKey(new Date()));
+    setMealNudgeTick((t) => t + 1);
+  };
+
   const cardClass = "relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 transition-all duration-300";
 
   return (
@@ -559,7 +758,9 @@ export default function CalorieTracker() {
                 Daily <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE]">Nutrition</span> Log
               </h1>
               <p className="text-gray-400 text-sm max-w-2xl mx-auto">
-                Type what you ate or snap a picture, and We will estimate your calories instantly. Don't forget to track your hydration!
+                {
+                  "Type what you ate or snap a picture, and we will estimate your calories instantly. Don't forget to track your hydration!"
+                }
               </p>
             </header>
 
@@ -598,6 +799,68 @@ export default function CalorieTracker() {
                   Add BMI for a daily target and progress %.
                 </p>
               )}
+            </div>
+
+            {pendingLogCount > 0 && (
+              <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-amber-500/35 bg-amber-950/25 px-4 py-3">
+                <p className="text-sm text-amber-100/90">
+                  <span className="font-semibold">{pendingLogCount} meal log(s)</span> waiting to sync — usually when you were offline.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => flushPendingLogs()}
+                  className="shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-bold bg-amber-500/20 text-amber-200 border border-amber-500/40 hover:bg-amber-500/30 min-h-[44px]"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Sync pending logs
+                </button>
+              </div>
+            )}
+
+            {mealTimeNudge && (
+              <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-[#8B5CF6]/35 bg-[#8B5CF6]/10 px-4 py-3">
+                <div className="flex items-start gap-3">
+                  <Clock className="w-5 h-5 text-[#C4B5FD] shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-white font-medium">{mealTimeNudge.text}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Suggested: log <span className="text-[#22D3EE] font-semibold">{mealTimeNudge.slot}</span> below.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={dismissMealNudge}
+                  className="text-xs font-semibold text-gray-400 hover:text-white self-end sm:self-center min-h-[44px] px-2"
+                >
+                  Not now
+                </button>
+              </div>
+            )}
+
+            <div className={`${cardClass} p-4 sm:p-5 mb-6`}>
+              <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE]" />
+              <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                <Activity className="w-4 h-4 text-[#22D3EE]" />
+                Calories — last 7 days
+              </h3>
+              <div className="flex items-end justify-between gap-1 sm:gap-2 pl-1">
+                {weekCalorieSeries.map((day) => {
+                  const barPct = day.kcal > 0 ? Math.max(12, Math.round((day.kcal / weekMaxKcal) * 100)) : 4;
+                  return (
+                    <div key={day.key} className="flex-1 flex flex-col items-center gap-1 min-w-0">
+                      <span className="text-[9px] text-gray-500 tabular-nums h-3">{Math.round(day.kcal) || "—"}</span>
+                      <div className="w-full max-w-[40px] h-24 flex flex-col justify-end mx-auto" title={`${day.label}: ${Math.round(day.kcal)} kcal`}>
+                        <div
+                          className="w-full rounded-t-md bg-gradient-to-t from-[#8B5CF6] to-[#22D3EE] transition-all"
+                          style={{ height: `${barPct}%` }}
+                        />
+                      </div>
+                      <span className="text-[9px] text-gray-500 truncate w-full text-center">{day.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             {notice && (
@@ -876,7 +1139,30 @@ export default function CalorieTracker() {
 
                         {!isThisScannerActive ? (
                           // Text Input Area
-                          <div className="relative flex items-center gap-3 mt-2">
+                          <div className="mt-2 space-y-2">
+                            {recentFoods.filter((r) => r.mealType === meal.id).length > 0 && (
+                              <div>
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 mb-1.5">
+                                  Log again
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                  {recentFoods
+                                    .filter((r) => r.mealType === meal.id)
+                                    .slice(0, 8)
+                                    .map((r, ri) => (
+                                      <button
+                                        key={`${r.name}-${r.ts}-${ri}`}
+                                        type="button"
+                                        onClick={() => setInputs((prev) => ({ ...prev, [meal.id]: r.name }))}
+                                        className="text-xs px-3 py-2 rounded-lg border border-[#1F2937] bg-[#020617]/80 text-[#A5B4FC] hover:border-[#8B5CF6]/60 hover:text-white transition-colors min-h-[44px]"
+                                      >
+                                        {r.name}
+                                      </button>
+                                    ))}
+                                </div>
+                              </div>
+                            )}
+                          <div className="relative flex items-center gap-3">
                             <button
                               type="button"
                               onClick={() => openScanner(meal.id)}
@@ -913,6 +1199,7 @@ export default function CalorieTracker() {
                             >
                               {isLoggingText ? "Analyzing..." : "Log"}
                             </button>
+                          </div>
                           </div>
                         ) : (
                           // Image Scanner Area for this Meal

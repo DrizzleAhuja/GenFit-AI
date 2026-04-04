@@ -3,6 +3,7 @@ const User = require("../models/User");
 const axios = require("axios");
 const { GEMINI_API_KEY, GEMINI_API_URL } = require("../config/config");
 const { awardPoints } = require("../utils/gamify");
+const { safeErrorForLog } = require("../utils/safeLog");
 
 exports.saveBMI = async (req, res) => {
   try {
@@ -94,7 +95,7 @@ Please provide specific, actionable advice in 2-3 paragraphs. Be encouraging, pr
         .replace(/^\s*\*\s*/gm, "• ") // Convert line-starting asterisks to bullets
         .trim();
     } catch (aiError) {
-      console.error("AI suggestion error:", aiError);
+      console.error("AI suggestion error:", safeErrorForLog(aiError));
       aiSuggestions =
         "AI suggestions temporarily unavailable. Please consult with a healthcare professional for personalized advice.";
     }
@@ -115,7 +116,7 @@ Please provide specific, actionable advice in 2-3 paragraphs. Be encouraging, pr
       aiSuggestions,
     });
     await newBMI.save();
-    try { await awardPoints(user._id, 'bmi_save'); } catch (e) { console.error('Gamify award error:', e); }
+    try { await awardPoints(user._id, 'bmi_save'); } catch (e) { console.error('Gamify award error:', safeErrorForLog(e)); }
 
     res.status(201).json({
       message: "BMI saved successfully",
@@ -123,7 +124,7 @@ Please provide specific, actionable advice in 2-3 paragraphs. Be encouraging, pr
       aiSuggestions,
     });
   } catch (error) {
-    console.error("Save BMI error:", error);
+    console.error("Save BMI error:", safeErrorForLog(error));
     res.status(500).json({ error: "Server error" });
   }
 };
@@ -241,7 +242,7 @@ Please provide specific, actionable advice in 2-3 paragraphs. Be encouraging, pr
         .replace(/^\s*\*\s*/gm, "• ") // Convert line-starting asterisks to bullets
         .trim();
     } catch (aiError) {
-      console.error("AI suggestion error:", aiError);
+      console.error("AI suggestion error:", safeErrorForLog(aiError));
       aiSuggestions =
         "AI suggestions temporarily unavailable. Please consult with a healthcare professional for personalized advice.";
     }
@@ -262,7 +263,7 @@ Please provide specific, actionable advice in 2-3 paragraphs. Be encouraging, pr
       aiSuggestions,
     });
     await updatedBMI.save();
-    try { await awardPoints(user._id, 'bmi_update'); } catch (e) { console.error('Gamify award error:', e); }
+    try { await awardPoints(user._id, 'bmi_update'); } catch (e) { console.error('Gamify award error:', safeErrorForLog(e)); }
 
     res.status(200).json({
       message: "BMI updated successfully",
@@ -270,7 +271,7 @@ Please provide specific, actionable advice in 2-3 paragraphs. Be encouraging, pr
       aiSuggestions,
     });
   } catch (error) {
-    console.error("Update BMI error:", error);
+    console.error("Update BMI error:", safeErrorForLog(error));
     res.status(500).json({ error: "Server error" });
   }
 };
@@ -335,7 +336,7 @@ exports.getProgressTracking = async (req, res) => {
       totalRecords: allRecords.length,
     });
   } catch (error) {
-    console.error("Progress tracking error:", error);
+    console.error("Progress tracking error:", safeErrorForLog(error));
     res.status(500).json({ error: "Server error" });
   }
 };

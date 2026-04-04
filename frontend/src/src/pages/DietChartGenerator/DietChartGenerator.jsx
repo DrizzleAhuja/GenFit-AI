@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { useSelector } from "react-redux";
 import { selectUser } from "../../redux/userSlice";
-import { FiRefreshCw, FiSave, FiHeart, FiCopy } from "react-icons/fi";
+import { FiRefreshCw, FiSave, FiHeart, FiCopy, FiDownload } from "react-icons/fi";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -29,6 +29,24 @@ const DIET_TYPE_OPTIONS = [
   { id: "non_vegetarian", label: "Non-Vegetarian", icon: "🍗", color: "from-red-500 to-orange-500" },
   { id: "eggetarian", label: "Eggetarian", icon: "🥚", color: "from-yellow-500 to-amber-500" },
 ];
+
+const SUBSTITUTION_BY_DIET = {
+  vegetarian: [
+    "Paneer dishes → tofu, chickpeas, or extra dal for protein.",
+    "White rice → millets, brown rice, or half rice + salad.",
+    "Fried snacks → roasted chana, makhana, or fruit with nuts.",
+  ],
+  non_vegetarian: [
+    "Red meat days → fish or chicken breast for lean protein.",
+    "Curries → grill or tandoori-style to cut oil.",
+    "Extra hunger → add eggs or Greek-style thick curd.",
+  ],
+  eggetarian: [
+    "Pair eggs with veg for fiber (spinach, capsicum, salad).",
+    "Paneer overload → swap one meal for egg bhurji or dal.",
+    "Rice portions → reduce slightly when you have 3+ eggs that day.",
+  ],
+};
 
 export default function DietChartGenerator() {
   const { darkMode } = useTheme();
@@ -427,6 +445,37 @@ export default function DietChartGenerator() {
     () => parseDietChartContent(displayDietChart),
     [displayDietChart]
   );
+
+  const groceryLines = useMemo(() => {
+    const lines = new Set();
+    for (const section of structuredDietChart || []) {
+      for (const meal of section.meals || []) {
+        for (const item of meal.items || []) {
+          const s = String(item)
+            .replace(/^[→*•-]\s*/, "")
+            .trim();
+          if (s.length > 2 && s.length < 200) lines.add(s);
+        }
+      }
+    }
+    return Array.from(lines);
+  }, [structuredDietChart]);
+
+  const exportGroceryList = () => {
+    if (groceryLines.length === 0) {
+      toast.error("Generate a diet chart first to build a grocery list.");
+      return;
+    }
+    const header = `GenFit grocery list — ${new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}\n\n`;
+    const body = groceryLines.map((l) => `• ${l}`).join("\n");
+    const blob = new Blob([header + body], { type: "text/plain;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `genfit-grocery-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast.success("Grocery list downloaded");
+  };
 
   const saveDietChart = async () => {
     console.log("💾 [FRONTEND] Starting diet chart save...");
@@ -941,7 +990,16 @@ export default function DietChartGenerator() {
                     </div>
                   </div>
                   {displayDietChart && (
-                    <div className="flex gap-2 sm:gap-3">
+                    <div className="flex flex-wrap gap-2 sm:gap-3 justify-end">
+                      <button
+                        type="button"
+                        onClick={exportGroceryList}
+                        disabled={groceryLines.length === 0}
+                        className="p-3 bg-white/10 backdrop-blur-sm rounded-xl hover:bg-white/20 transition-all duration-300 disabled:opacity-40 shadow-lg hover:shadow-white/30 border border-white/20 hover:scale-110 active:scale-95 min-w-[52px] min-h-[52px] flex items-center justify-center group"
+                        title="Download grocery list (.txt)"
+                      >
+                        <FiDownload className="text-xl group-hover:translate-y-0.5 transition-transform" />
+                      </button>
                       <button
                         onClick={saveDietChart}
                         disabled={loading}
@@ -970,6 +1028,21 @@ export default function DietChartGenerator() {
                 {displayDietChart ? (
                   structuredDietChart.length > 0 ? (
                     <div className="space-y-5 sm:space-y-6">
+                      {dietType && SUBSTITUTION_BY_DIET[dietType]?.length > 0 && (
+                        <div className="rounded-2xl border border-[#22D3EE]/35 bg-gradient-to-r from-cyan-500/10 to-violet-500/10 p-4 sm:p-5">
+                          <h3 className="text-sm font-bold text-[#22D3EE] mb-2 flex items-center gap-2">
+                            <span>↔</span> Smart swaps ({DIET_TYPE_OPTIONS.find((o) => o.id === dietType)?.label || "your diet"})
+                          </h3>
+                          <ul className="list-none space-y-2 text-sm text-gray-300">
+                            {SUBSTITUTION_BY_DIET[dietType].map((line, i) => (
+                              <li key={i} className="flex gap-2">
+                                <span className="text-[#A855F7] shrink-0">•</span>
+                                <span>{line}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                       {structuredDietChart.map((section, sectionIndex) => (
                         <div
                           key={`${section.title}-${sectionIndex}`}
