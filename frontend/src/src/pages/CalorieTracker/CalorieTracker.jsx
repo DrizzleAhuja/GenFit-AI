@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
 import { useTheme } from "../../context/ThemeContext";
-import { Sparkles, Utensils, Droplet, Plus, Info, Coffee, Sun, Moon, Sunrise, Flame, Camera, X, Zap, Pencil, Trash2 } from "lucide-react";
+import { Sparkles, Utensils, Droplet, Plus, Info, Coffee, Sun, Moon, Sunrise, Flame, Camera, X, Zap, Pencil, Trash2, Target, Activity, RefreshCw } from "lucide-react";
 import { useSelector } from "react-redux";
 import { selectUser } from "../../redux/userSlice";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
@@ -16,6 +16,57 @@ const MEAL_TYPES = [
   { id: "Evening Snack", label: "Evening Snack", icon: <Coffee className="w-5 h-5 text-amber-600" /> },
   { id: "Dinner", label: "Dinner", icon: <Moon className="w-5 h-5 text-indigo-400" /> },
 ];
+
+function inferLocalMacros(kcal) {
+  const k = Number(kcal);
+  if (!Number.isFinite(k) || k <= 0) return { p: 0, c: 0, f: 0 };
+  const f = Math.max(Math.round((k * 0.3) / 9), 0);
+  const p = Math.max(Math.round((k * 0.25) / 4), 0);
+  const c = Math.max(Math.round((k - p * 4 - f * 9) / 4), 0);
+  return { p, c, f };
+}
+
+function getItemMacroGrams(item) {
+  const p = Number(item.proteinG);
+  const c = Number(item.carbsG);
+  const f = Number(item.fatG);
+  const hasStored =
+    Number.isFinite(p) &&
+    (p > 0 || (Number(item.carbsG) || 0) > 0 || (Number(item.fatG) || 0) > 0);
+  if (hasStored) {
+    return {
+      p: Number.isFinite(p) ? p : 0,
+      c: Number.isFinite(Number(item.carbsG)) ? Number(item.carbsG) : 0,
+      f: Number.isFinite(Number(item.fatG)) ? Number(item.fatG) : 0,
+    };
+  }
+  return inferLocalMacros(item.totalCalories);
+}
+
+function mapFoodItemToPayload(f, mealType, quantity = 1) {
+  const cal = Number(f.estimated_calories) || 0;
+  const q = Number(quantity) || 1;
+  const lineCal = cal * q;
+  const pg = Number(f.protein_g ?? f.proteinG);
+  const cg = Number(f.carbs_g ?? f.carbsG);
+  const fg = Number(f.fat_g ?? f.fatG);
+  const hasAll =
+    [pg, cg, fg].every((n) => Number.isFinite(n) && n >= 0) && pg + cg + fg > 0;
+  const inf = inferLocalMacros(cal);
+  const p0 = hasAll ? Math.round(pg) : inf.p;
+  const c0 = hasAll ? Math.round(cg) : inf.c;
+  const f0 = hasAll ? Math.round(fg) : inf.f;
+  return {
+    name: f.name,
+    caloriesPerItem: cal,
+    quantity: q,
+    totalCalories: lineCal,
+    mealType,
+    proteinG: Math.round(p0 * q),
+    carbsG: Math.round(c0 * q),
+    fatG: Math.round(f0 * q),
+  };
+}
 
 export default function CalorieTracker() {
   const { darkMode } = useTheme();
@@ -43,10 +94,53 @@ export default function CalorieTracker() {
   const [deletingKey, setDeletingKey] = useState(null);
   const [notice, setNotice] = useState(null);
   const [pendingDelete, setPendingDelete] = useState(null);
+  const [nutritionTargets, setNutritionTargets] = useState(null);
+  const [insightsByMeal, setInsightsByMeal] = useState({});
+  const [loadingTargets, setLoadingTargets] = useState(false);
+  const [loadingInsights, setLoadingInsights] = useState(false);
+
+  const loadNutritionTargets = async () => {
+    if (!user?._id) return;
+    setLoadingTargets(true);
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}${API_ENDPOINTS.CALORIE_INTAKE}/targets/${user._id}`
+      );
+      if (res.data?.success) setNutritionTargets(res.data);
+      else setNutritionTargets(null);
+    } catch (e) {
+      console.error(e);
+      setNutritionTargets(null);
+    } finally {
+      setLoadingTargets(false);
+    }
+  };
+
+  const loadInsights = async () => {
+    if (!user?._id) return;
+    setLoadingInsights(true);
+    try {
+      const res = await axios.post(
+        `${API_BASE_URL}${API_ENDPOINTS.CALORIE_INTAKE}/insights/${user._id}`
+      );
+      if (res.data?.success && res.data.insightsByMeal) {
+        setInsightsByMeal(res.data.insightsByMeal);
+      } else {
+        setInsightsByMeal({});
+      }
+    } catch (e) {
+      console.error(e);
+      setInsightsByMeal({});
+    } finally {
+      setLoadingInsights(false);
+    }
+  };
 
   useEffect(() => {
     if (user?._id) {
       loadHistory();
+      loadNutritionTargets();
+      loadInsights();
     }
     setupNotifications();
   }, [user]);
@@ -108,7 +202,11 @@ export default function CalorieTracker() {
       if (!estimateRes.data?.success) throw new Error("Failed to estimate calories");
       
       const { food_items, total_estimated_calories } = estimateRes.data.data;
-      
+      const itemsPayload = (food_items || []).map((f) => mapFoodItemToPayload(f, mealType, 1));
+      const sumP = itemsPayload.reduce((s, it) => s + (it.proteinG || 0), 0);
+      const sumC = itemsPayload.reduce((s, it) => s + (it.carbsG || 0), 0);
+      const sumF = itemsPayload.reduce((s, it) => s + (it.fatG || 0), 0);
+
       // 2. Save to backend
       const payload = {
         userId: user._id,
@@ -116,23 +214,18 @@ export default function CalorieTracker() {
         totalCalories: total_estimated_calories || 0,
         source: "text",
         waterIntake: 0,
-        items: (food_items || []).map((f) => ({
-          name: f.name,
-          caloriesPerItem: Number(f.estimated_calories) || 0,
-          quantity: 1,
-          totalCalories: Number(f.estimated_calories) || 0,
-          mealType,
-        })),
+        items: itemsPayload,
       };
 
       await axios.post(`${API_BASE_URL}${API_ENDPOINTS.CALORIE_INTAKE}/log`, payload);
 
       setNotice({
         type: "success",
-        text: `Logged ${Math.round(total_estimated_calories)} kcal for ${mealType}.`,
+        text: `Logged ${Math.round(total_estimated_calories)} kcal for ${mealType} — about P ${sumP}g · C ${sumC}g · F ${sumF}g.`,
       });
       setInputs((prev) => ({ ...prev, [mealType]: "" }));
-      loadHistory(); // Refresh data
+      await loadHistory();
+      loadInsights();
 
     } catch (err) {
       console.error(err);
@@ -210,7 +303,12 @@ export default function CalorieTracker() {
       if (!scanRes.data?.success) throw new Error("Failed to scan image");
 
       const { food_items, total_estimated_calories } = scanRes.data.data;
-      const totalCaloriesForQuantity = total_estimated_calories * imageQuantity;
+      const q = Number(imageQuantity) || 1;
+      const totalCaloriesForQuantity = total_estimated_calories * q;
+      const itemsPayload = (food_items || []).map((f) => mapFoodItemToPayload(f, mealType, q));
+      const sumP = itemsPayload.reduce((s, it) => s + (it.proteinG || 0), 0);
+      const sumC = itemsPayload.reduce((s, it) => s + (it.carbsG || 0), 0);
+      const sumF = itemsPayload.reduce((s, it) => s + (it.fatG || 0), 0);
 
       // 2. Save log to backend
       const payload = {
@@ -219,29 +317,20 @@ export default function CalorieTracker() {
         totalCalories: totalCaloriesForQuantity,
         source: "image",
         waterIntake: 0,
-        items: (food_items || []).map((f) => {
-          const c = Number(f.estimated_calories) || 0;
-          const q = Number(imageQuantity) || 1;
-          return {
-            name: f.name,
-            caloriesPerItem: c,
-            quantity: q,
-            totalCalories: c * q,
-            mealType,
-          };
-        }),
+        items: itemsPayload,
       };
 
       await axios.post(`${API_BASE_URL}${API_ENDPOINTS.CALORIE_INTAKE}/log`, payload);
 
       setNotice({
         type: "success",
-        text: `Scanned and logged ${Math.round(totalCaloriesForQuantity)} kcal for ${mealType}.`,
+        text: `Scanned and logged ${Math.round(totalCaloriesForQuantity)} kcal for ${mealType} — about P ${sumP}g · C ${sumC}g · F ${sumF}g.`,
       });
 
       // Reset image state
       closeScanner();
-      loadHistory(); // Refresh dashboard
+      await loadHistory();
+      loadInsights();
 
     } catch (err) {
       console.error("Scan error:", err);
@@ -380,6 +469,44 @@ export default function CalorieTracker() {
     return mealItems[mealType].reduce((sum, item) => sum + (item.totalCalories || 0), 0);
   };
 
+  let totalProteinToday = 0;
+  let totalCarbsToday = 0;
+  let totalFatToday = 0;
+  todayLogs.forEach((log) => {
+    (log.items || []).forEach((item) => {
+      const m = getItemMacroGrams(item);
+      totalProteinToday += m.p;
+      totalCarbsToday += m.c;
+      totalFatToday += m.f;
+    });
+  });
+
+  const targetCal = nutritionTargets?.hasBmi ? nutritionTargets.targetCalories : null;
+  const maintCal = nutritionTargets?.hasBmi ? nutritionTargets.maintenanceCalories : null;
+  const calPct =
+    targetCal && targetCal > 0
+      ? Math.min(100, Math.round((totalCaloriesToday / targetCal) * 100))
+      : null;
+  const macroBar = (label, current, goal, colorClass) => {
+    const pct = goal && goal > 0 ? Math.min(100, Math.round((current / goal) * 100)) : 0;
+    return (
+      <div className="space-y-1">
+        <div className="flex justify-between text-[11px] text-gray-400">
+          <span>{label}</span>
+          <span>
+            {Math.round(current)} / {goal ? `${goal}g` : "—"}
+          </span>
+        </div>
+        <div className="h-2 rounded-full bg-[#1F2937] overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ${colorClass}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+    );
+  };
+
   const cardClass = "relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 transition-all duration-300";
 
   return (
@@ -403,7 +530,7 @@ export default function CalorieTracker() {
                 Daily <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE]">Nutrition</span> Log
               </h1>
               <p className="text-gray-400 text-sm max-w-2xl mx-auto">
-                Type what you ate or snap a picture, and Gemini AI will estimate your calories instantly. Don't forget to track your hydration!
+                Type what you ate or snap a picture, and We will estimate your calories instantly. Don't forget to track your hydration!
               </p>
             </header>
 
@@ -428,6 +555,109 @@ export default function CalorieTracker() {
               </div>
             )}
 
+            {/* BMI + workout-linked targets & macros */}
+            {loadingTargets ? (
+              <div className={`${cardClass} p-6 mb-6 text-center text-sm text-gray-400`}>
+                <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE]" />
+                Loading your nutrition targets…
+              </div>
+            ) : nutritionTargets?.hasBmi === false ? (
+              <div className={`${cardClass} p-6 mb-6`}>
+                <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-amber-500 to-orange-500" />
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <Target className="w-10 h-10 text-amber-400 shrink-0" />
+                    <div>
+                      <h3 className="text-white font-bold text-lg mb-1">Personalize your targets</h3>
+                      <p className="text-sm text-gray-400">{nutritionTargets.message}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/CurrentBMI")}
+                    className="shrink-0 px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-black hover:opacity-95"
+                  >
+                    Open BMI calculator
+                  </button>
+                </div>
+              </div>
+            ) : nutritionTargets?.hasBmi ? (
+              <div className={`${cardClass} p-6 mb-6`}>
+                <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE]" />
+                <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+                  <div className="flex-1 space-y-3">
+                    <div className="flex items-center gap-2 text-[#22D3EE]">
+                      <Activity className="w-5 h-5" />
+                      <span className="text-xs font-semibold uppercase tracking-wide">Plan-aware targets</span>
+                    </div>
+                    <p className="text-sm text-gray-300">
+                      <span className="text-white font-semibold">{nutritionTargets.goalLabel}</span>
+                      {nutritionTargets.workoutSummary ? (
+                        <span className="text-gray-500"> · {nutritionTargets.workoutSummary}</span>
+                      ) : null}
+                      {nutritionTargets.planName ? (
+                        <span className="text-gray-500"> · {nutritionTargets.planName}</span>
+                      ) : null}
+                    </p>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="rounded-xl bg-[#0f172a] border border-[#1F2937] p-3">
+                        <p className="text-gray-500 text-xs mb-0.5">Maintenance (TDEE est.)</p>
+                        <p className="text-xl font-bold text-gray-200">{maintCal} kcal</p>
+                      </div>
+                      <div className="rounded-xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 p-3">
+                        <p className="text-[#C4B5FD] text-xs mb-0.5">Your daily target</p>
+                        <p className="text-xl font-bold text-white">{targetCal} kcal</p>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-gray-500">
+                      Based on BMI ({nutritionTargets.bmi}, {nutritionTargets.category}), age, weight, height, and workout
+                      frequency/intensity. Not medical advice.
+                    </p>
+                  </div>
+                  <div className="flex-1 space-y-4 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-400">Calories today</span>
+                      {calPct !== null ? (
+                        <span className="text-xs font-semibold text-[#22D3EE]">{calPct}% of target</span>
+                      ) : null}
+                    </div>
+                    <div className="h-3 rounded-full bg-[#1F2937] overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE] transition-all duration-500"
+                        style={{ width: `${calPct ?? 0}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      {Math.round(totalCaloriesToday)} / {targetCal} kcal
+                      {totalCaloriesToday > targetCal ? (
+                        <span className="text-amber-400 ml-1">— over target for today</span>
+                      ) : null}
+                    </p>
+                    <div className="space-y-3 pt-1">
+                      {macroBar(
+                        "Protein",
+                        totalProteinToday,
+                        nutritionTargets.proteinG,
+                        "bg-gradient-to-r from-rose-500 to-orange-400"
+                      )}
+                      {macroBar(
+                        "Carbs",
+                        totalCarbsToday,
+                        nutritionTargets.carbsG,
+                        "bg-gradient-to-r from-amber-400 to-yellow-300"
+                      )}
+                      {macroBar(
+                        "Fat",
+                        totalFatToday,
+                        nutritionTargets.fatG,
+                        "bg-gradient-to-r from-sky-500 to-cyan-400"
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             {/* Dashboard Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               {/* Calorie Summary */}
@@ -436,8 +666,15 @@ export default function CalorieTracker() {
                 <div>
                   <h3 className="text-gray-400 text-sm font-medium mb-1">Calories Consumed Today</h3>
                   <div className="text-4xl font-black text-white flex items-baseline gap-2">
-                    {Math.round(totalCaloriesToday)} <span className="text-lg text-[#22D3EE] font-semibold">kcal</span>
+                    {Math.round(totalCaloriesToday)}{" "}
+                    <span className="text-lg text-[#22D3EE] font-semibold">kcal</span>
                   </div>
+                  {targetCal ? (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Target {targetCal} kcal · P {nutritionTargets.proteinG}g · C {nutritionTargets.carbsG}g · F{" "}
+                      {nutritionTargets.fatG}g
+                    </p>
+                  ) : null}
                 </div>
                 <div className="p-4 bg-[#22D3EE]/10 rounded-2xl border border-[#22D3EE]/20 text-[#22D3EE]">
                   <Flame className="w-8 h-8" />
@@ -477,7 +714,18 @@ export default function CalorieTracker() {
 
             {/* Meal Logging Grid */}
             <div className="space-y-6">
-              <h2 className="text-xl font-bold border-b border-[#1F2937] pb-2">Log Your Meals</h2>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#1F2937] pb-2">
+                <h2 className="text-xl font-bold">Log your meals</h2>
+                <button
+                  type="button"
+                  onClick={() => loadInsights()}
+                  disabled={loadingInsights || !user?._id}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border border-[#8B5CF6]/40 text-[#C4B5FD] hover:bg-[#8B5CF6]/10 disabled:opacity-40 transition-colors"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingInsights ? "animate-spin" : ""}`} />
+                  Refresh meal tips
+                </button>
+              </div>
               
               <div className="grid grid-cols-1 gap-6">
                 {MEAL_TYPES.map((meal) => {
@@ -509,6 +757,7 @@ export default function CalorieTracker() {
                             {items.map((item) => {
                               const rowKey = `${item.logId}-${item.itemId}`;
                               const busy = deletingKey === rowKey;
+                              const mg = getItemMacroGrams(item);
                               return (
                                 <div
                                   key={rowKey}
@@ -520,6 +769,10 @@ export default function CalorieTracker() {
                                     </div>
                                     <div className="text-[10px] text-gray-500">
                                       Qty: {item.quantity || 1}
+                                      <span className="text-gray-600 mx-1">·</span>
+                                      <span className="text-[#22D3EE]/90">
+                                        P {Math.round(mg.p)}g · C {Math.round(mg.c)}g · F {Math.round(mg.f)}g
+                                      </span>
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2 shrink-0">
@@ -638,6 +891,19 @@ export default function CalorieTracker() {
                             </div>
                           </div>
                         )}
+
+                        <div className="mt-4 pt-4 border-t border-[#1F2937]/50">
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-[#FACC15] shrink-0" />
+                            <span className="text-xs font-semibold text-[#C4B5FD]">AI insight</span>
+                          </div>
+                          <p className="text-xs text-gray-400 leading-relaxed min-h-[2.5rem]">
+                            {loadingInsights
+                              ? "Updating tip for this meal…"
+                              : insightsByMeal[meal.id] ||
+                                "Tips load automatically; use “Refresh meal tips” above if this stays empty."}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   );

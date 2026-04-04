@@ -18,6 +18,12 @@ const {
   GEMINI_API_URL,
   GROQ_API_KEY,
 } = require("../config/config");
+const {
+  computeNutritionTargets,
+  normalizeGoal,
+  resolveFitnessGoal,
+  inferMacrosFromCalories,
+} = require("../utils/nutritionTargets");
 
 function getGoogleFitRedirectUri(req) {
   // Must match an Authorized redirect URI in Google Cloud Console
@@ -1746,11 +1752,16 @@ VERY IMPORTANT OUTPUT RULES:
 - If unsure of the exact dish or drink, choose the closest reasonable name and give a best calorie estimate.
 
 OUTPUT FORMAT (STRICT JSON ONLY):
+Include protein_g, carbs_g, fat_g (grams) per item for that portion. Numbers only.
+
 {
   "food_items": [
     {
       "name": "Glass of Milk",
       "estimated_calories": 150,
+      "protein_g": 8,
+      "carbs_g": 12,
+      "fat_g": 8,
       "confidence": 0.90
     }
   ],
@@ -1823,9 +1834,13 @@ ${userNote ? `User note / context: ${userNote}` : ""}
           const calories = calMatches[i]
             ? Number(calMatches[i][1])
             : 0;
+          const inf = inferMacrosFromCalories(calories);
           items.push({
             name,
             estimated_calories: calories,
+            protein_g: inf.proteinG,
+            carbs_g: inf.carbsG,
+            fat_g: inf.fatG,
             confidence: null,
           });
         }
@@ -1854,6 +1869,35 @@ ${userNote ? `User note / context: ${userNote}` : ""}
             "Could not parse AI response reliably. Please try again with a clearer photo or different lighting.",
         };
       }
+    }
+
+    if (parsed?.food_items && Array.isArray(parsed.food_items)) {
+      parsed.food_items = parsed.food_items.map((row) => {
+        const name =
+          typeof row.name === "string" ? row.name.trim() : String(row.name || "").trim();
+        const estimated_calories = Number(row.estimated_calories);
+        if (!name || !Number.isFinite(estimated_calories)) return row;
+        let protein_g = Number(row.protein_g);
+        let carbs_g = Number(row.carbs_g);
+        let fat_g = Number(row.fat_g);
+        const hasAll =
+          [protein_g, carbs_g, fat_g].every((n) => Number.isFinite(n) && n >= 0) &&
+          protein_g + carbs_g + fat_g > 0;
+        if (!hasAll) {
+          const inf = inferMacrosFromCalories(estimated_calories);
+          protein_g = inf.proteinG;
+          carbs_g = inf.carbsG;
+          fat_g = inf.fatG;
+        }
+        return {
+          ...row,
+          name,
+          estimated_calories,
+          protein_g: Math.round(protein_g),
+          carbs_g: Math.round(carbs_g),
+          fat_g: Math.round(fat_g),
+        };
+      });
     }
 
     return res.json({
@@ -1926,24 +1970,50 @@ router.post("/calorie-intake/log", async (req, res) => {
         const mt =
           typeof it.mealType === "string" && MEALS.includes(it.mealType) ? it.mealType : defaultMeal;
 
+        const p = Number(it.proteinG ?? it.protein_g);
+        const cg = Number(it.carbsG ?? it.carbs_g);
+        const fg = Number(it.fatG ?? it.fat_g);
+        const hasAllMacros =
+          [p, cg, fg].every((n) => Number.isFinite(n) && n >= 0) && p + cg + fg > 0;
+        let proteinG;
+        let carbsG;
+        let fatG;
+        if (hasAllMacros) {
+          proteinG = Math.round(p);
+          carbsG = Math.round(cg);
+          fatG = Math.round(fg);
+        } else {
+          const inf = inferMacrosFromCalories(tc);
+          proteinG = inf.proteinG;
+          carbsG = inf.carbsG;
+          fatG = inf.fatG;
+        }
+
         return {
           name,
           caloriesPerItem: cpi,
           quantity: qty,
           totalCalories: tc,
           mealType: mt,
+          proteinG,
+          carbsG,
+          fatG,
         };
       })
       .filter(Boolean);
 
     const tcBody = Number(totalCalories);
     if (safeItems.length === 0 && Number.isFinite(tcBody) && tcBody > 0) {
+      const inf = inferMacrosFromCalories(tcBody);
       safeItems.push({
         name: "Meal",
         caloriesPerItem: tcBody,
         quantity: 1,
         totalCalories: tcBody,
         mealType: defaultMeal,
+        proteinG: inf.proteinG,
+        carbsG: inf.carbsG,
+        fatG: inf.fatG,
       });
     }
 
@@ -2046,15 +2116,23 @@ VERY IMPORTANT OUTPUT RULES:
 - The "mealType" must be one of: "Breakfast", "Lunch", "Evening Snack", "Dinner", "Other". Default to what the user provides (${mealType || "Other"}), or infer if obvious.
 
 OUTPUT FORMAT (STRICT JSON ONLY):
+For EACH food item also estimate approximate macros (grams) for that line's portion: protein_g, carbs_g, fat_g. Numbers only, no units in strings.
+
 {
   "food_items": [
     {
       "name": "2 Boiled Eggs",
-      "estimated_calories": 156
+      "estimated_calories": 156,
+      "protein_g": 13,
+      "carbs_g": 1,
+      "fat_g": 11
     },
     {
       "name": "1 Slice of Bread",
-      "estimated_calories": 80
+      "estimated_calories": 80,
+      "protein_g": 3,
+      "carbs_g": 14,
+      "fat_g": 1
     }
   ],
   "total_estimated_calories": 236,
@@ -2076,7 +2154,7 @@ User input: "${text}"
         ],
         generationConfig: {
           temperature: 0.2,
-          maxOutputTokens: 512,
+          maxOutputTokens: 1024,
         },
       },
       {
@@ -2155,9 +2233,21 @@ User input: "${text}"
       const original = String(userText || "").trim();
       if (/\bmilk\b/.test(t)) {
         const isPlant = /\b(almond|soy|oat|coconut|cashew)\b/.test(t);
-        const kcal = isPlant ? 80 : /\b(skim|low[-\s]?fat|toned)\b/.test(t) ? 90 : 150;
+        const skim = /\b(skim|low[-\s]?fat|toned)\b/.test(t);
+        const kcal = isPlant ? 80 : skim ? 90 : 150;
+        const macros = isPlant
+          ? { protein_g: 2, carbs_g: 7, fat_g: 4 }
+          : skim
+            ? { protein_g: 9, carbs_g: 13, fat_g: 1 }
+            : { protein_g: 8, carbs_g: 12, fat_g: 8 };
         return {
-          food_items: [{ name: original || "1 glass milk", estimated_calories: kcal }],
+          food_items: [
+            {
+              name: original || "1 glass milk",
+              estimated_calories: kcal,
+              ...macros,
+            },
+          ],
           total_estimated_calories: kcal,
           mealType: mealType || "Other",
         };
@@ -2201,7 +2291,25 @@ User input: "${text}"
                   .trim();
           const estimated_calories = Number(row.estimated_calories);
           if (!name || !Number.isFinite(estimated_calories) || estimated_calories < 0) return null;
-          return { name, estimated_calories };
+          let protein_g = Number(row.protein_g ?? row.proteinG);
+          let carbs_g = Number(row.carbs_g ?? row.carbsG);
+          let fat_g = Number(row.fat_g ?? row.fatG);
+          const hasAllMacros =
+            [protein_g, carbs_g, fat_g].every((n) => Number.isFinite(n) && n >= 0) &&
+            protein_g + carbs_g + fat_g > 0;
+          if (!hasAllMacros) {
+            const inf = inferMacrosFromCalories(estimated_calories);
+            protein_g = inf.proteinG;
+            carbs_g = inf.carbsG;
+            fat_g = inf.fatG;
+          }
+          return {
+            name,
+            estimated_calories,
+            protein_g: Math.round(protein_g),
+            carbs_g: Math.round(carbs_g),
+            fat_g: Math.round(fat_g),
+          };
         })
         .filter(Boolean);
     }
@@ -2297,11 +2405,276 @@ router.get("/calorie-intake/history/:userId", async (req, res) => {
   }
 });
 
+// Personalized calorie + macro targets from latest BMI and workout plan (activity + goal)
+router.get("/calorie-intake/targets/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (!userId) {
+      return res.status(400).json({ success: false, error: "userId is required" });
+    }
+    const user = await User.findById(userId).lean();
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+    const latestBmi = await BMI.findOne({ userId }).sort({ date: -1 }).lean();
+    if (!latestBmi) {
+      return res.json({
+        success: true,
+        hasBmi: false,
+        message:
+          "Add your BMI in the BMI Calculator to unlock personalized calorie and macro targets tied to your workout plan.",
+      });
+    }
+    let activePlan = await WorkoutPlan.findOne({ userId, isActive: true }).lean();
+    if (!activePlan) {
+      activePlan = await WorkoutPlan.findOne({ userId }).sort({ updatedAt: -1 }).lean();
+    }
+    const params = activePlan?.generatedParams || {};
+    const fitnessGoal = resolveFitnessGoal(
+      params,
+      activePlan?.name,
+      latestBmi.selectedPlan
+    );
+    const nt = computeNutritionTargets({
+      weightKg: latestBmi.weight,
+      heightFeet: latestBmi.heightFeet,
+      heightInches: latestBmi.heightInches,
+      age: latestBmi.age,
+      gender: user.gender,
+      fitnessGoal,
+      workoutParams: params,
+    });
+    if (!nt) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid BMI data for targets",
+      });
+    }
+    const gk = nt.goalKey;
+    const goalLabel =
+      gk === "lose_weight"
+        ? "Fat loss (calories below maintenance)"
+        : gk === "gain_weight"
+          ? "Weight gain (calorie surplus)"
+          : gk === "build_muscles"
+            ? "Muscle building (moderate surplus)"
+            : "Maintenance";
+
+    return res.json({
+      success: true,
+      hasBmi: true,
+      hasWorkoutPlan: Boolean(activePlan),
+      planName: activePlan?.name || null,
+      workoutSummary: params?.daysPerWeek
+        ? `${params.daysPerWeek}×/week · ${params.intensity || "—"} intensity`
+        : null,
+      goalLabel,
+      resolvedFitnessGoal: fitnessGoal,
+      goalKey: gk,
+      bmi: latestBmi.bmi,
+      category: latestBmi.category,
+      ...nt,
+    });
+  } catch (err) {
+    console.error("calorie-intake/targets error:", err);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to compute nutrition targets",
+      details: err.message,
+    });
+  }
+});
+
+router.post("/calorie-intake/insights/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (!userId) {
+      return res.status(400).json({ success: false, error: "userId is required" });
+    }
+    const user = await User.findById(userId).lean();
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+    const latestBmi = await BMI.findOne({ userId }).sort({ date: -1 }).lean();
+    let activePlan = await WorkoutPlan.findOne({ userId, isActive: true }).lean();
+    if (!activePlan) {
+      activePlan = await WorkoutPlan.findOne({ userId }).sort({ updatedAt: -1 }).lean();
+    }
+    const params = activePlan?.generatedParams || {};
+    const fitnessGoal = resolveFitnessGoal(
+      params,
+      activePlan?.name,
+      latestBmi?.selectedPlan
+    );
+    const nt = latestBmi
+      ? computeNutritionTargets({
+          weightKg: latestBmi.weight,
+          heightFeet: latestBmi.heightFeet,
+          heightInches: latestBmi.heightInches,
+          age: latestBmi.age,
+          gender: user.gender,
+          fitnessGoal,
+          workoutParams: params,
+        })
+      : null;
+
+    const MEAL_SLOTS = ["Breakfast", "Lunch", "Evening Snack", "Dinner"];
+    const today = new Date().toISOString().slice(0, 10);
+    const startUtc = new Date(`${today}T00:00:00.000Z`);
+    const endUtc = new Date(`${today}T23:59:59.999Z`);
+    const logs = await CalorieIntakeLog.find({
+      userId,
+      date: { $gte: startUtc, $lte: endUtc },
+    }).lean();
+
+    let sumCal = 0;
+    let sumP = 0;
+    let sumC = 0;
+    let sumF = 0;
+    const foodsByMeal = {
+      Breakfast: [],
+      Lunch: [],
+      "Evening Snack": [],
+      Dinner: [],
+    };
+    for (const log of logs) {
+      sumCal += Number(log.totalCalories) || 0;
+      for (const it of log.items || []) {
+        const cal = Number(it.totalCalories) || 0;
+        const p = Number(it.proteinG) || 0;
+        const c = Number(it.carbsG) || 0;
+        const f = Number(it.fatG) || 0;
+        const hasM = p + c + f > 0;
+        const inf = !hasM && cal > 0 ? inferMacrosFromCalories(cal) : null;
+        sumP += hasM ? p : inf?.proteinG || 0;
+        sumC += hasM ? c : inf?.carbsG || 0;
+        sumF += hasM ? f : inf?.fatG || 0;
+        const mt = it.mealType || "Other";
+        if (it.name && foodsByMeal[mt]) {
+          foodsByMeal[mt].push(`${it.name} (~${Math.round(cal)} kcal)`);
+        }
+      }
+    }
+
+    const goalKey = nt?.goalKey || normalizeGoal(fitnessGoal);
+    const mealHint = (slot) => {
+      if (goalKey === "lose_weight") {
+        if (slot === "Breakfast")
+          return "try protein + fiber (eggs, oats, fruit) to stay full on fewer calories.";
+        if (slot === "Lunch")
+          return "lean protein with vegetables works well for a calorie deficit.";
+        if (slot === "Evening Snack")
+          return "a small high-protein snack beats sugary drinks for fat loss.";
+        return "keep dinner moderate; load half the plate with vegetables.";
+      }
+      if (goalKey === "gain_weight" || goalKey === "build_muscles") {
+        if (slot === "Breakfast") return "add carbs + protein for training fuel.";
+        if (slot === "Lunch") return "include starch and protein to hit your surplus.";
+        if (slot === "Evening Snack") return "Greek yogurt, nuts, or fruit supports recovery.";
+        return "balanced carbs and protein after training help growth.";
+      }
+      if (slot === "Breakfast") return "a balanced breakfast sets energy for the day.";
+      if (slot === "Lunch") return "mix protein, carbs, and color on the plate.";
+      if (slot === "Evening Snack") return "a light snack can bridge you to dinner.";
+      return "wind down with a satisfying but portion-aware dinner.";
+    };
+
+    const buildRulesInsightsByMeal = () => {
+      const out = {};
+      for (const slot of MEAL_SLOTS) {
+        const lines = foodsByMeal[slot];
+        if (lines.length) {
+          out[slot] = `Logged: ${lines.join(", ")}. ${mealHint(slot)}`;
+        } else {
+          out[slot] = `Nothing logged yet—${mealHint(slot)}`;
+        }
+      }
+      return out;
+    };
+
+    if (!GEMINI_API_KEY) {
+      return res.json({
+        success: true,
+        insightsByMeal: buildRulesInsightsByMeal(),
+        source: "rules",
+      });
+    }
+
+    const perMealLines = MEAL_SLOTS.map(
+      (s) => `${s}: ${foodsByMeal[s].join("; ") || "(nothing yet)"}`
+    ).join("\n");
+
+    const prompt = `You are a supportive nutrition coach for GenFit AI.
+
+User goal key: ${goalKey} (resolved from plan/BMI: ${fitnessGoal})
+BMI: ${latestBmi ? `${latestBmi.bmi} (${latestBmi.category})` : "not set"}
+Workout: ${activePlan?.name || "none"} ${params?.daysPerWeek ? `— ${params.daysPerWeek}x/week, ${params.intensity || ""}` : ""}
+Daily targets: ${
+      nt
+        ? `${nt.targetCalories} kcal target (maintenance ~${nt.maintenanceCalories} kcal); P ${nt.proteinG}g, C ${nt.carbsG}g, F ${nt.fatG}g`
+        : "BMI not set"
+    }
+So far today total: ~${Math.round(sumCal)} kcal, P ~${Math.round(sumP)}g, C ~${Math.round(sumC)}g, F ~${Math.round(sumF)}g.
+
+Foods logged TODAY by meal:
+${perMealLines}
+
+Return ONLY valid JSON (no markdown fences). Keys must be exactly: "Breakfast", "Lunch", "Evening Snack", "Dinner".
+Each value: 1-2 short sentences tailored to THAT meal only—what they ate or a concrete idea if empty. Align tips with their goal (deficit vs surplus). Plain text inside strings.`;
+
+    let insightsByMeal = buildRulesInsightsByMeal();
+    try {
+      const gr = await axios.post(
+        `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
+        {
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.45, maxOutputTokens: 600 },
+        },
+        { headers: { "Content-Type": "application/json" }, timeout: 22000 }
+      );
+      let raw = gr.data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+      raw = String(raw).trim();
+      if (raw.startsWith("```")) {
+        raw = raw.replace(/^```[a-zA-Z]*\n?/, "").replace(/```$/, "").trim();
+      }
+      const j0 = raw.indexOf("{");
+      const j1 = raw.lastIndexOf("}");
+      if (j0 !== -1 && j1 > j0) raw = raw.slice(j0, j1 + 1);
+      const parsed = JSON.parse(raw);
+      for (const slot of MEAL_SLOTS) {
+        const v = parsed[slot];
+        if (typeof v === "string" && v.trim()) insightsByMeal[slot] = v.trim();
+      }
+    } catch (parseErr) {
+      console.error("Meal insights Gemini/parse error:", parseErr.message);
+    }
+
+    return res.json({ success: true, insightsByMeal, source: "gemini" });
+  } catch (err) {
+    console.error("calorie-intake/insights error:", err);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to generate insights",
+      details: err.message,
+    });
+  }
+});
+
 // Update one food line-item inside a calorie log (same user only)
 router.put("/calorie-intake/log/:logId/item/:itemId", async (req, res) => {
   try {
     const { logId, itemId } = req.params;
-    const { userId, name, quantity, caloriesPerItem, mealType, totalCalories } = req.body || {};
+    const {
+      userId,
+      name,
+      quantity,
+      caloriesPerItem,
+      mealType,
+      totalCalories,
+      proteinG,
+      carbsG,
+      fatG,
+    } = req.body || {};
 
     if (!userId) {
       return res.status(400).json({ success: false, error: "userId is required" });
@@ -2332,6 +2705,24 @@ router.put("/calorie-intake/log/:logId/item/:itemId", async (req, res) => {
       item.totalCalories = totalCalories;
     } else {
       item.totalCalories = (item.quantity || 1) * (item.caloriesPerItem || 0);
+    }
+
+    const macrosProvided =
+      typeof proteinG === "number" &&
+      typeof carbsG === "number" &&
+      typeof fatG === "number" &&
+      proteinG >= 0 &&
+      carbsG >= 0 &&
+      fatG >= 0;
+    if (macrosProvided) {
+      item.proteinG = proteinG;
+      item.carbsG = carbsG;
+      item.fatG = fatG;
+    } else {
+      const inf = inferMacrosFromCalories(Number(item.totalCalories) || 0);
+      item.proteinG = inf.proteinG;
+      item.carbsG = inf.carbsG;
+      item.fatG = inf.fatG;
     }
 
     log.totalCalories = (log.items || []).reduce(
