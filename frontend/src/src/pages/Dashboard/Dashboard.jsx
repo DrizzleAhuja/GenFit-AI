@@ -8,7 +8,7 @@ import Footer from "../HomePage/Footer";
 import { useNavigate } from "react-router-dom";
 import { 
   FaFire, FaTrophy, FaDumbbell, FaAppleAlt, FaRuler, 
-  FaHeartbeat, FaWalking, FaBolt, FaArrowUp, FaArrowDown,
+  FaHeartbeat, FaBolt, FaArrowUp, FaArrowDown,
   FaLightbulb, FaChartLine, FaCalendarCheck, FaUtensils
 } from "react-icons/fa";
 import { 
@@ -740,7 +740,7 @@ export default function Dashboard() {
                     { icon: FaRuler, label: 'BMI', path: '/CurrentBMI', color: 'bg-[#EC4899]' },
                     { icon: FaDumbbell, label: 'Workout', path: '/Workout', color: 'bg-[#3B82F6]' },
                     { icon: FaUtensils, label: 'Diet', path: '/diet-chart', color: 'bg-[#F97316]' },
-                    { icon: FaWalking, label: 'Steps', path: '/daily-steps', color: 'bg-[#22C55E]' },
+                    { icon: FaBolt, label: 'Posture coach', path: '/VirtualTA', color: 'bg-[#22C55E]' },
                   ].map((action, i) => (
                     <button
                       key={i}

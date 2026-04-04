@@ -1,6 +1,39 @@
 const User = require("../models/User");
 const WorkoutSessionLog = require("../models/WorkoutSessionLog").default || require("../models/WorkoutSessionLog");
 const PostureSessionLog = require("../models/PostureSessionLog").default || require("../models/PostureSessionLog");
+const {
+  expireEndedWeeklyChallenges,
+  getAdminCurrentChallengeSample,
+} = require("../utils/weeklyChallengeExpiry");
+
+function serializeWeeklyChallengeForApi(challenge) {
+  if (!challenge) return null;
+  const o = {
+    title: challenge.title,
+    target: challenge.target,
+    progress: challenge.progress,
+    completed: challenge.completed,
+    points: challenge.points,
+    type: challenge.type,
+  };
+  const ws = challenge.weekStartAt;
+  const we = challenge.weekEndAt;
+  o.weekStartAt =
+    ws != null && ws !== ""
+      ? (() => {
+          const d = new Date(ws);
+          return Number.isNaN(d.getTime()) ? null : d.toISOString();
+        })()
+      : null;
+  o.weekEndAt =
+    we != null && we !== ""
+      ? (() => {
+          const d = new Date(we);
+          return Number.isNaN(d.getTime()) ? null : d.toISOString();
+        })()
+      : null;
+  return o;
+}
 
 
 // @desc    Get Admin Dashboard Stats
@@ -255,28 +288,39 @@ const createWeeklyChallenge = async (req, res) => {
     if (!title || !target) {
       return res.status(400).json({ success: false, message: "Title and Target are required" });
     }
+    if (!startDate || !endDate) {
+      return res.status(400).json({ success: false, message: "Start date and end date are required" });
+    }
 
-    // Check if an active challenge already exists
-    const existing = await User.findOne({ 
-      "weeklyChallenge.title": { $exists: true, $ne: null } 
-    }).select("weeklyChallenge");
+    const weekStart = new Date(startDate);
+    const weekEnd = new Date(endDate);
+    if (Number.isNaN(weekStart.getTime()) || Number.isNaN(weekEnd.getTime())) {
+      return res.status(400).json({ success: false, message: "Invalid start or end date" });
+    }
+    if (weekEnd < weekStart) {
+      return res.status(400).json({ success: false, message: "End date must be on or after start date" });
+    }
 
-    if (existing && existing.weeklyChallenge && existing.weeklyChallenge.weekEndAt) {
-      if (new Date(existing.weeklyChallenge.weekEndAt) > new Date()) {
-        return res.status(400).json({ 
-          success: false, 
-          message: `An active challenge already exists: '${existing.weeklyChallenge.title}'. It ends on ${new Date(existing.weeklyChallenge.weekEndAt).toLocaleDateString()}` 
-        });
-      }
+    await expireEndedWeeklyChallenges();
+    const activeAdmin = await getAdminCurrentChallengeSample();
+    if (activeAdmin && activeAdmin.title) {
+      const endHint =
+        activeAdmin.weekEndAt != null && activeAdmin.weekEndAt !== ""
+          ? new Date(activeAdmin.weekEndAt).toLocaleDateString()
+          : "no end date set";
+      return res.status(400).json({
+        success: false,
+        message: `A weekly challenge is already active (“${activeAdmin.title}”, ends: ${endHint}). Use Edit to change it or Delete to remove it before creating a new one.`,
+      });
     }
 
     const challengeConfig = {
       title,
-      target: parseInt(target),
-      points: parseInt(points) || 30,
+      target: parseInt(target, 10),
+      points: parseInt(points, 10) || 30,
       type: type || "workout",
-      weekStartAt: startDate ? new Date(startDate) : new Date(),
-      weekEndAt: endDate ? new Date(endDate) : null,
+      weekStartAt: weekStart,
+      weekEndAt: weekEnd,
       progress: 0,
       completed: false
     };
@@ -292,7 +336,7 @@ const createWeeklyChallenge = async (req, res) => {
       const notifications = users.map(u => ({
         userId: u._id,
         title: "New Weekly Challenge Started!",
-        message: `${title} - Win ${points || 30} points! Ends: ${endDate ? new Date(endDate).toLocaleDateString() : 'N/A'}`,
+        message: `${title} - Win ${parseInt(points, 10) || 30} points! Ends: ${weekEnd.toLocaleDateString()}`,
         type: "system"
       }));
       await Notification.insertMany(notifications);
@@ -308,15 +352,90 @@ const createWeeklyChallenge = async (req, res) => {
 // @route   GET /api/admin/current-challenge
 const getCurrentChallenge = async (req, res) => {
   try {
+    await expireEndedWeeklyChallenges();
+    const raw = await getAdminCurrentChallengeSample();
+    res.status(200).json({
+      success: true,
+      data: raw && raw.title ? serializeWeeklyChallengeForApi(raw) : null
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server Error", error: error.message });
+  }
+};
+
+// @desc    Update current weekly challenge for all users (keeps each user's progress/completed)
+// @route   PUT /api/admin/challenge
+const updateWeeklyChallenge = async (req, res) => {
+  try {
     const User = require("../models/User");
-    const userWithChallenge = await User.findOne({ 
-      "weeklyChallenge.title": { $exists: true, $ne: null } 
-    }).select("weeklyChallenge");
+    const { title, target, points, startDate, endDate, type } = req.body;
+
+    await expireEndedWeeklyChallenges();
+    const current = await getAdminCurrentChallengeSample();
+    if (!current || !current.title) {
+      return res.status(404).json({ success: false, message: "No active weekly challenge to update" });
+    }
+
+    if (!title || target === undefined || target === "") {
+      return res.status(400).json({ success: false, message: "Title and Target are required" });
+    }
+    if (!startDate || !endDate) {
+      return res.status(400).json({ success: false, message: "Start date and end date are required" });
+    }
+
+    const weekStart = new Date(startDate);
+    const weekEnd = new Date(endDate);
+    if (Number.isNaN(weekStart.getTime()) || Number.isNaN(weekEnd.getTime())) {
+      return res.status(400).json({ success: false, message: "Invalid start or end date" });
+    }
+    if (weekEnd < weekStart) {
+      return res.status(400).json({ success: false, message: "End date must be on or after start date" });
+    }
+
+    const targetNum = parseInt(target, 10);
+    const pointsNum = parseInt(points, 10) || 30;
+
+    await User.updateMany(
+      { "weeklyChallenge.title": { $exists: true, $nin: [null, ""] } },
+      {
+        $set: {
+          "weeklyChallenge.title": title,
+          "weeklyChallenge.target": targetNum,
+          "weeklyChallenge.points": pointsNum,
+          "weeklyChallenge.type": type || "workout",
+          "weeklyChallenge.weekStartAt": weekStart,
+          "weeklyChallenge.weekEndAt": weekEnd,
+        },
+      }
+    );
+
+    const updated = serializeWeeklyChallengeForApi({
+      ...current,
+      title,
+      target: targetNum,
+      points: pointsNum,
+      type: type || "workout",
+      weekStartAt: weekStart,
+      weekEndAt: weekEnd,
+    });
 
     res.status(200).json({
       success: true,
-      data: userWithChallenge ? userWithChallenge.weeklyChallenge : null
+      message: "Weekly challenge updated for all users",
+      data: updated,
     });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server Error", error: error.message });
+  }
+};
+
+// @desc    Remove weekly challenge from all users
+// @route   DELETE /api/admin/challenge
+const deleteWeeklyChallenge = async (req, res) => {
+  try {
+    const User = require("../models/User");
+    await User.updateMany({}, { $unset: { weeklyChallenge: 1 } });
+    res.status(200).json({ success: true, message: "Weekly challenge removed for all users" });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server Error", error: error.message });
   }
@@ -365,7 +484,19 @@ const acknowledgeMessage = async (req, res) => {
   }
 };
 
-module.exports = { getStats, getUsers, updateUserPlan, getUserLogs, getMessages, getIncomeStats, createWeeklyChallenge, getCurrentChallenge, acknowledgeMessage };
+module.exports = {
+  getStats,
+  getUsers,
+  updateUserPlan,
+  getUserLogs,
+  getMessages,
+  getIncomeStats,
+  createWeeklyChallenge,
+  getCurrentChallenge,
+  updateWeeklyChallenge,
+  deleteWeeklyChallenge,
+  acknowledgeMessage,
+};
 
 
 

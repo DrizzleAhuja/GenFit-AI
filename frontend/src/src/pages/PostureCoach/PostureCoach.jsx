@@ -1149,7 +1149,8 @@ export default function PostureCoach() {
           }
         } catch (err) {
           console.error("Error starting VTA session:", err);
-          alert("Error verifying session limits. Please try again.");
+          setLimitMessage("Error verifying session limits. Please try again.");
+          setShowLimitModal(true);
           return;
         }
       }

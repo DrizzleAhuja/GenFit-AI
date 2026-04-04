@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
 import { useTheme } from "../../context/ThemeContext";
-import { Sparkles, Utensils, Droplet, Plus, Minus, Info, Coffee, Sun, Moon, Sunrise, Flame, Camera, X, Zap } from "lucide-react";
+import { Sparkles, Utensils, Droplet, Plus, Info, Coffee, Sun, Moon, Sunrise, Flame, Camera, X, Zap, Pencil, Trash2 } from "lucide-react";
 import { useSelector } from "react-redux";
 import { selectUser } from "../../redux/userSlice";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
-import { toast } from "react-toastify";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const MEAL_TYPES = [
   { id: "Breakfast", label: "Breakfast", icon: <Sunrise className="w-5 h-5 text-amber-400" /> },
@@ -19,6 +19,7 @@ const MEAL_TYPES = [
 export default function CalorieTracker() {
   const { darkMode } = useTheme();
   const user = useSelector(selectUser);
+  const navigate = useNavigate();
 
   // States
   const [history, setHistory] = useState([]);
@@ -36,6 +37,11 @@ export default function CalorieTracker() {
   const [imageQuantity, setImageQuantity] = useState(1);
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
   const [imageError, setImageError] = useState("");
+  const [editEntry, setEditEntry] = useState(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingKey, setDeletingKey] = useState(null);
+  const [notice, setNotice] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState(null);
 
   useEffect(() => {
     if (user?._id) {
@@ -43,6 +49,12 @@ export default function CalorieTracker() {
     }
     setupNotifications();
   }, [user]);
+
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(null), 8000);
+    return () => clearTimeout(t);
+  }, [notice]);
 
   const setupNotifications = () => {
     if ("Notification" in window) {
@@ -85,7 +97,7 @@ export default function CalorieTracker() {
   const logMealText = async (mealType) => {
     const text = inputs[mealType];
     if (!text?.trim()) {
-      toast.error("Please enter what you ate");
+      setNotice({ type: "error", text: "Please enter what you ate." });
       return;
     }
 
@@ -113,14 +125,17 @@ export default function CalorieTracker() {
       };
 
       await axios.post(`${API_BASE_URL}${API_ENDPOINTS.CALORIE_INTAKE}/log`, payload);
-      
-      toast.success(`Logged ${Math.round(total_estimated_calories)} kcal for ${mealType}`);
+
+      setNotice({
+        type: "success",
+        text: `Logged ${Math.round(total_estimated_calories)} kcal for ${mealType}.`,
+      });
       setInputs((prev) => ({ ...prev, [mealType]: "" }));
       loadHistory(); // Refresh data
 
     } catch (err) {
       console.error(err);
-      toast.error("Failed to log meal. Please try again.");
+      setNotice({ type: "error", text: "Failed to log meal. Please try again." });
     } finally {
       setLoadingMeals((prev) => ({ ...prev, [mealType]: false }));
     }
@@ -143,7 +158,7 @@ export default function CalorieTracker() {
       });
     } catch (err) {
       console.error(err);
-      toast.error("Failed to log water");
+      setNotice({ type: "error", text: "Failed to log water." });
       setWaterIntake(waterIntake); // Revert
     }
   };
@@ -205,9 +220,12 @@ export default function CalorieTracker() {
       };
 
       await axios.post(`${API_BASE_URL}${API_ENDPOINTS.CALORIE_INTAKE}/log`, payload);
-      
-      toast.success(`Scanned and logged ${Math.round(totalCaloriesForQuantity)} kcal for ${mealType}`);
-      
+
+      setNotice({
+        type: "success",
+        text: `Scanned and logged ${Math.round(totalCaloriesForQuantity)} kcal for ${mealType}.`,
+      });
+
       // Reset image state
       closeScanner();
       loadHistory(); // Refresh dashboard
@@ -238,17 +256,95 @@ export default function CalorieTracker() {
     setImageError("");
   };
 
+  const openEdit = (entry) => {
+    setEditEntry({
+      logId: entry.logId,
+      itemId: entry.itemId,
+      name: entry.name || "",
+      quantity: entry.quantity ?? 1,
+      caloriesPerItem: entry.caloriesPerItem ?? 0,
+      mealType: entry.mealType || "Breakfast",
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editEntry || !user?._id) return;
+    const qty = Math.max(0.25, Number(editEntry.quantity) || 1);
+    const cpi = Math.max(0, Number(editEntry.caloriesPerItem) || 0);
+    const totalCalories = Math.round(qty * cpi);
+    setSavingEdit(true);
+    try {
+      await axios.put(
+        `${API_BASE_URL}${API_ENDPOINTS.CALORIE_INTAKE}/log/${editEntry.logId}/item/${editEntry.itemId}`,
+        {
+          userId: user._id,
+          name: editEntry.name.trim(),
+          quantity: qty,
+          caloriesPerItem: cpi,
+          mealType: editEntry.mealType,
+          totalCalories,
+        }
+      );
+      setNotice({ type: "success", text: "Food entry updated." });
+      setEditEntry(null);
+      loadHistory();
+    } catch (err) {
+      console.error(err);
+      setNotice({
+        type: "error",
+        text: err.response?.data?.error || "Could not update entry.",
+      });
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const requestDeleteFoodItem = (logId, itemId) => {
+    if (!user?._id || !itemId) return;
+    setPendingDelete({ logId, itemId });
+  };
+
+  const confirmDeleteFoodItem = async () => {
+    if (!pendingDelete || !user?._id) return;
+    const { logId, itemId } = pendingDelete;
+    setPendingDelete(null);
+    const key = `${logId}-${itemId}`;
+    setDeletingKey(key);
+    try {
+      await axios.delete(
+        `${API_BASE_URL}${API_ENDPOINTS.CALORIE_INTAKE}/log/${logId}/item/${itemId}`,
+        { params: { userId: user._id } }
+      );
+      setNotice({ type: "success", text: "Food entry removed from your log." });
+      loadHistory();
+    } catch (err) {
+      console.error(err);
+      setNotice({
+        type: "error",
+        text: err.response?.data?.error || "Could not delete entry.",
+      });
+    } finally {
+      setDeletingKey(null);
+    }
+  };
+
   // --- Aggregations ---
   const totalCaloriesToday = todayLogs.reduce((acc, log) => acc + (log.totalCalories || 0), 0);
   
-  // Group items by meal
+  // Group items by meal (attach log + item ids for edit/delete)
   const mealItems = { Breakfast: [], Lunch: [], "Evening Snack": [], Dinner: [] };
   let hasItems = false;
-  todayLogs.forEach(log => {
-    (log.items || []).forEach(item => {
+  todayLogs.forEach((log) => {
+    const logId = log._id;
+    (log.items || []).forEach((item) => {
       const mt = item.mealType || "Other";
+      if (!item._id) return;
       if (mealItems[mt]) {
-        mealItems[mt].push(item);
+        mealItems[mt].push({
+          ...item,
+          logId,
+          itemId: item._id,
+        });
         hasItems = true;
       }
     });
@@ -284,6 +380,27 @@ export default function CalorieTracker() {
                 Type what you ate or snap a picture, and Gemini AI will estimate your calories instantly. Don't forget to track your hydration!
               </p>
             </header>
+
+            {notice && (
+              <div
+                className={`mb-6 rounded-2xl border px-4 py-3 flex items-start justify-between gap-3 shadow-lg ${
+                  notice.type === "success"
+                    ? "bg-emerald-950/40 border-emerald-500/35 text-emerald-100"
+                    : "bg-red-950/40 border-red-500/35 text-red-100"
+                }`}
+                role="status"
+              >
+                <p className="text-sm leading-relaxed pr-2">{notice.text}</p>
+                <button
+                  type="button"
+                  onClick={() => setNotice(null)}
+                  className="shrink-0 p-1 rounded-lg hover:bg-white/10 transition-colors"
+                  aria-label="Dismiss"
+                >
+                  <X className="w-4 h-4 opacity-80" />
+                </button>
+              </div>
+            )}
 
             {/* Dashboard Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -363,17 +480,49 @@ export default function CalorieTracker() {
                         {/* Food List */}
                         {items && items.length > 0 && (
                           <div className="mb-4 space-y-2">
-                            {items.map((item, idx) => (
-                              <div key={idx} className="flex justify-between items-center bg-[#020617]/50 rounded-md px-3 py-2 border border-[#1F2937]/50">
-                                <div>
-                                  <div className="text-sm text-gray-200 font-medium capitalize">{item.name}</div>
-                                  <div className="text-[10px] text-gray-500">Qty: {item.quantity || 1}</div>
+                            {items.map((item) => {
+                              const rowKey = `${item.logId}-${item.itemId}`;
+                              const busy = deletingKey === rowKey;
+                              return (
+                                <div
+                                  key={rowKey}
+                                  className="flex justify-between items-center gap-2 bg-[#020617]/50 rounded-md px-3 py-2 border border-[#1F2937]/50"
+                                >
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-sm text-gray-200 font-medium capitalize truncate">
+                                      {item.name}
+                                    </div>
+                                    <div className="text-[10px] text-gray-500">
+                                      Qty: {item.quantity || 1}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <div className="text-sm font-bold text-gray-300 text-right">
+                                      {Math.round(item.totalCalories || 0)}{" "}
+                                      <span className="text-[10px] text-gray-500 font-normal">kcal</span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => openEdit(item)}
+                                      disabled={busy}
+                                      className="p-1.5 rounded-lg text-[#22D3EE] hover:bg-[#22D3EE]/15 border border-transparent hover:border-[#22D3EE]/30 disabled:opacity-40"
+                                      title="Edit"
+                                    >
+                                      <Pencil className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => requestDeleteFoodItem(item.logId, item.itemId)}
+                                      disabled={busy}
+                                      className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/30 disabled:opacity-40"
+                                      title="Delete"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
                                 </div>
-                                <div className="text-sm font-bold text-gray-300">
-                                  {Math.round(item.totalCalories || 0)} <span className="text-[10px] text-gray-500 font-normal">kcal</span>
-                                </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         )}
 
@@ -481,6 +630,118 @@ export default function CalorieTracker() {
       </main>
       <Footer />
       {/* Limit Modal */}
+      {pendingDelete && (
+        <div className="fixed inset-0 z-[1002] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+          <div className="w-full max-w-md rounded-2xl border border-[#1F2937] bg-[#020617] p-6 shadow-xl">
+            <h3 className="text-lg font-bold text-white mb-2">Remove this food?</h3>
+            <p className="text-sm text-gray-400 mb-6">It will be deleted from your nutrition log for today.</p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setPendingDelete(null)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-600 text-gray-300 hover:bg-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteFoodItem}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-red-600 to-red-500 text-white hover:opacity-95"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editEntry && (
+        <div className="fixed inset-0 z-[1001] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+          <div className="w-full max-w-md rounded-2xl border border-[#1F2937] bg-[#020617] p-6 shadow-xl">
+            <h3 className="text-lg font-bold text-white mb-4">Edit food entry</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Food name</label>
+                <input
+                  value={editEntry.name}
+                  onChange={(e) => setEditEntry((p) => ({ ...p, name: e.target.value }))}
+                  className="w-full bg-[#0f172a] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Quantity</label>
+                  <input
+                    type="number"
+                    min="0.25"
+                    step="0.25"
+                    value={editEntry.quantity}
+                    onChange={(e) =>
+                      setEditEntry((p) => ({ ...p, quantity: e.target.value }))
+                    }
+                    className="w-full bg-[#0f172a] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">kcal per unit</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editEntry.caloriesPerItem}
+                    onChange={(e) =>
+                      setEditEntry((p) => ({ ...p, caloriesPerItem: e.target.value }))
+                    }
+                    className="w-full bg-[#0f172a] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Meal</label>
+                <select
+                  value={editEntry.mealType}
+                  onChange={(e) =>
+                    setEditEntry((p) => ({ ...p, mealType: e.target.value }))
+                  }
+                  className="w-full bg-[#0f172a] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white"
+                >
+                  {MEAL_TYPES.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.label}
+                    </option>
+                  ))}
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <p className="text-xs text-gray-500">
+                Total:{" "}
+                {Math.round(
+                  (Number(editEntry.quantity) || 1) *
+                    (Number(editEntry.caloriesPerItem) || 0)
+                )}{" "}
+                kcal
+              </p>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => setEditEntry(null)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-600 text-gray-300 hover:bg-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveEdit}
+                disabled={savingEdit || !editEntry.name?.trim()}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE] text-black disabled:opacity-50"
+              >
+                {savingEdit ? "Saving…" : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showLimitModal && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 backdrop-blur-md">
           <div className="relative p-6 max-w-sm w-full mx-4 rounded-2xl border border-[#1F2937] bg-[#020617]/90 text-center shadow-[0_20px_60px_rgba(139,92,246,0.2)] overflow-hidden">

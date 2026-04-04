@@ -1,11 +1,15 @@
 const User = require("../models/User");
+const { expireEndedWeeklyChallenges } = require("../utils/weeklyChallengeExpiry");
 
 exports.getStats = async (req, res) => {
     try {
         const { email } = req.query;
         if (!email) return res.status(400).json({ error: "Email is required" });
+        await expireEndedWeeklyChallenges();
         const user = await User.findOne({ email }).lean();
         if (!user) return res.status(404).json({ error: "User not found" });
+        const wc =
+            user.weeklyChallenge && user.weeklyChallenge.title ? user.weeklyChallenge : null;
         res.json({
             points: user.points || 0,
             weeklyPoints: user.weeklyPoints || 0,
@@ -13,7 +17,7 @@ exports.getStats = async (req, res) => {
             lastActivityAt: user.lastActivityAt,
             sportsPreferences: user.sportsPreferences || {},
             badges: user.badges || [],
-            weeklyChallenge: user.weeklyChallenge || {},
+            weeklyChallenge: wc,
         });
     } catch (e) {
         res.status(500).json({ error: "Server error" });

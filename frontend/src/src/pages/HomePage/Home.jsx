@@ -17,7 +17,6 @@ import {
   FaTrophy,
   FaDumbbell,
   FaRuler,
-  FaWalking,
   FaLightbulb,
   FaUtensils,
 } from "react-icons/fa";
@@ -1116,7 +1115,7 @@ export default function Home() {
                       { icon: FaRuler, label: "BMI", path: "/CurrentBMI" },
                       { icon: FaDumbbell, label: "Workout", path: "/Workout" },
                       { icon: FaUtensils, label: "Diet", path: "/diet-chart" },
-                      { icon: FaWalking, label: "Steps", path: "/daily-steps" },
+                      { icon: Brain, label: "Posture coach", path: "/VirtualTA" },
                     ].map((action, i) => (
                       <button
                         key={i}

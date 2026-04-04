@@ -42,8 +42,8 @@ async function awardPoints(userId, type) {
     if (!user.weeklyStartAt || startOfWeek(user.weeklyStartAt).getTime() !== currentWeekStart.getTime()) {
         user.weeklyStartAt = currentWeekStart;
         user.weeklyPoints = 0;
-        // reset weekly challenge
-        if (user.weeklyChallenge) {
+        // reset admin weekly challenge progress (only when a challenge exists)
+        if (user.weeklyChallenge && user.weeklyChallenge.title) {
             user.weeklyChallenge.weekStartAt = currentWeekStart;
             user.weeklyChallenge.progress = 0;
             user.weeklyChallenge.completed = false;
@@ -71,7 +71,7 @@ async function awardPoints(userId, type) {
 
     // Weekly challenge progress (count workout logs)
     if (type === 'workout_log') {
-        if (user.weeklyChallenge) {
+        if (user.weeklyChallenge && user.weeklyChallenge.title) {
             user.weeklyChallenge.progress = (user.weeklyChallenge.progress || 0) + 1;
             const target = user.weeklyChallenge.target || 3;
             if (!user.weeklyChallenge.completed && user.weeklyChallenge.progress >= target) {

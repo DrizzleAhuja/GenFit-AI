@@ -1,5 +1,23 @@
 const mongoose = require("mongoose");
 
+const weeklyChallengeSchema = new mongoose.Schema(
+  {
+    title: { type: String },
+    target: { type: Number },
+    progress: { type: Number, default: 0 },
+    completed: { type: Boolean, default: false },
+    weekStartAt: { type: Date },
+    weekEndAt: { type: Date },
+    points: { type: Number, default: 30 },
+    type: {
+      type: String,
+      enum: ["workout", "posture", "calorie"],
+      default: "workout",
+    },
+  },
+  { _id: false }
+);
+
 const userSchema = new mongoose.Schema({
   firstName: {
     type: String,
@@ -58,18 +76,9 @@ const userSchema = new mongoose.Schema({
   weeklyStartAt: { type: Date, default: null },
   streakCount: { type: Number, default: 0 },
   lastActivityAt: { type: Date, default: null },
-  // Badges & Weekly Challenge
+  // Badges & Weekly Challenge (omit until admin creates one)
   badges: { type: [String], default: [] },
-  weeklyChallenge: {
-    title: { type: String, default: "Log 3 workouts this week" },
-    target: { type: Number, default: 3 },
-    progress: { type: Number, default: 0 },
-    completed: { type: Boolean, default: false },
-    weekStartAt: { type: Date, default: null },
-    weekEndAt: { type: Date, default: null },
-    points: { type: Number, default: 100 },
-    type: { type: String, enum: ["workout", "posture", "calorie"], default: "workout" }
-  },
+  weeklyChallenge: { type: weeklyChallengeSchema, required: false, default: undefined },
 
   // Google Fit integration (optional)
   googleFitLinked: { type: Boolean, default: false },

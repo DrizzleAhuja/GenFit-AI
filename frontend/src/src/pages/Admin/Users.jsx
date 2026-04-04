@@ -14,6 +14,7 @@ const Users = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [newPlan, setNewPlan] = useState('free');
+  const [planUpdateError, setPlanUpdateError] = useState('');
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -39,6 +40,7 @@ const Users = () => {
   }, [page, search]);
 
   const handleUpdatePlan = async () => {
+    setPlanUpdateError('');
     try {
       const user = JSON.parse(localStorage.getItem("user") || "{}");
       await axios.put(`${API_BASE_URL}/api/admin/users/${selectedUser._id}/plan`, 
@@ -48,7 +50,7 @@ const Users = () => {
       setIsModalOpen(false);
       fetchUsers(); // Refresh list
     } catch (err) {
-      alert('Failed to update plan');
+      setPlanUpdateError('Failed to update plan. Please try again.');
     }
   };
 
@@ -106,7 +108,7 @@ const Users = () => {
                       </td>
                       <td className="py-4 px-6">
                         <button 
-                          onClick={() => { setSelectedUser(u); setNewPlan(u.plan || 'free'); setIsModalOpen(true); }}
+                          onClick={() => { setSelectedUser(u); setNewPlan(u.plan || 'free'); setPlanUpdateError(''); setIsModalOpen(true); }}
                           className="p-2 hover:bg-[#8B5CF6]/10 rounded-lg text-[#22D3EE] hover:text-[#22D3EE] transition-all"
                         >
                           <Edit3 size={18} />
@@ -158,6 +160,12 @@ const Users = () => {
               <option value="free">Free</option>
               <option value="pro">Pro</option>
             </select>
+
+            {planUpdateError && (
+              <div className="mt-4 rounded-xl border border-red-500/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
+                {planUpdateError}
+              </div>
+            )}
 
             <div className="flex gap-3 mt-6">
               <button 

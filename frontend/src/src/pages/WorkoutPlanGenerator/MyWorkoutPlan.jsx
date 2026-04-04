@@ -10,9 +10,9 @@ import {
   FiArrowLeft,
   FiClock,
   FiPlay,
+  FiX,
 } from "react-icons/fi";
 import { FaDumbbell, FaCheckCircle, FaRegCircle, FaTimesCircle } from "react-icons/fa";
-import { toast } from "react-toastify";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
 import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
@@ -38,6 +38,8 @@ const MyWorkoutPlan = () => {
   const [missedWorkouts, setMissedWorkouts] = useState(0); // Count of missed workouts
   const [missedWorkoutDetails, setMissedWorkoutDetails] = useState([]); // Details of missed workouts
   const processedMarkCompleteRef = useRef(false);
+  const [planDeleteId, setPlanDeleteId] = useState(null);
+  const [planActionNotice, setPlanActionNotice] = useState(null);
 
   // When returning from Virtual TA with "mark complete", mark the exercise once and clear state
   const pendingMarkComplete = location.state?.markExerciseComplete && location.state?.exerciseName;
@@ -68,7 +70,7 @@ const MyWorkoutPlan = () => {
         if (!cancelled) navigate("/my-workout-plan", { replace: true, state: {} });
       } catch (_) {
         processedMarkCompleteRef.current = false;
-        // handleToggleExercise already shows toast on error
+        // handleToggleExercise already sets planActionNotice on error
       }
     })();
     return () => { cancelled = true; };
@@ -83,6 +85,12 @@ const MyWorkoutPlan = () => {
       setLoading(false);
     }
   }, [user?._id]);
+
+  useEffect(() => {
+    if (!planActionNotice) return;
+    const t = setTimeout(() => setPlanActionNotice(null), 8000);
+    return () => clearTimeout(t);
+  }, [planActionNotice]);
 
   // Fetch today's workout only
   const fetchTodayWorkout = async () => {
@@ -123,7 +131,6 @@ const MyWorkoutPlan = () => {
       } else {
         console.error("Error fetching active plan:", err);
         setError("Failed to load active workout plan.");
-        toast.error("Failed to load active workout plan.");
       }
     }
 
@@ -135,7 +142,6 @@ const MyWorkoutPlan = () => {
     } catch (err) {
       console.error("Error fetching history plans:", err);
       setError((prev) => prev || "Failed to load workout plan history."); // Only set if not already set
-      toast.error("Failed to load workout plan history.");
     }
     if (!silent) setLoading(false);
   };
@@ -148,7 +154,10 @@ const MyWorkoutPlan = () => {
 
   const handleSaveEdit = async (planId) => {
     if (!newPlanName.trim()) {
-      toast.error("Plan name cannot be empty.");
+      setPlanActionNotice({
+        type: "error",
+        text: "Plan name cannot be empty.",
+      });
       return;
     }
     try {
@@ -160,15 +169,24 @@ const MyWorkoutPlan = () => {
         }
       );
       if (res.data.success) {
-        toast.success("Plan updated successfully!");
+        setPlanActionNotice({
+          type: "success",
+          text: "Plan updated successfully.",
+        });
         fetchPlans(); // Refresh plans
         setEditingPlanId(null);
       } else {
-        toast.error("Failed to update plan.");
+        setPlanActionNotice({
+          type: "error",
+          text: "Failed to update plan.",
+        });
       }
     } catch (err) {
       console.error("Error updating plan:", err);
-      toast.error("Failed to update plan.");
+      setPlanActionNotice({
+        type: "error",
+        text: "Failed to update plan.",
+      });
     }
   };
 
@@ -178,26 +196,36 @@ const MyWorkoutPlan = () => {
     setNewPlanDescription("");
   };
 
-  const handleDeletePlan = async (planId) => {
-    if (
-      window.confirm(
-        "Are you sure you want to delete this workout plan? This action cannot be undone."
-      )
-    ) {
-      try {
-        const res = await axios.delete(
-          `${API_BASE_URL}${API_ENDPOINTS.AUTH}/workout-plan/delete/${planId}`
-        );
-        if (res.data.success) {
-          toast.success("Workout plan deleted successfully!");
-          fetchPlans(); // Refresh plans
-        } else {
-          toast.error("Failed to delete workout plan.");
-        }
-      } catch (err) {
-        console.error("Error deleting plan:", err);
-        toast.error("Failed to delete workout plan.");
+  const handleDeletePlan = (planId) => {
+    setPlanDeleteId(planId);
+  };
+
+  const confirmDeletePlan = async () => {
+    if (!planDeleteId) return;
+    const planId = planDeleteId;
+    setPlanDeleteId(null);
+    try {
+      const res = await axios.delete(
+        `${API_BASE_URL}${API_ENDPOINTS.AUTH}/workout-plan/delete/${planId}`
+      );
+      if (res.data.success) {
+        setPlanActionNotice({
+          type: "success",
+          text: "Workout plan deleted successfully.",
+        });
+        fetchPlans();
+      } else {
+        setPlanActionNotice({
+          type: "error",
+          text: "Failed to delete workout plan.",
+        });
       }
+    } catch (err) {
+      console.error("Error deleting plan:", err);
+      setPlanActionNotice({
+        type: "error",
+        text: "Failed to delete workout plan.",
+      });
     }
   };
 
@@ -210,14 +238,23 @@ const MyWorkoutPlan = () => {
         }
       );
       if (res.data.success) {
-        toast.success("Plan set as active!");
+        setPlanActionNotice({
+          type: "success",
+          text: "Plan set as active.",
+        });
         fetchPlans(); // Refresh plans to show new active plan
       } else {
-        toast.error("Failed to activate plan.");
+        setPlanActionNotice({
+          type: "error",
+          text: "Failed to activate plan.",
+        });
       }
     } catch (err) {
       console.error("Error activating plan:", err);
-      toast.error("Failed to activate plan.");
+      setPlanActionNotice({
+        type: "error",
+        text: "Failed to activate plan.",
+      });
     }
   };
 
@@ -235,7 +272,10 @@ const MyWorkoutPlan = () => {
     passedCalories = 0 // Added!
   ) => {
     if (!user || !activePlan) {
-      toast.error("Please log in and have an active plan to mark exercises.");
+      setPlanActionNotice({
+        type: "error",
+        text: "Please log in and have an active plan to mark exercises.",
+      });
       return;
     }
 
@@ -303,9 +343,10 @@ const MyWorkoutPlan = () => {
       );
 
       if (res.data.success) {
-        toast.success(
-          `Exercise '${exerciseName}' ${!isCompleted ? "completed" : "unmarked"}!`
-        );
+        setPlanActionNotice({
+          type: "success",
+          text: `Exercise '${exerciseName}' ${!isCompleted ? "completed" : "unmarked"}.`,
+        });
         if (silentRefresh) {
           await fetchPlans(true);
           await fetchTodayWorkout();
@@ -317,7 +358,10 @@ const MyWorkoutPlan = () => {
       return res;
     } catch (err) {
       console.error("Error toggling exercise:", err);
-      toast.error("Failed to update exercise completion.");
+      setPlanActionNotice({
+        type: "error",
+        text: "Failed to update exercise completion.",
+      });
       throw err;
     }
   };
@@ -325,12 +369,18 @@ const MyWorkoutPlan = () => {
   // Mark entire workout as complete
   const handleCompleteWorkout = async () => {
     if (!user || !activePlan || !todayWorkout) {
-      toast.error("No workout available to complete.");
+      setPlanActionNotice({
+        type: "error",
+        text: "No workout available to complete.",
+      });
       return;
     }
 
     if (todayWorkout.isCompleted) {
-      toast.info("Workout is already completed!");
+      setPlanActionNotice({
+        type: "info",
+        text: "Workout is already completed.",
+      });
       return;
     }
 
@@ -364,13 +414,19 @@ const MyWorkoutPlan = () => {
       );
 
       if (res.data.success) {
-        toast.success(" Workout completed! Great job!");
+        setPlanActionNotice({
+          type: "success",
+          text: "Workout completed. Great job!",
+        });
         fetchPlans();
         fetchTodayWorkout();
       }
     } catch (err) {
       console.error("Error completing workout:", err);
-      toast.error("Failed to complete workout.");
+      setPlanActionNotice({
+        type: "error",
+        text: "Failed to complete workout.",
+      });
     }
   };
 
@@ -382,7 +438,10 @@ const MyWorkoutPlan = () => {
     weekNumber
   ) => {
     if (!user || !activePlan) {
-      toast.error("Please log in and have an active plan to mark exercises.");
+      setPlanActionNotice({
+        type: "error",
+        text: "Please log in and have an active plan to mark exercises.",
+      });
       return;
     }
 
@@ -456,19 +515,26 @@ const MyWorkoutPlan = () => {
       );
 
       if (res.data.success) {
-        toast.success(
-          `Exercise '${exerciseName}' ${
+        setPlanActionNotice({
+          type: "success",
+          text: `Exercise '${exerciseName}' ${
             isCompleted ? "completed" : "unmarked"
-          }!`
-        );
+          }.`,
+        });
         fetchPlans(); // Refresh plans to update UI with latest completion status
         fetchTodayWorkout(); // Refresh today's workout to update completion status
       } else {
-        toast.error("Failed to update exercise completion.");
+        setPlanActionNotice({
+          type: "error",
+          text: "Failed to update exercise completion.",
+        });
       }
     } catch (err) {
       console.error("Error toggling exercise completion:", err);
-      toast.error("Failed to update exercise completion.");
+      setPlanActionNotice({
+        type: "error",
+        text: "Failed to update exercise completion.",
+      });
     }
   };
 
@@ -563,6 +629,29 @@ const MyWorkoutPlan = () => {
             <FiArrowLeft className="mr-2 group-hover:-translate-x-1 transition-transform" /> 
             <span className="font-medium">Back to Generator</span>
           </button>
+
+          {planActionNotice && (
+            <div
+              className={`mb-6 rounded-2xl border px-4 py-3 flex items-start justify-between gap-3 shadow-lg ${
+                planActionNotice.type === "success"
+                  ? "bg-emerald-950/40 border-emerald-500/35 text-emerald-100"
+                  : planActionNotice.type === "info"
+                    ? "bg-sky-950/40 border-sky-500/35 text-sky-100"
+                    : "bg-red-950/40 border-red-500/35 text-red-100"
+              }`}
+              role="status"
+            >
+              <p className="text-sm leading-relaxed pr-2">{planActionNotice.text}</p>
+              <button
+                type="button"
+                onClick={() => setPlanActionNotice(null)}
+                className="shrink-0 p-1 rounded-lg hover:bg-white/10 transition-colors"
+                aria-label="Dismiss"
+              >
+                <FiX className="w-4 h-4 opacity-80" />
+              </button>
+            </div>
+          )}
 
           {/* <div className="text-center mb-8 sm:mb-12">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 animate-gradient">
@@ -1487,6 +1576,51 @@ const MyWorkoutPlan = () => {
           </div>
         </section>
       </main>
+
+      {planDeleteId && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-plan-title"
+        >
+          <div
+            className={`w-full max-w-md rounded-2xl border p-6 shadow-2xl ${
+              darkMode
+                ? "bg-[#0f172a] border-[#334155] text-white"
+                : "bg-white border-gray-200 text-gray-900"
+            }`}
+          >
+            <h2 id="delete-plan-title" className="text-lg font-bold mb-2">
+              Delete workout plan?
+            </h2>
+            <p className={`text-sm mb-6 ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
+              This cannot be undone. Your plan will be removed from your list.
+            </p>
+            <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setPlanDeleteId(null)}
+                className={`px-4 py-2.5 rounded-xl font-medium border transition ${
+                  darkMode
+                    ? "border-[#475569] text-gray-200 hover:bg-white/5"
+                    : "border-gray-300 text-gray-800 hover:bg-gray-50"
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeletePlan}
+                className="px-4 py-2.5 rounded-xl font-medium bg-red-600 text-white hover:bg-red-500 transition"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </div>
   );

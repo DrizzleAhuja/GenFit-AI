@@ -31,8 +31,8 @@ import Dashboard from "./pages/Dashboard/Dashboard.jsx";
 import PostureCoach from "./pages/PostureCoach/PostureCoach.jsx";
 import PWAInstallBanner from "./Components/PWAInstallBanner.jsx";
 import FitBotWidget from "./pages/FitBot/Section1.jsx";
-import DailyStepsTracker from "./pages/DailyStepsTracker/DailyStepsTracker.jsx";
 import SplashScreen from "./Components/SplashScreen.jsx";
+import { API_BASE_URL } from "../config/api";
 import AdminLayout from "./Components/Admin/AdminLayout";
 import AdminDashboard from "./pages/Admin/Dashboard";
 import AdminUsers from "./pages/Admin/Users";
@@ -66,6 +66,18 @@ function App() {
     
     return () => clearTimeout(timer);
   }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (isSplashLoading) return;
+    const storageKey = "genfit_daily_tick";
+    const today = new Date().toISOString().slice(0, 10);
+    if (localStorage.getItem(storageKey) === today) return;
+    fetch(`${API_BASE_URL}/api/maintenance/daily-tick`, { method: "POST" })
+      .then((res) => {
+        if (res.ok) localStorage.setItem(storageKey, today);
+      })
+      .catch(() => {});
+  }, [isSplashLoading]);
 
   if (isSplashLoading) {
     return <SplashScreen />;
@@ -103,7 +115,7 @@ function App() {
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/community" element={<Community />} />
-          <Route path="/daily-steps" element={<DailyStepsTracker />} />
+          <Route path="/daily-steps" element={<NoPageFound />} />
           {/* Optional alias route for direct access */}
           <Route path="/posture-coach" element={<PostureCoach />} />
           {/* <Route path="/admin-calorie-tracker" element={<CalorieTracker />} />

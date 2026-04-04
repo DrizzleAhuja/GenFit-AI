@@ -41,6 +41,124 @@ function getFrontendRedirectBase() {
   return process.env.FRONTEND_APP_URL || "http://localhost:5173";
 }
 
+/** Groq free tier TPM is tight; keep chat requests small. */
+const GROQ_FITBOT_TEXT_MODEL =
+  process.env.GROQ_FITBOT_MODEL || "llama-3.1-8b-instant";
+const GROQ_FITBOT_VISION_MODEL =
+  process.env.GROQ_FITBOT_VISION_MODEL || "meta-llama/llama-4-scout-17b-16e-instruct";
+const FITBOT_MAX_CHAT_HISTORY = 4;
+const FITBOT_MAX_ASSISTANT_CHARS = 900;
+const FITBOT_MAX_USER_CHARS = 1200;
+/** Groq counts max_completion toward TPM; keep low for on_demand tier. */
+const FITBOT_MAX_COMPLETION_TOKENS = Math.min(
+  1024,
+  parseInt(process.env.GROQ_FITBOT_MAX_TOKENS || "512", 10) || 512
+);
+const FITBOT_GROQ_MAX_RETRIES = 5;
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+function groqRetryDelayMs(error) {
+  const h = error.response?.headers || {};
+  const ra = h["retry-after"] || h["Retry-After"];
+  if (ra != null) {
+    const sec = parseFloat(ra);
+    if (!Number.isNaN(sec)) return Math.min(Math.ceil(sec * 1000) + 500, 120000);
+  }
+  const msg = String(error.response?.data?.error?.message || "");
+  const m = msg.match(/try again in ([\d.]+)\s*s/i);
+  if (m) {
+    const sec = parseFloat(m[1]);
+    if (!Number.isNaN(sec)) return Math.min(Math.ceil(sec * 1000) + 800, 120000);
+  }
+  return 4000;
+}
+
+function isGroqRateOrTokenLimit(error) {
+  if (!error.response) return false;
+  const status = error.response.status;
+  const code = error.response.data?.error?.code;
+  const msg = String(error.response.data?.error?.message || "");
+  if (status === 413 || status === 429) return true;
+  if (code === "rate_limit_exceeded") return true;
+  if (/rate limit|TPM|tokens per minute|Payload Too Large/i.test(msg)) return true;
+  return false;
+}
+
+async function postGroqChatCompletions(payload, groqApiKey) {
+  let lastErr;
+  for (let attempt = 1; attempt <= FITBOT_GROQ_MAX_RETRIES; attempt++) {
+    try {
+      return await axios.post(
+        "https://api.groq.com/openai/v1/chat/completions",
+        payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${groqApiKey}`,
+          },
+          timeout: 60000,
+        }
+      );
+    } catch (err) {
+      lastErr = err;
+      if (isGroqRateOrTokenLimit(err) && attempt < FITBOT_GROQ_MAX_RETRIES) {
+        const wait = groqRetryDelayMs(err);
+        console.warn(
+          `[FitBot] Groq limit hit (attempt ${attempt}/${FITBOT_GROQ_MAX_RETRIES}), retry in ${wait}ms`
+        );
+        await sleep(wait);
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr;
+}
+
+function truncateGroqText(s, maxLen = FITBOT_MAX_ASSISTANT_CHARS) {
+  if (s == null || s === "") return "";
+  const t = String(s);
+  if (t.length <= maxLen) return t;
+  return `${t.slice(0, maxLen)}\n...[truncated]`;
+}
+
+function summarizeActivePlanForPrompt(plan) {
+  if (!plan) return "";
+  const gp = plan.generatedParams || {};
+  const goal =
+    gp.fitnessGoal?.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) || "N/A";
+  const first = plan.planContent?.[0];
+  let dayLine = "";
+  if (first) {
+    const names = (first.exercises || []).map((e) => e?.name).filter(Boolean);
+    const shown = names.slice(0, 5).join(", ");
+    const more = names.length > 5 ? ` +${names.length - 5}` : "";
+    dayLine = `${first.day || "D1"} ${first.focus || ""}: ${shown}${more}`;
+  } else {
+    dayLine = "app";
+  }
+  const nDays = Array.isArray(plan.planContent) ? plan.planContent.length : 0;
+  const block =
+    `Workout plan (internal): name=${plan.name}; goal=${goal}; type=${gp.workoutType || "?"}; ${gp.daysPerWeek || nDays}d/wk; ${gp.timeCommitment ?? "?"}min; ${gp.durationWeeks || plan.durationWeeks || "?"}wk; sample=${dayLine}; days=${nDays}.`;
+  return block.slice(0, 450);
+}
+
+/** User wants to log food — force log_food so the model does not echo system context instead. */
+function looksLikeFoodLogRequest(text) {
+  const t = (text || "").toLowerCase();
+  if (t.length > 800) return false;
+  const hasFood =
+    /\b(breakfast|lunch|dinner|evening|snack|meal|paratha|parantha|roti|chapati|naan|rice|dal|curry|sabzi|egg|apple|fruit|milk|coffee|tea|juice|calorie|kcal|food|plate)\b/.test(
+      t
+    ) || /\b(aloo|allo|potato)\b/.test(t);
+  const hasLogVerb = /\b(log|logged|record|track|add to|enter)\b/.test(t);
+  const hasEatVerb = /\b(ate|eat|eating|had|having)\b/.test(t);
+  return hasFood && (hasLogVerb || hasEatVerb);
+}
+
 // Exercises supported by the Virtual Training Assistant (posture coach). Gemini must only use these names so users can train with the assistant.
 const VTA_ALLOWED_EXERCISES = [
   "Bench Press", "Incline Dumbbell Press", "Decline Press", "Push-up", "Cable Fly", "Pec Deck", "Chest Press", "Diamond Push-up",
@@ -379,6 +497,17 @@ router.post("/workout-plan/save", async (req, res) => {
       await awardPoints(userId, "workout_generate");
     } catch (e) {
       console.error("Gamify award error:", e);
+    }
+
+    try {
+      const { pushUserNotification } = require("../utils/pushUserNotification");
+      await pushUserNotification(userId, {
+        title: "New workout plan ready",
+        message: `Your workout plan "${name}" is active. Open My Workout Plan to start training.`,
+        type: "workout",
+      });
+    } catch (e) {
+      console.error("Notification error (workout save):", e);
     }
 
     res.status(201).json({
@@ -1141,11 +1270,11 @@ router.post("/chat", async (req, res) => {
           activeWorkoutPlan = await WorkoutPlan.findOne({ userId: userObj._id, isActive: true }).sort({ createdAt: -1 }).lean();
 
           if (latestBMI) {
-            userContext += `\n\nUser's Health Profile:\n  - BMI: ${latestBMI.bmi} (${latestBMI.category})\n  - Age: ${latestBMI.age}\n  - Height: ${latestBMI.heightFeet}'${latestBMI.heightInches}"\n  - Weight: ${latestBMI.weight}kg\n  - Target Weight: ${latestBMI.targetWeight || "Not set"}kg\n  - Target Timeline: ${latestBMI.targetTimeline || "Not set"}\n  - Diseases: ${userObj.diseases?.join(", ") || "None"}\n  - Allergies: ${userObj.allergies?.join(", ") || "None"}`;
+            userContext += `Profile (internal): ${latestBMI.weight}kg; ${latestBMI.heightFeet}'${latestBMI.heightInches}"; age ${latestBMI.age}; BMI ${latestBMI.bmi} (${latestBMI.category}); target ${latestBMI.targetWeight ?? "—"}kg; dz:${userObj.diseases?.join(",") || "none"}; al:${userObj.allergies?.join(",") || "none"}\n`;
           }
 
           if (activeWorkoutPlan) {
-            userContext += `\n\nUser's Current Active Workout Plan (${activeWorkoutPlan.name}):\n  - Goal: ${activeWorkoutPlan.generatedParams?.fitnessGoal?.replace(/_/g, " ").split(" ").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ") || "N/A"}\n  - Current Weight: ${activeWorkoutPlan.generatedParams?.currentWeight || "N/A"}kg\n  - Target Weight: ${activeWorkoutPlan.generatedParams?.targetWeight || "N/A"}kg\n  - Workout Type: ${activeWorkoutPlan.generatedParams?.workoutType || "N/A"}\n  - Training Method: ${activeWorkoutPlan.generatedParams?.trainingMethod || "N/A"}\n  - Strength Level: ${activeWorkoutPlan.generatedParams?.strengthLevel || "N/A"}\n  - Time Commitment: ${activeWorkoutPlan.generatedParams?.timeCommitment || "N/A"} min\n  - Days Per Week: ${activeWorkoutPlan.generatedParams?.daysPerWeek || "N/A"}\n  - Duration: ${activeWorkoutPlan.generatedParams?.durationWeeks || "N/A"} weeks\n  - Plan Details (first day): ${JSON.stringify(activeWorkoutPlan.planContent?.[0] || {})}...`;
+            userContext += summarizeActivePlanForPrompt(activeWorkoutPlan);
           }
         }
       } catch (contextError) {
@@ -1153,68 +1282,111 @@ router.post("/chat", async (req, res) => {
       }
     }
 
-    const systemPrompt = `You are FitBot, an AI fitness assistant. Help users with their fitness questions, workout advice, nutrition tips, and motivation. You MUST prioritize the user's provided health profile and current active workout plan details. Be encouraging, professional, and provide practical advice. You have access to tools to log the user's food intake and workout sessions. Use them when the user asks to log food or a workout. When logging food, you MUST estimate the calories yourself (e.g. 1 chapati = ~70-100 kcal) and never ask the user to provide calorie estimates. Do NOT use markdown formatting like asterisks (*), bold (**), or hashtags (#) in your responses. Keep your text plain and readable.${userContext}`;
+    const lastUserText = String(lastUserMessage.content || "");
+    const forceFoodTool = Boolean(userObj && looksLikeFoodLogRequest(lastUserText));
+
+    const systemPrompt =
+      `You are FitBot. Short plain-text replies (no * # markdown).
+
+The block between BEGIN_CONTEXT and END_CONTEXT is ONLY for your reasoning. NEVER repeat it, NEVER quote it, NEVER paste it to the user. Users must not see profile or workout plan dumps.
+
+BEGIN_CONTEXT
+${userContext || "(no profile/plan loaded)"}
+END_CONTEXT
+
+If the user asks to log food, meals, breakfast/lunch/dinner, or items eaten: call log_food with estimated calories (Indian foods OK). Then confirm in one friendly sentence what you logged.
+If they ask about workouts without logging food, use other tools as needed.`;
 
     // Format messages for Grok
     const formattedMessages = [
       { role: "system", content: systemPrompt }
     ];
 
-    for (const msg of messages) {
+    const recentMessages = messages.slice(-FITBOT_MAX_CHAT_HISTORY);
+    for (const msg of recentMessages) {
       if (msg.role === "user") {
         if (msg.imageBase64) {
           formattedMessages.push({
             role: "user",
             content: [
-              { type: "text", text: msg.content },
+              { type: "text", text: truncateGroqText(msg.content || "", FITBOT_MAX_USER_CHARS) },
               { type: "image_url", image_url: { url: msg.imageBase64 } }
             ]
           });
         } else {
-          formattedMessages.push({ role: "user", content: msg.content || "" });
+          formattedMessages.push({ role: "user", content: truncateGroqText(msg.content || "", FITBOT_MAX_USER_CHARS) });
         }
       } else if (msg.role === "assistant") {
-        formattedMessages.push({ role: msg.role, content: msg.content || "" });
+        formattedMessages.push({
+          role: msg.role,
+          content: truncateGroqText(msg.content || ""),
+        });
       }
     }
 
+    const exerciseItem = {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        sets: { type: "number" },
+        reps: { type: "string" },
+        weight: { type: "string" },
+        rest: { type: "string" },
+        notes: { type: "string" },
+      },
+      required: ["name", "sets", "reps"],
+    };
+    const dayItem = {
+      type: "object",
+      properties: {
+        day: { type: "string" },
+        focus: { type: "string" },
+        warmup: { type: "string" },
+        cooldown: { type: "string" },
+        exercises: { type: "array", items: exerciseItem },
+      },
+      required: ["day", "exercises"],
+    };
     const tools = [
       {
         type: "function",
         function: {
           name: "log_food",
-          description: "Log user's food intake to the database. You MUST estimate the calories yourself. Do NOT ask the user for calories.",
+          description:
+            "Use when the user wants to log food or meals (including Indian dishes). Estimate calories; never ask the user for calories.",
           parameters: {
             type: "object",
             properties: {
               foodItems: {
                 type: "array",
-                description: "Array of food items eaten.",
                 items: {
                   type: "object",
                   properties: {
-                    name: { type: "string", description: "Name of food" },
-                    caloriesPerItem: { type: "number", description: "Your AI-estimated calories per item" },
-                    quantity: { type: "number", description: "Quantity eaten" },
-                    totalCalories: { type: "number", description: "Total AI-estimated calories for this item" },
-                    mealType: { type: "string", enum: ["Breakfast", "Lunch", "Evening Snack", "Dinner", "Other"] }
+                    name: { type: "string" },
+                    caloriesPerItem: { type: "number" },
+                    quantity: { type: "number" },
+                    totalCalories: { type: "number" },
+                    mealType: {
+                      type: "string",
+                      enum: ["Breakfast", "Lunch", "Evening Snack", "Dinner", "Other"],
+                    },
                   },
-                  required: ["name", "caloriesPerItem", "quantity", "totalCalories"]
-                }
+                  required: ["name", "caloriesPerItem", "quantity", "totalCalories"],
+                },
               },
-              totalCalories: { type: "number", description: "Sum of all items calories" },
-              waterIntake: { type: "number", description: "Number of GLASSES of water drank (assume 1 glass = ~250ml). Default 0." },
-              notes: { type: "string", description: "Any notes provided by user" }
+              totalCalories: { type: "number" },
+              waterIntake: { type: "number" },
+              notes: { type: "string" },
             },
-            required: ["foodItems", "totalCalories"]
-          }
-        }
+            required: ["foodItems", "totalCalories"],
+          },
+        },
       },
       {
         type: "function",
         function: {
           name: "log_workout",
-          description: "Log user's workout session to the database. Always use this if user explicitly says they performed/completed a workout or exercise.",
+          description: "Log completed workout session.",
           parameters: {
             type: "object",
             properties: {
@@ -1223,152 +1395,125 @@ router.post("/chat", async (req, res) => {
                 items: {
                   type: "object",
                   properties: {
-                    exerciseName: { type: "string", description: "Name of the exercise" },
-                    sets: { type: "number", description: "Number of sets" },
-                    reps: { type: "string", description: "Number of reps, e.g. 10 or 8-12" },
-                    weight: { type: "string", description: "Weight used, e.g. 50kg" }
+                    exerciseName: { type: "string" },
+                    sets: { type: "number" },
+                    reps: { type: "string" },
+                    weight: { type: "string" },
                   },
-                  required: ["exerciseName", "sets", "reps"]
-                }
+                  required: ["exerciseName", "sets", "reps"],
+                },
               },
-              durationMinutes: { type: "number", description: "Overall duration of the workout in minutes" },
-              caloriesBurned: { type: "number", description: "Estimated calories burned" },
-              perceivedExertion: { type: "number", description: "Rate of perceived exertion (1-10)" },
-              overallNotes: { type: "string", description: "Any notes provided by user" }
+              durationMinutes: { type: "number" },
+              caloriesBurned: { type: "number" },
+              perceivedExertion: { type: "number" },
+              overallNotes: { type: "string" },
             },
-            required: ["exercises"]
-          }
-        }
+            required: ["exercises"],
+          },
+        },
       },
       {
         type: "function",
         function: {
           name: "update_bmi",
-          description: "Update the user's BMI, weight, height, age, and goals.",
+          description: "Update BMI record (weight kg, height ft/in, age, optional targets).",
           parameters: {
             type: "object",
             properties: {
-              heightFeet: { type: "number", description: "Height in feet" },
-              heightInches: { type: "number", description: "Height in inches" },
-              weight: { type: "number", description: "Weight in kg" },
-              age: { type: "number", description: "Age in years" },
-              targetWeight: { type: "number", description: "Target weight in kg" },
-              targetTimeline: { type: "string", description: "Target timeline, e.g. '3 months'" },
-              selectedPlan: { type: "string", enum: ["lose_weight", "gain_weight", "build_muscles"] }
+              heightFeet: { type: "number" },
+              heightInches: { type: "number" },
+              weight: { type: "number" },
+              age: { type: "number" },
+              targetWeight: { type: "number" },
+              targetTimeline: { type: "string" },
+              selectedPlan: {
+                type: "string",
+                enum: ["lose_weight", "gain_weight", "build_muscles"],
+              },
             },
-            required: ["weight", "heightFeet", "heightInches", "age"]
-          }
-        }
+            required: ["weight", "heightFeet", "heightInches", "age"],
+          },
+        },
       },
       {
         type: "function",
         function: {
           name: "update_profile",
-          description: "Update the user's profile information.",
+          description: "Update name, diseases, allergies.",
           parameters: {
             type: "object",
             properties: {
               firstName: { type: "string" },
               lastName: { type: "string" },
               diseases: { type: "array", items: { type: "string" } },
-              allergies: { type: "array", items: { type: "string" } }
-            }
-          }
-        }
+              allergies: { type: "array", items: { type: "string" } },
+            },
+          },
+        },
       },
       {
         type: "function",
         function: {
           name: "create_workout_plan",
-          description: "Create a new workout plan for the user and optionally set it as active.",
+          description: "Create workout plan; setActive default true.",
           parameters: {
             type: "object",
             properties: {
-              name: { type: "string", description: "Name of the workout plan" },
+              name: { type: "string" },
               description: { type: "string" },
-              durationWeeks: { type: "number", description: "Duration in weeks" },
-              planContent: {
-                type: "array",
-                description: "Structured workout days",
-                items: {
-                  type: "object",
-                  properties: {
-                    day: { type: "string", description: "e.g. 'Monday' or 'Day 1'" },
-                    focus: { type: "string" },
-                    warmup: { type: "string" },
-                    cooldown: { type: "string" },
-                    exercises: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          name: { type: "string" },
-                          sets: { type: "number" },
-                          reps: { type: "string" },
-                          weight: { type: "string" },
-                          rest: { type: "string" },
-                          notes: { type: "string" }
-                        },
-                        required: ["name", "sets", "reps"]
-                      }
-                    }
-                  },
-                  required: ["day", "exercises"]
-                }
-              },
-              setActive: { type: "boolean", description: "Whether to set this as the active workout plan" }
+              durationWeeks: { type: "number" },
+              planContent: { type: "array", items: dayItem },
+              setActive: { type: "boolean" },
             },
-            required: ["name", "durationWeeks", "planContent"]
-          }
-        }
+            required: ["name", "durationWeeks", "planContent"],
+          },
+        },
       },
       {
         type: "function",
         function: {
           name: "create_diet_chart",
-          description: "Create a detailed diet chart for the user.",
+          description: "Save diet chart markdown.",
           parameters: {
             type: "object",
             properties: {
-              dietChartMarkdown: { type: "string", description: "Detailed formatted diet chart using markdown." },
-              durationWeeks: { type: "number" }
+              dietChartMarkdown: { type: "string" },
+              durationWeeks: { type: "number" },
             },
-            required: ["dietChartMarkdown", "durationWeeks"]
-          }
-        }
-      }
+            required: ["dietChartMarkdown", "durationWeeks"],
+          },
+        },
+      },
     ];
 
     let hasToolCalls = true;
     let botResponseText = "";
     let iterations = 0;
-    
+
     while (hasToolCalls && iterations < 3) {
       iterations++;
-      
-      const hasImage = formattedMessages.some(m => Array.isArray(m.content) && m.content.some(c => c.type === "image_url"));
+
+      const hasImage = formattedMessages.some(
+        (m) => Array.isArray(m.content) && m.content.some((c) => c.type === "image_url")
+      );
+      const useForcedFood =
+        iterations === 1 && forceFoodTool && userObj && !hasImage;
       const payload = {
-        model: hasImage ? "meta-llama/llama-4-scout-17b-16e-instruct" : "openai/gpt-oss-120b",
+        model: hasImage ? GROQ_FITBOT_VISION_MODEL : GROQ_FITBOT_TEXT_MODEL,
         messages: formattedMessages,
         tools: tools,
-        tool_choice: "auto",
-        temperature: 1,
-        max_completion_tokens: 8192,
+        tool_choice: useForcedFood
+          ? { type: "function", function: { name: "log_food" } }
+          : "auto",
+        temperature: 0.5,
+        max_completion_tokens: useForcedFood
+          ? Math.min(900, Math.max(FITBOT_MAX_COMPLETION_TOKENS, 640))
+          : FITBOT_MAX_COMPLETION_TOKENS,
         top_p: 1,
         stream: false,
       };
 
-      const response = await axios.post(
-        "https://api.groq.com/openai/v1/chat/completions",
-        payload,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${GROQ_API_KEY}`
-          },
-          timeout: 45000,
-        }
-      );
+      const response = await postGroqChatCompletions(payload, GROQ_API_KEY);
 
       const responseMessage = response.data.choices[0].message;
       formattedMessages.push(responseMessage);
@@ -1514,7 +1659,7 @@ router.post("/chat", async (req, res) => {
             role: "tool",
             tool_call_id: toolCall.id,
             name: functionName,
-            content: toolResult
+            content: truncateGroqText(toolResult, 1500),
           });
         }
       } else {
@@ -1541,11 +1686,20 @@ router.post("/chat", async (req, res) => {
   } catch (error) {
     console.error("Error in chat endpoint:", error);
     if (error.response) {
-      console.error("Grok API response error:", JSON.stringify(error.response.data, null, 2));
+      console.error("Groq API response error:", JSON.stringify(error.response.data, null, 2));
     }
-    res.status(500).json({
-      error: "Failed to process chat message",
-      details: error.message,
+    const status = error.response?.status;
+    const groqMsg = error.response?.data?.error?.message;
+    const isTokenLimit =
+      status === 413 ||
+      status === 429 ||
+      error.response?.data?.error?.code === "rate_limit_exceeded" ||
+      (groqMsg && /too large|TPM|tokens per minute|rate limit/i.test(String(groqMsg)));
+    res.status(isTokenLimit ? 429 : 500).json({
+      error: isTokenLimit
+        ? "FitBot hit a Groq rate or token limit after automatic retries. Wait ~30 seconds and try again, or shorten your message."
+        : "Failed to process chat message",
+      details: groqMsg || error.message,
     });
   }
 });
@@ -1930,6 +2084,103 @@ router.get("/calorie-intake/history/:userId", async (req, res) => {
   }
 });
 
+// Update one food line-item inside a calorie log (same user only)
+router.put("/calorie-intake/log/:logId/item/:itemId", async (req, res) => {
+  try {
+    const { logId, itemId } = req.params;
+    const { userId, name, quantity, caloriesPerItem, mealType, totalCalories } = req.body || {};
+
+    if (!userId) {
+      return res.status(400).json({ success: false, error: "userId is required" });
+    }
+
+    const log = await CalorieIntakeLog.findOne({ _id: logId, userId });
+    if (!log) {
+      return res.status(404).json({ success: false, error: "Log not found" });
+    }
+
+    const item = log.items.id(itemId);
+    if (!item) {
+      return res.status(404).json({ success: false, error: "Food item not found" });
+    }
+
+    if (typeof name === "string" && name.trim()) item.name = name.trim();
+    if (typeof quantity === "number" && quantity > 0) item.quantity = quantity;
+    if (typeof caloriesPerItem === "number" && caloriesPerItem >= 0) {
+      item.caloriesPerItem = caloriesPerItem;
+    }
+    if (
+      typeof mealType === "string" &&
+      ["Breakfast", "Lunch", "Evening Snack", "Dinner", "Other"].includes(mealType)
+    ) {
+      item.mealType = mealType;
+    }
+    if (typeof totalCalories === "number" && totalCalories >= 0) {
+      item.totalCalories = totalCalories;
+    } else {
+      item.totalCalories = (item.quantity || 1) * (item.caloriesPerItem || 0);
+    }
+
+    log.totalCalories = (log.items || []).reduce(
+      (s, it) => s + (Number(it.totalCalories) || 0),
+      0
+    );
+    await log.save();
+
+    return res.json({ success: true, log: log.toObject() });
+  } catch (err) {
+    console.error("Calorie item update error:", err);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to update food item",
+      details: err.message,
+    });
+  }
+});
+
+// Delete one food line-item (or whole log if it was the last item)
+router.delete("/calorie-intake/log/:logId/item/:itemId", async (req, res) => {
+  try {
+    const { logId, itemId } = req.params;
+    const userId = req.query.userId || req.body?.userId;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, error: "userId is required" });
+    }
+
+    const log = await CalorieIntakeLog.findOne({ _id: logId, userId });
+    if (!log) {
+      return res.status(404).json({ success: false, error: "Log not found" });
+    }
+
+    const item = log.items.id(itemId);
+    if (!item) {
+      return res.status(404).json({ success: false, error: "Food item not found" });
+    }
+
+    log.items.pull(itemId);
+    log.totalCalories = (log.items || []).reduce(
+      (s, it) => s + (Number(it.totalCalories) || 0),
+      0
+    );
+
+    if (!log.items.length) {
+      await log.deleteOne();
+      return res.json({ success: true, deleted: "log" });
+    }
+
+    await log.save();
+    return res.json({ success: true, deleted: "item", log: log.toObject() });
+  } catch (err) {
+    console.error("Calorie item delete error:", err);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to delete food item",
+      details: err.message,
+    });
+  }
+});
+
 // Cuisine type mapping for Indian regional cuisines
 const CUISINE_DESCRIPTIONS = {
   north_indian: "North Indian cuisine (dal, roti, paneer dishes, curries, parathas, chole, rajma)",
@@ -2244,6 +2495,18 @@ router.post("/diet-chart/save", async (req, res) => {
       await awardPoints(userId, "diet_chart");
     } catch (e) {
       console.error("Gamify award error:", e);
+    }
+
+    try {
+      const { pushUserNotification } = require("../utils/pushUserNotification");
+      await pushUserNotification(userId, {
+        title: "New diet chart saved",
+        message:
+          "Your diet chart is linked to your workout plan. Open Diet Chart to review meals and macros.",
+        type: "diet",
+      });
+    } catch (e) {
+      console.error("Notification error (diet chart save):", e);
     }
 
     res.status(201).json({

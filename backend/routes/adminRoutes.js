@@ -1,6 +1,18 @@
 const express = require("express");
 const router = express.Router();
-const { getStats, getUsers, updateUserPlan, getUserLogs, getMessages, getIncomeStats, createWeeklyChallenge, getCurrentChallenge, acknowledgeMessage } = require("../controllers/adminController");
+const {
+  getStats,
+  getUsers,
+  updateUserPlan,
+  getUserLogs,
+  getMessages,
+  getIncomeStats,
+  createWeeklyChallenge,
+  getCurrentChallenge,
+  updateWeeklyChallenge,
+  deleteWeeklyChallenge,
+  acknowledgeMessage,
+} = require("../controllers/adminController");
 
 
 
@@ -22,6 +34,8 @@ router.get("/income", getIncomeStats);
 
 router.get("/current-challenge", getCurrentChallenge);
 router.post("/create-challenge", createWeeklyChallenge);
+router.put("/challenge", updateWeeklyChallenge);
+router.delete("/challenge", deleteWeeklyChallenge);
 
 
 
