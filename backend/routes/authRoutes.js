@@ -3293,6 +3293,43 @@ router.delete("/diet-chart/:dietChartId", async (req, res) => {
   }
 });
 
+// ==========================================
+// Tracker AI Insights (Gemini)
+// ==========================================
+router.post("/tracker/ai-insights", async (req, res) => {
+  try {
+    const { userId, metricType, data } = req.body;
+    
+    if (!userId || !metricType || !data) {
+      return res.status(400).json({ success: false, error: "Missing required fields" });
+    }
+
+    const prompt = `
+You are an expert fitness and health AI coach. The user wants insights on their ${metricType} data.
+Data: ${JSON.stringify(data)}
+
+Please provide a short, motivating, and actionable insight (1-3 sentences) based on this data.
+Make it personal and encouraging. Do not use markdown like bolding.
+`.trim();
+
+    const response = await axios.post(
+      `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
+      {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 200 },
+      },
+      { headers: { "Content-Type": "application/json" }, timeout: 15000 }
+    );
+
+    const insight = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || "Keep up the great work! Consistency is key.";
+
+    res.status(200).json({ success: true, insight: insight.trim() });
+  } catch (error) {
+    console.error("Error generating AI insight:", error);
+    res.status(500).json({ success: false, error: "Failed to generate AI insight" });
+  }
+});
+
 // -----------------------------
 // Google Fit integration (steps)
 // -----------------------------
