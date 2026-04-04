@@ -37,6 +37,8 @@ import {
   cmToFtIn,
   kgToLb,
   lbToKg,
+  roundBmiOneDecimal,
+  formatBmiOneDecimal,
 } from "./bmiFormValidation";
 
 export default function EnhancedBMICalculator() {
@@ -179,7 +181,7 @@ export default function EnhancedBMICalculator() {
           allergies: latest.allergies || [],
         });
         setBmiResult({
-          bmi: latest.bmi,
+          bmi: formatBmiOneDecimal(latest.bmi),
           category: latest.category,
         });
         setAiSuggestions(latest.aiSuggestions || "");
@@ -204,8 +206,9 @@ export default function EnhancedBMICalculator() {
     try {
       const { weightKg, heightFeet, heightInches, bmiNum } =
         computeBmiFromForm(formData);
-      const calculatedBMI = bmiNum.toFixed(2);
-      const bmiCategory = bmiCategoryFromValue(bmiNum);
+      const bmiRounded = roundBmiOneDecimal(bmiNum);
+      const calculatedBMI = formatBmiOneDecimal(bmiNum);
+      const bmiCategory = bmiCategoryFromValue(bmiRounded);
 
       const requestData = {
         email: user.email,
@@ -215,7 +218,7 @@ export default function EnhancedBMICalculator() {
         age: parseInt(formData.age, 10),
         diseases: formData.diseases,
         allergies: formData.allergies,
-        bmi: bmiNum,
+        bmi: bmiRounded,
         category: bmiCategory,
       };
 
@@ -254,8 +257,9 @@ export default function EnhancedBMICalculator() {
     try {
       const { weightKg, heightFeet, heightInches, bmiNum } =
         computeBmiFromForm(formData);
-      const calculatedBMI = bmiNum.toFixed(2);
-      const bmiCategory = bmiCategoryFromValue(bmiNum);
+      const bmiRounded = roundBmiOneDecimal(bmiNum);
+      const calculatedBMI = formatBmiOneDecimal(bmiNum);
+      const bmiCategory = bmiCategoryFromValue(bmiRounded);
 
       const res = await axios.put(
         `${API_BASE_URL}${API_ENDPOINTS.BMI}/update`,
@@ -1106,7 +1110,7 @@ export default function EnhancedBMICalculator() {
                               )} rounded-full flex items-center justify-center mr-3 sm:mr-4 flex-shrink-0`}
                             >
                               <span className="text-base sm:text-lg font-bold text-white">
-                                {record.bmi}
+                                {formatBmiOneDecimal(record.bmi)}
                               </span>
                             </div>
                             <div className="flex-1 min-w-0">

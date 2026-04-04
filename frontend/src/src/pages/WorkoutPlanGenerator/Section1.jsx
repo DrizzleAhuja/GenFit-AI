@@ -17,6 +17,7 @@ import {
 } from "react-icons/fa";
 import { GiWeightLiftingUp, GiRunningShoe, GiMuscleUp } from "react-icons/gi";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
+import { formatBmiOneDecimal } from "../BMICalculator/bmiFormValidation";
 
 const WorkoutPlanGenerator = () => {
   const [formData, setFormData] = useState({
@@ -59,7 +60,10 @@ const WorkoutPlanGenerator = () => {
       if (res.data.length > 0) {
         const latestBmi = res.data[0];
         setBmiData(latestBmi);
-        setBmiResult({ bmi: latestBmi.bmi, category: latestBmi.category });
+        setBmiResult({
+          bmi: formatBmiOneDecimal(latestBmi.bmi),
+          category: latestBmi.category,
+        });
         setFormData(prev => ({ ...prev, currentWeight: latestBmi.weight }));
       }
     } catch (error) {
@@ -1416,7 +1420,7 @@ const WorkoutPlanGenerator = () => {
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem', fontSize: '0.875rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                           <span style={{ color: '#9CA3AF' }}>BMI:</span>
-                          <span style={{ fontWeight: '700', color: 'white' }}>{bmiData.bmi}</span>
+                          <span style={{ fontWeight: '700', color: 'white' }}>{formatBmiOneDecimal(bmiData.bmi)}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                           <span style={{ color: '#9CA3AF' }}>Category:</span>

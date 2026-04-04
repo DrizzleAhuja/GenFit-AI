@@ -8,6 +8,7 @@ import axios from "axios";
 import { useSelector, useDispatch } from "react-redux";
 import { selectUser, setUser } from "../../redux/userSlice";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
+import { formatBmiOneDecimal } from "../BMICalculator/bmiFormValidation";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { TypeAnimation } from "react-type-animation";
@@ -364,7 +365,7 @@ const BMITrendChart = ({ bmiHistory, navigate }) => {
           const isNormal = bmi.category === "Normal weight";
           return (
             <div key={i} className="flex flex-col items-center flex-1">
-              <span className="text-xs text-gray-400 mb-1">{bmi.bmi}</span>
+              <span className="text-xs text-gray-400 mb-1">{formatBmiOneDecimal(bmi.bmi)}</span>
               <div
                 className={`w-full max-w-[24px] rounded-t transition-all ${isNormal ? "bg-[#22C55E]" : "bg-[#F97316]"}`}
                 style={{ height: `${Math.max(height, 10)}%` }}

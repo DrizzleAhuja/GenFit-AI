@@ -227,6 +227,20 @@ export function computeBmiFromForm(formData) {
   };
 }
 
+/** Round BMI to one decimal (display + storage). */
+export function roundBmiOneDecimal(bmiNum) {
+  const n = Number(bmiNum);
+  if (!Number.isFinite(n)) return NaN;
+  return Math.round(n * 10) / 10;
+}
+
+/** String with exactly one digit after the decimal point (e.g. "24.3"). */
+export function formatBmiOneDecimal(bmiNum) {
+  const r = roundBmiOneDecimal(bmiNum);
+  if (!Number.isFinite(r)) return "—";
+  return r.toFixed(1);
+}
+
 export function bmiCategoryFromValue(bmiNum) {
   if (bmiNum < 18.5) return "Underweight";
   if (bmiNum < 24.9) return "Normal weight";

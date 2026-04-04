@@ -8,6 +8,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FaUtensils, FaChartLine, FaExclamationTriangle } from "react-icons/fa";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
+import { formatBmiOneDecimal } from "../BMICalculator/bmiFormValidation";
 import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
 import { useTheme } from '../../context/ThemeContext';
@@ -63,7 +64,10 @@ export default function DietChartGenerator() {
           if (res.data.length > 0) {
             const latestBmi = res.data[0];
             setBmiData(latestBmi);
-            setBmiResult({ bmi: latestBmi.bmi, category: latestBmi.category });
+            setBmiResult({
+              bmi: formatBmiOneDecimal(latestBmi.bmi),
+              category: latestBmi.category,
+            });
           }
         } catch (error) {
           console.error("Error fetching BMI data:", error);
@@ -549,7 +553,7 @@ export default function DietChartGenerator() {
                 <div className="p-5 sm:p-6 space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     {[
-                      { label: "BMI", value: bmiData.bmi, color: "text-orange-400" },
+                      { label: "BMI", value: formatBmiOneDecimal(bmiData.bmi), color: "text-orange-400" },
                       { label: "Category", value: bmiResult.category, color: "text-pink-400" },
                       { label: "Weight", value: `${bmiData.weight}kg`, color: "text-blue-400" },
                       { label: "Height", value: `${bmiData.heightFeet}'${bmiData.heightInches}"`, color: "text-purple-400" },

@@ -22,6 +22,8 @@ import {
   cmToFtIn,
   kgToLb,
   lbToKg,
+  roundBmiOneDecimal,
+  formatBmiOneDecimal,
 } from "./bmiFormValidation";
 
 export default function BMICalculator() {
@@ -125,12 +127,13 @@ export default function BMICalculator() {
 
     const { weightKg, heightFeet: hf, heightInches: hi, bmiNum } =
       computeBmiFromForm(form);
-    const calculatedBMI = bmiNum.toFixed(2);
-    const bmiCategory = bmiCategoryFromValue(bmiNum);
+    const bmiRounded = roundBmiOneDecimal(bmiNum);
+    const calculatedBMI = formatBmiOneDecimal(bmiNum);
+    const bmiCategory = bmiCategoryFromValue(bmiRounded);
 
     setBmi(calculatedBMI);
     setCategory(bmiCategory);
-    saveBMI(calculatedBMI, bmiCategory, hf, hi, weightKg, bmiNum);
+    saveBMI(calculatedBMI, bmiCategory, hf, hi, weightKg, bmiRounded);
   };
 
   const saveBMI = async (
@@ -139,7 +142,7 @@ export default function BMICalculator() {
     apiFeet,
     apiInches,
     weightKg,
-    bmiNum
+    bmiRounded
   ) => {
     try {
       await axios.post(`${API_BASE_URL}${API_ENDPOINTS.BMI}/save`, {
@@ -150,7 +153,7 @@ export default function BMICalculator() {
         age: parseInt(age, 10),
         diseases: [],
         allergies: [],
-        bmi: bmiNum,
+        bmi: bmiRounded,
         category: bmiCategory,
       });
       toast.success("BMI saved successfully");
@@ -443,7 +446,7 @@ export default function BMICalculator() {
                             entry.bmi
                           )}`}
                         >
-                          {entry.bmi}
+                          {formatBmiOneDecimal(entry.bmi)}
                         </span>
                         <span className="text-sm text-gray-400 ml-2">
                           ({entry.category})
