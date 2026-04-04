@@ -1679,6 +1679,31 @@ const WorkoutPlanGenerator = () => {
                       </div>
                     </div>
 
+                    {/* Accessibility Options - Deep Niche */}
+                    <div className="form-group">
+                      <label className="form-label">♿ Special Accessibility (Deep Niche)</label>
+                      <div className="button-grid cols-2">
+                        <button
+                          type="button"
+                          className={`option-button ${formData.isSenior ? "selected" : ""}`}
+                          onClick={() => setFormData({ ...formData, isSenior: !formData.isSenior })}
+                        >
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            {formData.isSenior ? <FiCheckCircle color="#22D3EE" /> : null} Senior Citizen
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`option-button ${formData.isWheelchairBound ? "selected" : ""}`}
+                          onClick={() => setFormData({ ...formData, isWheelchairBound: !formData.isWheelchairBound })}
+                        >
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            {formData.isWheelchairBound ? <FiCheckCircle color="#22D3EE" /> : null} Wheelchair Bound
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+
                     {/* Suggested Duration */}
                     {formData.goal && formData.currentWeight && (formData.goal === "build_muscles" || formData.targetWeight) && (
                       <div className="duration-display">
