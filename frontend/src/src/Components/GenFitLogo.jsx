@@ -4,9 +4,9 @@ import genfitLogo from "../assets/genfitlogo-removebg-preview.png";
 
 export default function GenFitLogo({ className = "", showText = false, size = "default" }) {
   const sizeClasses = {
-    small: "h-11 sm:h-13",
-    default: "h-16 sm:h-20",
-    large: "h-28 sm:h-36"
+    small: "h-8 sm:h-10",
+    default: "h-10 sm:h-12",
+    large: "h-16 sm:h-20"
   }
 
   const logoHeight = sizeClasses[size] || sizeClasses.default;
@@ -18,8 +18,8 @@ export default function GenFitLogo({ className = "", showText = false, size = "d
     >
       <div className="relative flex items-center justify-center">
         {/* Luminous Branding Aura (Fixed visibility) */}
-        <div className="absolute inset-x-0 h-8 w-full bg-[#8B5CF6]/30 blur-2xl opacity-50 transition-opacity duration-700 rounded-full scale-125" />
-        <div className="absolute inset-y-0 w-8 h-full bg-[#22D3EE]/25 blur-xl opacity-40 transition-opacity duration-700 rounded-full scale-125" />
+        <div className="absolute inset-x-0 h-10 w-full bg-[#8B5CF6]/30 blur-2xl opacity-50 transition-opacity duration-700 rounded-full scale-125" />
+        <div className="absolute inset-y-0 w-10 h-full bg-[#22D3EE]/25 blur-xl opacity-40 transition-opacity duration-700 rounded-full scale-125" />
         
         <img 
           src={genfitLogo} 

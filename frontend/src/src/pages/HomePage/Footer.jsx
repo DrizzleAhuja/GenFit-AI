@@ -354,11 +354,11 @@ export default function Footer() {
         </div>
 
         <div className={`border-t mt-6 pt-4 ${darkMode ? 'border-gray-700' : 'border-gray-300'}`}>
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className={`text-sm mb-4 md:mb-0 ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <p className={`text-sm text-center sm:text-left ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>
               &copy; {new Date().getFullYear()} GenFit AI. All rights reserved.
             </p>
-            <div className="flex space-x-6">
+            <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
               <a href="#" className={`text-sm ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-700 hover:text-gray-900'} transition-colors`}>
                 Privacy Policy
               </a>

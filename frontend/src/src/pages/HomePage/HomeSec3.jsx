@@ -1,125 +1,127 @@
 import React from 'react';
+import { motion } from 'framer-motion';
+import { ShieldCheck, BarChart3, Database, Workflow, Clock, ArrowRight, Brain } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Brain, TrendingUp, Users, ArrowRight, Sparkles, CheckCircle } from 'lucide-react';
-import { useTheme } from '../../context/ThemeContext';
-
-const steps = [
-  {
-    icon: <Brain className="w-8 h-8 sm:w-10 sm:h-10" />,
-    title: "Personalized AI Assessment",
-    description:
-      "GenFit AI learns your goals, schedule, and training history to build a plan that actually fits your real life.",
-    gradient: "from-[#8B5CF6] to-[#22D3EE]",
-    bgGradient: "from-[#8B5CF6]/10 to-[#22D3EE]/10",
-  },
-  {
-    icon: <TrendingUp className="w-8 h-8 sm:w-10 sm:h-10" />,
-    title: "Train, Track & Adapt",
-    description:
-      "Every workout, meal, and habit updates your plan in real time with simple visuals that show if you're on track.",
-    gradient: "from-[#22D3EE] to-[#0EA5E9]",
-    bgGradient: "from-[#22D3EE]/10 to-[#0EA5E9]/10",
-  },
-  {
-    icon: <Users className="w-8 h-8 sm:w-10 sm:h-10" />,
-    title: "Stay Consistent, Hit Goals",
-    description:
-      "Gamified streaks, leaderboards, and gentle nudges keep you coming back until results feel automatic.",
-    gradient: "from-[#8B5CF6] to-[#A855F7]",
-    bgGradient: "from-[#8B5CF6]/10 to-[#A855F7]/10",
-  },
-];
 
 const HomeSec3 = () => {
-  const { darkMode } = useTheme();
+  const features = [
+    {
+      title: "Verified Routines Only",
+      desc: "Every exercise and plan is vetted against sports science literature. No clickbait routines — only programmes that actually work.",
+      icon: <ShieldCheck className="text-emerald-400" size={24} />
+    },
+    {
+      title: "Aligned with Fit India",
+      desc: "Our platform is aligned with India's Fit India Movement, helping you meet ICMR-recommended weekly activity guidelines.",
+      icon: <Workflow className="text-[#22D3EE]" size={24} />
+    },
+    {
+      title: "Real-Time AI Coaching",
+      desc: "MoveNet tracks 17 key body points at up to 30 FPS. Get instant posture feedback mid-rep — no expensive trainer required.",
+      icon: <Brain className="text-[#FACC15]" size={24} />
+    },
+    {
+      title: "Live Form Analytics",
+      desc: "See joint angle data, rep count, and form score after every set — so you can correct and improve on the next rep.",
+      icon: <BarChart3 className="text-[#22D3EE]" size={24} />
+    },
+    {
+      title: "50+ Exercise Library",
+      desc: "Browse a curated library of exercises by muscle group, equipment, and difficulty. Add any movement to your plan in one tap.",
+      icon: <Database className="text-violet-400" size={24} />
+    },
+    {
+      title: "Adaptive AI Plans",
+      desc: "Your plan evolves with you. The AI recalibrates weights, reps, and rest days based on real performance data — not guesswork.",
+      icon: <Clock className="text-rose-400" size={24} />
+    }
+  ];
 
   return (
-    <section
-      className={`relative overflow-hidden py-6 sm:py-8 lg:py-10 ${
-        darkMode ? 'bg-[#05010d]' : 'bg-[#020617]'
-      }`}
-      style={{ marginTop: 0 }}
-    >
-      {/* Background blobs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-20 w-64 h-64 bg-[#8B5CF6] rounded-full blur-3xl opacity-20" />
-        <div className="absolute top-1/3 -right-20 w-64 h-64 bg-[#22D3EE] rounded-full blur-3xl opacity-20" />
-        <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-64 h-64 bg-[#A855F7] rounded-full blur-3xl opacity-20" />
-      </div>
+    <section className="bg-[#05010d] py-24 relative">
+      <div className="container mx-auto px-4 max-w-7xl">
 
-      <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-        {/* Section Header */}
-        <div className="text-center mb-10 sm:mb-14 lg:mb-16">
-          <div className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-gradient-to-r from-[#8B5CF6]/20 to-[#22D3EE]/20 border border-[#8B5CF6]/40 backdrop-blur-xl mb-4">
-            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#FACC15]" />
-            <span className="text-xs sm:text-sm font-semibold text-gray-100">
-              From onboarding to daily execution
-            </span>
+        <div className="text-center mb-20">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-6">
+            <span className="text-[10px] font-bold text-[#22D3EE] uppercase tracking-widest">Platform Features · 2026</span>
           </div>
-
-          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 sm:mb-6 text-white">
-            How{" "}
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]">
-              GenFit AI
-            </span>{" "}
-            works for you
+          <h2 className="text-4xl md:text-6xl font-black text-white mb-6">
+            Built for serious results
           </h2>
-          
-          <p className="text-base sm:text-lg md:text-xl max-w-3xl mx-auto text-gray-300">
-            GenFit AI turns your goals into a simple, repeatable weekly rhythm—so you always know what to do today and why it matters.
+          <p className="text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
+            Every feature on GenFit AI exists for one reason: to help you train better, recover smarter, and stay consistent.
           </p>
         </div>
 
-        {/* Steps Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 lg:gap-10 relative mb-10 sm:mb-14">
-          {steps.map((step, index) => (
-            <article
-              key={index}
-              className="relative h-full rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-6 sm:p-8 flex flex-col shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60"
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-24">
+          {features.map((f, i) => (
+            <motion.div
+              key={i}
+              className="p-8 rounded-3xl bg-[#020617] border border-white/5 hover:border-[#22D3EE]/40 transition-all group relative overflow-hidden"
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.08 }}
             >
-              <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
-              
-              {/* Icon Container */}
-              <div className="relative inline-flex items-center justify-center mb-6 sm:mb-8">
-                <div className={`relative bg-gradient-to-br ${step.bgGradient} backdrop-blur-xl rounded-2xl p-4 sm:p-5`}>
-                  <div className={`bg-gradient-to-br ${step.gradient} bg-clip-text text-transparent`}>
-                    {step.icon}
-                  </div>
-                </div>
+              <div className="absolute inset-0 bg-gradient-to-br from-[#22D3EE]/0 to-transparent group-hover:from-[#22D3EE]/5 transition-all duration-500 rounded-3xl" />
+              <div className="mb-6 p-4 rounded-2xl bg-white/5 inline-block group-hover:bg-[#22D3EE]/10 transition-colors">
+                {f.icon}
               </div>
-
-              {/* Content */}
-              <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">
-                {step.title}
+              <h3 className="text-xl font-black text-white mb-3 tracking-tight">
+                {f.title}
               </h3>
-
-              <p className="text-sm sm:text-base leading-relaxed text-gray-300 flex-1">
-                {step.description}
+              <p className="text-gray-400 text-sm leading-relaxed">
+                {f.desc}
               </p>
-            </article>
+            </motion.div>
           ))}
         </div>
 
-        {/* Bottom CTA */}
-        <div className="text-center">
-          <div className="inline-flex flex-col sm:flex-row items-center gap-3 sm:gap-4 p-6 sm:p-8 rounded-2xl border border-[#22D3EE]/40 bg-gradient-to-r from-[#020617]/90 via-[#05010d]/90 to-[#020617]/90 backdrop-blur-xl">
-            <div className="text-center sm:text-left">
-              <h3 className="text-xl sm:text-2xl font-bold mb-2 text-white">
-                Ready to start your journey?
-              </h3>
-              <p className="text-sm sm:text-base text-gray-300">
-                Join thousands of users already training with GenFit AI.
-              </p>
-            </div>
+        {/* 4-Step Onboarding */}
+        <div className="border-t border-white/10 pt-24">
+          <div className="mb-16 text-center lg:text-left">
+            <h3 className="text-3xl md:text-4xl font-black text-white mb-4">From sign-up to first session</h3>
+            <p className="text-gray-500 max-w-xl">No complex onboarding. No hidden steps. Just a clean path to your first AI-coached workout.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[
+              { step: "01", title: "Create Account", desc: "Sign up with Google in seconds. Your profile is auto-populated from Google Fit if you choose." },
+              { step: "02", title: "AI Assessment", desc: "Enter your BMI, goals, and weekly availability. Our AI builds a structured base plan instantly." },
+              { step: "03", title: "Customise Your Plan", desc: "Accept the generated plan or tweak exercises, frequency, and targets to match your lifestyle." },
+              { step: "04", title: "Start Training", desc: "Open the Virtual Training Assistant and begin your first real-time AI-coached session today." }
+            ].map((s, i) => (
+              <motion.div
+                key={i}
+                className="relative p-6 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-[#22D3EE]/20 transition-all"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+              >
+                <div className="text-6xl font-black text-white/5 absolute -top-4 -right-2 select-none">{s.step}</div>
+                <div className="relative z-10">
+                  <div className="w-8 h-8 rounded-full bg-[#22D3EE]/10 border border-[#22D3EE]/20 flex items-center justify-center mb-4">
+                    <span className="text-xs font-black text-[#22D3EE]">{s.step}</span>
+                  </div>
+                  <h4 className="text-lg font-bold text-white mb-2">{s.title}</h4>
+                  <p className="text-sm text-gray-500 leading-relaxed">{s.desc}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="mt-20 flex justify-center">
             <Link
               to="/signup"
-              className="group px-6 sm:px-8 py-3 sm:py-4 rounded-full font-bold text-white bg-gradient-to-r from-[#22D3EE] via-[#0EA5E9] to-[#8B5CF6] hover:opacity-95 shadow-lg hover:shadow-xl flex items-center gap-2 whitespace-nowrap"
+              className="px-10 py-5 rounded-full bg-[#22D3EE] text-[#05010d] font-black text-lg hover:scale-105 transition-transform flex items-center gap-3 shadow-[0_20px_50px_rgba(34,211,238,0.25)]"
             >
-              Get Started Free
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              START FOR FREE TODAY
+              <ArrowRight size={22} />
             </Link>
           </div>
         </div>
+
       </div>
     </section>
   );

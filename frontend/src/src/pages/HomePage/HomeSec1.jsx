@@ -1,107 +1,123 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, ArrowRight, Zap, Trophy, TrendingUp, Brain, Activity } from 'lucide-react';
-import { useTheme } from '../../context/ThemeContext';
+import { Sparkles, ArrowRight, Zap, Target, Shield, Globe } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
+import GenFitLogo from '../../Components/GenFitLogo';
 
-const HomeSec1 = () => {
-  const { darkMode } = useTheme();
-
+const HomeSec1 = ({ onLoginSuccess, onLoginError }) => {
   return (
-    <section className={`relative overflow-hidden py-6 sm:py-8 lg:py-10 ${
-      darkMode ? 'bg-[#05010d]' : 'bg-[#020617]'
-    }`}>
-      {/* Background blobs */}
+    <section className="relative overflow-hidden bg-[#05010d] pt-20 pb-16 md:pt-32 md:pb-24">
+      {/* Background blobs for premium feel */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-24 -left-16 w-96 h-96 bg-[#8B5CF6] rounded-full blur-3xl opacity-30" />
-        <div className="absolute -bottom-28 right-0 w-96 h-96 bg-[#22D3EE] rounded-full blur-3xl opacity-25" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-[#A855F7] rounded-full blur-3xl opacity-20" />
+        <motion.div 
+          className="absolute -top-40 -left-20 w-[600px] h-[600px] bg-[#22D3EE] rounded-full blur-[140px] opacity-10"
+          animate={{ scale: [1, 1.1, 1], x: [0, 30, 0], y: [0, 20, 0] }}
+          transition={{ repeat: Infinity, duration: 10, ease: "easeInOut" }}
+        />
+        <motion.div 
+          className="absolute top-40 right-0 w-[500px] h-[500px] bg-[#22D3EE] rounded-full blur-[140px] opacity-15"
+          animate={{ scale: [1, 1.05, 1], x: [0, -20, 0], y: [0, -30, 0] }}
+          transition={{ repeat: Infinity, duration: 12, ease: "easeInOut" }}
+        />
       </div>
 
-      <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-        <div className="text-left max-w-5xl">
-            {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-gradient-to-r from-[#8B5CF6]/20 to-[#22D3EE]/20 border border-[#8B5CF6]/40 backdrop-blur-xl mb-4 sm:mb-6">
-            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#FACC15]" />
-            <span className="text-xs sm:text-sm font-semibold text-gray-100">
-              AI-Powered Fitness Revolution
-            </span>
-          </div>
-
-          {/* Main Heading */}
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold mb-3 sm:mb-4 leading-tight text-white">
-            Transform your training with{" "}
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]">
-              intelligent, real-time AI coaching
-            </span>
-          </h1>
-
-          {/* Subtitle */}
-          <p className="text-base sm:text-lg md:text-xl lg:text-2xl mb-6 sm:mb-8 max-w-3xl leading-relaxed text-gray-300">
-            GenFit AI watches your movements, tracks your progress, and adapts every workout so you can{" "}
-            <span className="font-bold text-[#22D3EE]">train smarter, recover better,</span>
-            {" "}and stay consistent—like having a 24/7 elite coach in your pocket.
-          </p>
-
-          {/* Feature Pills */}
-          <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4 mb-6 sm:mb-8">
-            <div className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-[#020617]/80 backdrop-blur-xl border border-[#1F2937]">
-              <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-[#FACC15]" />
-              <span className="text-xs sm:text-sm font-medium text-gray-200">Smart Workouts</span>
+      <div className="relative z-10 container mx-auto px-4 max-w-7xl">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          
+          {/* Left Column: Text & CTA */}
+          <motion.div 
+            className="lg:col-span-7 text-center lg:text-left"
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            {/* Feature Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-[#22D3EE]/10 to-[#3B82F6]/10 border border-[#22D3EE]/30 backdrop-blur-xl mb-6">
+              <Sparkles className="w-4 h-4 text-[#FACC15]" />
+              <span className="text-sm font-semibold text-gray-200">India's #1 AI Fitness Platform · 2026</span>
             </div>
-            <div className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-[#020617]/80 backdrop-blur-xl border border-[#1F2937]">
-              <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-[#22D3EE]" />
-              <span className="text-xs sm:text-sm font-medium text-gray-200">Goal Tracking</span>
-            </div>
-            <div className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-[#020617]/80 backdrop-blur-xl border border-[#1F2937]">
-              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-[#8B5CF6]" />
-              <span className="text-xs sm:text-sm font-medium text-gray-200">Progress Insights</span>
-            </div>
-          </div>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 md:gap-6">
-            <Link
-              to="/signup"
-              className="group relative w-full sm:w-auto overflow-hidden flex items-center justify-center px-6 sm:px-8 md:px-10 py-3 sm:py-4 rounded-full text-base sm:text-lg font-bold shadow-2xl bg-gradient-to-r from-[#22D3EE] via-[#0EA5E9] to-[#8B5CF6] hover:shadow-cyan-500/50 text-white"
-            >
-              <span className="relative z-10 flex items-center">
-                Get Started Free
-                <ArrowRight className="ml-2 h-5 w-5 sm:h-6 sm:w-6" />
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black mb-6 leading-[1.1] tracking-tight text-white">
+              Train Smarter. <br />
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#22D3EE] via-[#3B82F6] to-[#10B981]">
+                Live Better.
               </span>
-            </Link>
-            
-            <Link
-              to="/features"
-              className="group w-full sm:w-auto flex items-center justify-center px-6 sm:px-8 md:px-10 py-3 sm:py-4 rounded-full text-base sm:text-lg font-semibold backdrop-blur-xl border-2 border-[#8B5CF6]/60 text-white hover:bg-[#8B5CF6]/10 hover:border-[#8B5CF6] shadow-lg"
-            >
-              Explore Features
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
-          </div>
+            </h1>
 
-          {/* Social Proof */}
-          <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8 text-gray-300">
-            <div className="flex items-center gap-2">
-              <div className="flex -space-x-2">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-[#020617] bg-gradient-to-br from-[#8B5CF6] to-[#22D3EE] flex items-center justify-center text-white text-xs font-bold">
-                    {String.fromCharCode(64 + i)}
+            <p className="text-lg md:text-xl mb-4 max-w-2xl mx-auto lg:mx-0 leading-relaxed text-gray-300">
+              GenFit AI is a full-stack health platform powered by real-time computer vision, agentic AI coaching, and verified sports science — built for India and the world.
+            </p>
+            <p className="text-base mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed text-gray-500">
+              From posture correction to personalised diet plans, our platform covers your entire fitness journey in one place — completely free to start.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-10 items-center">
+              <div className="relative group">
+                <GoogleOAuthProvider clientId="702465560392-1mu8j4kqafadep516m62oa5vf5klt7pu.apps.googleusercontent.com">
+                  <GoogleLogin
+                    onSuccess={onLoginSuccess}
+                    onError={onLoginError}
+                    theme="filled_blue"
+                    shape="pill"
+                    size="large"
+                    text="signup_with"
+                    width="240px"
+                  />
+                </GoogleOAuthProvider>
+              </div>
+              <Link
+                to="/AboutUs"
+                className="px-8 py-2.5 rounded-full font-bold text-white border border-white/20 backdrop-blur-md hover:bg-white/5 transition-colors text-sm h-[44px] flex items-center"
+              >
+                Learn More
+              </Link>
+            </div>
+
+            {/* Alignment Badges */}
+            <div className="pt-8 border-t border-white/10">
+              <p className="text-xs uppercase tracking-widest text-gray-500 mb-4 font-bold">Aligned with</p>
+              <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
+                {[
+                  { icon: Target, label: "Fit India Movement" },
+                  { icon: Shield, label: "ICMR Guidelines" },
+                  { icon: Globe, label: "WHO Health GAP 2026" },
+                  { icon: Zap, label: "MoveNet by Google" }
+                ].map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:border-[#22D3EE]/30 transition-all">
+                    <item.icon className="w-3.5 h-3.5 text-[#22D3EE]" />
+                    <span className="text-[10px] font-bold text-white uppercase tracking-wide">{item.label}</span>
                   </div>
                 ))}
               </div>
-              <span className="text-sm sm:text-base font-medium">
-                <span className="font-bold text-[#22D3EE]">10,000+</span> active users
-              </span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="flex">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <span key={i} className="text-lg sm:text-xl text-[#FACC15]">★</span>
-                ))}
+          </motion.div>
+
+          {/* Right Column: Visual Element */}
+          <motion.div 
+            className="lg:col-span-5 hidden lg:block"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1 }}
+          >
+            <div className="relative flex items-center justify-center" style={{minHeight: '380px'}}>
+              {/* Glowing aura behind logo */}
+              <div className="absolute w-72 h-72 bg-[#22D3EE] rounded-full blur-[120px] opacity-10 animate-pulse" />
+              <div className="absolute w-48 h-48 bg-[#3B82F6] rounded-full blur-[80px] opacity-10 animate-pulse" style={{animationDelay:'1s'}} />
+              {/* Spinning dashed ring */}
+              <div className="absolute w-64 h-64 rounded-full border-2 border-dashed border-[#22D3EE]/20 animate-spin" style={{animationDuration:'18s'}} />
+              <div className="absolute w-80 h-80 rounded-full border border-[#3B82F6]/10 animate-spin" style={{animationDuration:'28s', animationDirection:'reverse'}} />
+              {/* The Logo */}
+              <div className="relative z-10 flex flex-col items-center gap-4">
+                <GenFitLogo size="large" />
+                <div className="text-center">
+                  <div className="text-xs font-bold text-[#22D3EE] uppercase tracking-[0.3em] mt-2">GenFit AI</div>
+                  <div className="text-[10px] text-gray-500 tracking-widest uppercase mt-1">Autonomous Fitness Engine</div>
+                </div>
               </div>
-              <span className="text-sm sm:text-base font-medium">4.9/5 rating</span>
             </div>
-          </div>
+          </motion.div>
+
         </div>
       </div>
     </section>
