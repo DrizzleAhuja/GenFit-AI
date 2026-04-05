@@ -33,14 +33,14 @@ const HomeSec1 = ({ onLoginSuccess, onLoginError }) => {
             transition={{ duration: 0.8 }}
           >
             {/* Feature Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-[#22D3EE]/10 to-[#3B82F6]/10 border border-[#22D3EE]/30 backdrop-blur-xl mb-6">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#020617]/80 border border-[#1F2937] backdrop-blur-xl mb-6 shadow-lg">
               <Sparkles className="w-4 h-4 text-[#FACC15]" />
               <span className="text-sm font-semibold text-gray-200">India's #1 AI Fitness Platform · 2026</span>
             </div>
 
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black mb-6 leading-[1.1] tracking-tight text-white">
               Train Smarter. <br />
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#22D3EE] via-[#3B82F6] to-[#10B981]">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]">
                 Live Better.
               </span>
             </h1>
@@ -68,14 +68,14 @@ const HomeSec1 = ({ onLoginSuccess, onLoginError }) => {
               </div>
               <Link
                 to="/AboutUs"
-                className="px-8 py-2.5 rounded-full font-bold text-white border border-white/20 backdrop-blur-md hover:bg-white/5 transition-colors text-sm h-[44px] flex items-center"
+                className="px-8 py-3 rounded-full font-bold text-white bg-gradient-to-r from-[#22D3EE] via-[#0EA5E9] to-[#8B5CF6] hover:opacity-95 transition-all duration-300 shadow-lg hover:shadow-[#22D3EE]/40 flex items-center justify-center min-w-[160px]"
               >
                 Learn More
               </Link>
             </div>
 
             {/* Alignment Badges */}
-            <div className="pt-8 border-t border-white/10">
+            <div className="pt-8 border-t border-[#1F2937]">
               <p className="text-xs uppercase tracking-widest text-gray-500 mb-4 font-bold">Aligned with</p>
               <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
                 {[
@@ -84,9 +84,9 @@ const HomeSec1 = ({ onLoginSuccess, onLoginError }) => {
                   { icon: Globe, label: "WHO Health GAP 2026" },
                   { icon: Zap, label: "MoveNet by Google" }
                 ].map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:border-[#22D3EE]/30 transition-all">
+                  <div key={idx} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#020617] border border-[#1F2937] hover:border-[#22D3EE]/60 transition-all">
                     <item.icon className="w-3.5 h-3.5 text-[#22D3EE]" />
-                    <span className="text-[10px] font-bold text-white uppercase tracking-wide">{item.label}</span>
+                    <span className="text-[10px] font-bold text-gray-300 uppercase tracking-wide">{item.label}</span>
                   </div>
                 ))}
               </div>

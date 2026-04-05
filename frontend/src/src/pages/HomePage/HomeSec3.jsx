@@ -53,24 +53,24 @@ const HomeSec3 = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-24">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 mb-24">
           {features.map((f, i) => (
             <motion.div
               key={i}
-              className="p-8 rounded-3xl bg-[#020617] border border-white/5 hover:border-[#22D3EE]/40 transition-all group relative overflow-hidden"
+              className="relative h-full p-6 sm:p-8 rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl flex flex-col shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 transition-transform duration-300 hover:-translate-y-1.5 group"
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.08 }}
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-[#22D3EE]/0 to-transparent group-hover:from-[#22D3EE]/5 transition-all duration-500 rounded-3xl" />
-              <div className="mb-6 p-4 rounded-2xl bg-white/5 inline-block group-hover:bg-[#22D3EE]/10 transition-colors">
+              <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
+              <div className="mb-6 flex items-center justify-center w-12 h-12 rounded-xl bg-[#020617] border border-[#1F2937] group-hover:border-[#22D3EE]/40 transition-colors">
                 {f.icon}
               </div>
-              <h3 className="text-xl font-black text-white mb-3 tracking-tight">
+              <h3 className="text-xl font-bold text-white mb-3 tracking-tight">
                 {f.title}
               </h3>
-              <p className="text-gray-400 text-sm leading-relaxed">
+              <p className="text-gray-400 text-sm leading-relaxed flex-1">
                 {f.desc}
               </p>
             </motion.div>
@@ -84,7 +84,7 @@ const HomeSec3 = () => {
             <p className="text-gray-500 max-w-xl">No complex onboarding. No hidden steps. Just a clean path to your first AI-coached workout.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
             {[
               { step: "01", title: "Create Account", desc: "Sign up with Google in seconds. Your profile is auto-populated from Google Fit if you choose." },
               { step: "02", title: "AI Assessment", desc: "Enter your BMI, goals, and weekly availability. Our AI builds a structured base plan instantly." },
@@ -93,19 +93,20 @@ const HomeSec3 = () => {
             ].map((s, i) => (
               <motion.div
                 key={i}
-                className="relative p-6 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-[#22D3EE]/20 transition-all"
+                className="relative h-full p-6 rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl flex flex-col shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 transition-transform duration-300 hover:-translate-y-1.5 overflow-hidden"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
               >
-                <div className="text-6xl font-black text-white/5 absolute -top-4 -right-2 select-none">{s.step}</div>
-                <div className="relative z-10">
-                  <div className="w-8 h-8 rounded-full bg-[#22D3EE]/10 border border-[#22D3EE]/20 flex items-center justify-center mb-4">
-                    <span className="text-xs font-black text-[#22D3EE]">{s.step}</span>
+                <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
+                <div className="text-7xl font-black text-white/[0.03] absolute -top-4 -right-2 select-none z-0">{s.step}</div>
+                <div className="relative z-10 flex-1 flex flex-col">
+                  <div className="w-10 h-10 rounded-xl bg-[#020617] border border-[#1F2937] flex items-center justify-center mb-4">
+                    <span className="text-xs font-bold text-[#22D3EE]">{s.step}</span>
                   </div>
                   <h4 className="text-lg font-bold text-white mb-2">{s.title}</h4>
-                  <p className="text-sm text-gray-500 leading-relaxed">{s.desc}</p>
+                  <p className="text-sm text-gray-400 leading-relaxed flex-1">{s.desc}</p>
                 </div>
               </motion.div>
             ))}
@@ -114,10 +115,10 @@ const HomeSec3 = () => {
           <div className="mt-20 flex justify-center">
             <Link
               to="/signup"
-              className="px-10 py-5 rounded-full bg-[#22D3EE] text-[#05010d] font-black text-lg hover:scale-105 transition-transform flex items-center gap-3 shadow-[0_20px_50px_rgba(34,211,238,0.25)]"
+              className="px-8 py-4 rounded-full text-base font-semibold text-white bg-gradient-to-r from-[#22D3EE] via-[#0EA5E9] to-[#8B5CF6] hover:opacity-95 transition-all duration-300 shadow-lg hover:shadow-[#22D3EE]/40 inline-flex items-center gap-3"
             >
               START FOR FREE TODAY
-              <ArrowRight size={22} />
+              <ArrowRight size={20} />
             </Link>
           </div>
         </div>

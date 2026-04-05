@@ -61,18 +61,18 @@ const HomeSec2 = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
           {stats.map((item, idx) => (
             <motion.div
               key={idx}
-              className="p-8 rounded-3xl bg-white/[0.02] border border-white/10 hover:border-[#22D3EE]/40 transition-all group relative overflow-hidden"
+              className="relative h-full p-6 sm:p-8 rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl flex flex-col shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 transition-transform duration-300 hover:-translate-y-1.5 group"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: idx * 0.1 }}
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-[#22D3EE]/0 to-[#22D3EE]/0 group-hover:from-[#22D3EE]/5 group-hover:to-transparent transition-all duration-500 rounded-3xl" />
-              <div className="mb-4 p-3 rounded-2xl bg-white/5 inline-block group-hover:bg-white/10 transition-colors">
+              <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
+              <div className="mb-4 flex items-center justify-center w-12 h-12 rounded-xl bg-[#020617] border border-[#1F2937] group-hover:border-[#22D3EE]/40 transition-colors">
                 {item.icon}
               </div>
               <div className="text-3xl font-black text-white mb-2 group-hover:text-[#22D3EE] transition-colors">
@@ -81,10 +81,10 @@ const HomeSec2 = () => {
               <div className="text-base font-bold text-gray-200 mb-2 uppercase tracking-tight">
                 {item.label}
               </div>
-              <div className="text-sm text-gray-400 mb-4 leading-relaxed">
+              <div className="text-sm text-gray-400 mb-4 flex-1 leading-relaxed">
                 {item.subValue}
               </div>
-              <div className="text-[10px] text-gray-600 font-bold uppercase tracking-widest pt-4 border-t border-white/5">
+              <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest pt-4 border-t border-[#1F2937]">
                 {item.source}
               </div>
             </motion.div>
