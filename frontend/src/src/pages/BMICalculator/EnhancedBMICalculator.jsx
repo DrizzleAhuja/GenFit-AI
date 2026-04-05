@@ -135,11 +135,10 @@ export default function EnhancedBMICalculator() {
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (
-        !event.target.closest(".disease-dropdown") &&
-        !event.target.closest(".allergy-dropdown")
-      ) {
+      if (!event.target.closest(".disease-dropdown")) {
         setShowDiseaseDropdown(false);
+      }
+      if (!event.target.closest(".allergy-dropdown")) {
         setShowAllergyDropdown(false);
       }
     };
