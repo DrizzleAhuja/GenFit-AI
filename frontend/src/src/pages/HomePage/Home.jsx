@@ -3,6 +3,7 @@ import NavBar from "./NavBar";
 import HomeSec1 from "./HomeSec1";
 import HomeSec2 from "./HomeSec2";
 import HomeSec3 from "./HomeSec3";
+import HomeSec4 from "./HomeSec4";
 import Footer from "./Footer";
 import axios from "axios";
 import { useSelector, useDispatch } from "react-redux";
@@ -732,275 +733,13 @@ export default function Home() {
 
       {!user && (
         <main className="flex-grow">
-          {/* --- HERO SECTION --- */}
-          <section className="relative pt-20 pb-16 md:pt-28 md:pb-24 overflow-hidden">
-            {/* Ambient Background Glows */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              <motion.div 
-                className="absolute -top-40 -left-20 w-[600px] h-[600px] bg-[#8B5CF6] rounded-full blur-[140px] opacity-20"
-                animate={{ scale: [1, 1.1, 1], x: [0, 30, 0], y: [0, 20, 0] }}
-                transition={{ repeat: Infinity, duration: 10, ease: "easeInOut" }}
-              />
-              <motion.div 
-                className="absolute top-40 right-0 w-[500px] h-[500px] bg-[#22D3EE] rounded-full blur-[140px] opacity-15"
-                animate={{ scale: [1, 1.05, 1], x: [0, -20, 0], y: [0, -30, 0] }}
-                transition={{ repeat: Infinity, duration: 12, ease: "easeInOut" }}
-              />
-              <motion.div 
-                className="absolute -bottom-10 left-1/4 w-[450px] h-[450px] bg-[#D946EF] rounded-full blur-[160px] opacity-10"
-                animate={{ scale: [0.9, 1.1, 0.9], y: [0, 40, 0] }}
-                transition={{ repeat: Infinity, duration: 8, ease: "easeInOut" }}
-              />
-            </div>
-
-            <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-                
-                {/* Left Column: Text & CTA */}
-                <motion.div 
-                  className="lg:col-span-7 text-center lg:text-left"
-                  initial={{ opacity: 0, x: -50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.8, ease: "easeOut" }}
-                >
-                  {/* Feature Badge */}
-                  <motion.div 
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-[#8B5CF6]/10 to-[#22D3EE]/10 border border-[#8B5CF6]/30 backdrop-blur-xl mb-6 shadow-sm"
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3, duration: 0.5 }}
-                  >
-                    <Sparkles className="w-4 h-4 text-[#FACC15]" />
-                    <span className="text-xs sm:text-sm font-semibold text-gray-200">
-                      The Smartest Way To Train
-                    </span>
-                  </motion.div>
-
-                  {/* Main Heading */}
-                  <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-6 leading-[1.1] tracking-tight text-white">
-                    Next-Gen Fitness <br />
-                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]">
-                      Powered by AI
-                    </span>
-                  </h1>
-
-                  {/* Subheading with Type Animation */}
-                  <div className="text-base sm:text-lg md:text-xl lg:text-2xl mb-6 max-w-2xl mx-auto lg:mx-0 leading-relaxed text-gray-300 h-[60px] md:h-auto">
-                    <TypeAnimation
-                      sequence={[
-                        "GenFit AI watches your movements for perfect form.",
-                        2000,
-                        "We build adaptive workout routines daily.",
-                        2000,
-                        "Coordinate your diet and see results faster.",
-                        2000,
-                      ]}
-                      wrapper="span"
-                      speed={50}
-                      repeat={Infinity}
-                    />
-                  </div>
-
-                  <div className="mb-8 max-w-2xl mx-auto lg:mx-0 rounded-2xl border border-[#8B5CF6]/25 bg-[#020617]/70 backdrop-blur-sm p-4 sm:p-5 shadow-[0_8px_32px_rgba(15,23,42,0.6)]">
-                    <div className="flex items-center gap-2 mb-3">
-                      <ListOrdered className="w-4 h-4 text-[#FACC15] shrink-0" />
-                      <span className="text-xs font-bold uppercase tracking-[0.15em] text-[#22D3EE]">
-                        Start here after you sign in
-                      </span>
-                    </div>
-                    <ol className="text-sm text-gray-300 space-y-2.5 leading-snug list-none">
-                      <li className="flex gap-3">
-                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#8B5CF6]/30 text-xs font-bold text-white">
-                          1
-                        </span>
-                        <span>
-                          <strong className="text-white">BMI</strong> — one-time setup for targets, diet, and safer plans.
-                        </span>
-                      </li>
-                      <li className="flex gap-3">
-                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#8B5CF6]/30 text-xs font-bold text-white">
-                          2
-                        </span>
-                        <span>
-                          <strong className="text-white">Workouts</strong> — generate a plan and log sessions to track progress.
-                        </span>
-                      </li>
-                      <li className="flex gap-3">
-                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#8B5CF6]/30 text-xs font-bold text-white">
-                          3
-                        </span>
-                        <span>
-                          <strong className="text-white">Calorie tracker</strong> — log food and hydration alongside training.
-                        </span>
-                      </li>
-                    </ol>
-                  </div>
-
-                  {/* CTA Buttons */}
-                  <motion.div 
-                    className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start items-center"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6, duration: 0.5 }}
-                  >
-                    <div className="relative group">
-                      <GoogleOAuthProvider clientId="702465560392-1mu8j4kqafadep516m62oa5vf5klt7pu.apps.googleusercontent.com">
-                        <GoogleLogin
-                          onSuccess={handleLoginSuccess}
-                          onError={handleLoginError}
-                          theme="filled_blue"
-                          shape="pill"
-                          size="large"
-                          text="signup_with"
-                          width="240px"
-                        />
-                      </GoogleOAuthProvider>
-                    </div>
-                    
-                    <button
-                      onClick={() => navigate("/features")}
-                      className="flex items-center justify-center px-8 py-3 rounded-full font-semibold border border-white/10 bg-white/5 hover:bg-white/10 text-white backdrop-blur-sm shadow-md transition-all h-[44px]"
-                    >
-                      Features
-                    </button>
-                  </motion.div>
-
-                  {/* Trust / Stats */}
-                  <motion.div 
-                    className="mt-10 flex items-center justify-center lg:justify-start gap-8 border-t border-white/5 pt-8"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1, duration: 0.5 }}
-                  >
-                    <div>
-                      <div className="text-3xl font-extrabold text-white">10K+</div>
-                      <div className="text-xs text-gray-400">Active Users</div>
-                    </div>
-                    <div className="w-px h-10 bg-white/10" />
-                    <div>
-                      <div className="text-3xl font-extrabold text-white">4.9/5</div>
-                      <div className="text-xs text-gray-400">App Rating</div>
-                    </div>
-                    <div className="w-px h-10 bg-white/10" />
-                    <div>
-                      <div className="text-3xl font-extrabold text-white">94%</div>
-                      <div className="text-xs text-gray-400">Success Rate</div>
-                    </div>
-                  </motion.div>
-                </motion.div>
-
-                {/* Right Column: Visual Showcase with Motion */}
-                <motion.div 
-                  className="lg:col-span-5 relative hidden lg:block"
-                  initial={{ opacity: 0, scale: 0.95, x: 50 }}
-                  animate={{ opacity: 1, scale: 1, x: 0 }}
-                  transition={{ duration: 0.8, ease: "easeOut" }}
-                >
-                  <div className="relative rounded-2xl border border-white/10 bg-[#ffffff]/5 backdrop-blur-md p-8 shadow-2xl overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#8B5CF6]/10 to-[#22D3EE]/10 opacity-50" />
-                    
-                    {/* Floating Metric Card 1 */}
-                    <motion.div 
-                      className="absolute top-12 left-0 transform -translate-x-1/2 bg-[#0A0A14] border border-white/10 p-4 rounded-xl shadow-xl backdrop-blur-md flex items-center gap-3"
-                      animate={{ y: [0, -10, 0] }}
-                      transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                    >
-                      <div className="p-2 bg-[#FACC15]/20 rounded-lg"><FaTrophy className="text-[#FACC15]" /></div>
-                      <div><div className="text-xs text-gray-400">New Achievement</div><div className="text-sm font-bold text-white">30 Day Streak!</div></div>
-                    </motion.div>
-
-                    {/* Floating Metric Card 2 */}
-                    <motion.div 
-                      className="absolute bottom-20 right-0 transform translate-x-1/4 bg-[#0A0A14] border border-white/10 p-4 rounded-xl shadow-xl backdrop-blur-md flex items-center gap-3"
-                      animate={{ y: [0, 10, 0] }}
-                      transition={{ repeat: Infinity, duration: 4, delay: 1, ease: "easeInOut" }}
-                    >
-                      <div className="p-2 bg-[#22D3EE]/20 rounded-lg"><Target className="text-[#22D3EE]" /></div>
-                      <div><div className="text-xs text-gray-400">Current Pace</div><div className="text-sm font-bold text-white">142 bpm</div></div>
-                    </motion.div>
-
-                    {/* Inner Frame with mockup text */}
-                    <div className="relative h-[420px] rounded-lg border border-white/5 bg-[#03020A]/80 p-6 flex flex-col justify-center text-center">
-                      <motion.div 
-                        className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#22D3EE] flex items-center justify-center text-3xl mb-4 shadow-cyan-500/30 shadow-xl"
-                        animate={{ scale: [1, 1.05, 1] }}
-                        transition={{ repeat: Infinity, duration: 3 }}
-                      >
-                        🚀
-                      </motion.div>
-                      <h3 className="text-xl font-bold text-white mb-2">Build Your Routine</h3>
-                      <p className="text-sm text-gray-400 mb-6">Select your focus area and let AI do the heavy lifting.</p>
-                      <div className="space-y-3">
-                        <div className="w-full bg-white/5 h-10 rounded-lg border border-white/5 flex items-center px-4 text-sm text-gray-300">📈 Weight Loss</div>
-                        <div className="w-full bg-white/5 h-10 rounded-lg border border-white/5 flex items-center px-4 text-sm text-gray-300">💪 Muscle Gain</div>
-                        <div className="w-full bg-gradient-to-r from-[#22D3EE]/20 to-[#8B5CF6]/20 h-11 rounded-lg border border-[#22D3EE]/40 flex items-center justify-center text-sm font-bold text-white cursor-pointer active:scale-95 transition-all">Generate Workflow</div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-
-              </div>
-            </div>
-          </section>
-
-          {/* --- WHAT WE DO SECTION --- */}
-          <section className="relative py-16 md:py-24 bg-[#010104]">
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-[#A855F7] rounded-full blur-[160px] opacity-15" />
-            </div>
-
-            <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-              {/* Header */}
-              <motion.div 
-                className="text-center max-w-3xl mx-auto mb-16"
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6 }}
-              >
-                <h2 className="text-3xl sm:text-4xl md:text-5xl font-black mb-4 text-white">
-                  Everything you need to <br />
-                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#22D3EE] to-[#8B5CF6]">master your training</span>
-                </h2>
-                <p className="text-gray-400 text-sm sm:text-base md:text-lg">
-                  We remove the guesswork. Track your exercises, correct your reps instantly, and adapt your eating habits automatically with continuous smart analysis.
-                </p>
-              </motion.div>
-
-              {/* Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 lg:gap-10">
-                {features.map((item, idx) => (
-                  <motion.div 
-                    key={idx}
-                    className={`group relative rounded-2xl border ${item.borderColor} bg-gradient-to-b from-white/5 to-transparent backdrop-blur-md p-6 sm:p-8 hover:bg-white/5 opacity-80 transition-all duration-300 shadow-lg`}
-                    initial={{ opacity: 0, y: 40 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: idx * 0.2, duration: 0.5 }}
-                    whileHover={{ y: -8, scale: 1.03 }}
-                  >
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-transparent to-white/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-tr-2xl" />
-                    
-                    <div className={`inline-flex items-center justify-center p-4 rounded-xl bg-gradient-to-br ${item.color} mb-6 shadow-inner`}>
-                      {item.icon}
-                    </div>
-
-                    <h3 className="text-xl sm:text-2xl font-bold mb-3 text-white group-hover:text-[#22D3EE] transition-colors">
-                      {item.title}
-                    </h3>
-
-                    <p className="text-gray-400 text-sm sm:text-base leading-relaxed mb-6">
-                      {item.description}
-                    </p>
-
-                    <div className="flex items-center text-sm font-semibold text-gray-200 group-hover:text-blue-400 transition-colors">
-                      Learn more <ChevronRight className="ml-1 w-4 h-4" />
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </section>
+          <HomeSec1 
+            onLoginSuccess={handleLoginSuccess}
+            onLoginError={handleLoginError}
+          />
+          <HomeSec2 />
+          <HomeSec3 />
+          <HomeSec4 />
         </main>
       )}
 
@@ -1048,14 +787,14 @@ export default function Home() {
                   <span className="text-xs sm:text-sm font-semibold text-gray-100">Smart Analytics Dashboard</span>
                 </div>
                 <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold mb-3 sm:mb-4 text-white">
-                  Welcome back,{" "}
+                  Ready to train,{" "}
                   <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]">
-                    {user.firstName || "Fitness Enthusiast"}
+                    {user.firstName || "Athlete"}
                   </span>
-                  ! 👋
+                  ? 🚀
                 </h1>
                 <p className="max-w-3xl text-sm sm:text-base lg:text-lg text-gray-300">
-                  Track your progress with real data. Log workouts, add BMI, and use Calorie Tracker to see insights here.
+                  Track your progress, log workouts, and check your AI insights here.
                 </p>
               </header>
 

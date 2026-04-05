@@ -59,7 +59,7 @@ function getFrontendRedirectBase() {
 const GROQ_FITBOT_TEXT_MODEL =
   process.env.GROQ_FITBOT_MODEL || "llama-3.1-8b-instant";
 const GROQ_FITBOT_VISION_MODEL =
-  process.env.GROQ_FITBOT_VISION_MODEL || "meta-llama/llama-4-scout-17b-16e-instruct";
+  process.env.GROQ_FITBOT_VISION_MODEL || "llama-3.2-11b-vision-preview";
 const FITBOT_MAX_CHAT_HISTORY = 4;
 const FITBOT_MAX_ASSISTANT_CHARS = 900;
 const FITBOT_MAX_USER_CHARS = 1200;
@@ -235,8 +235,11 @@ function summarizeActivePlanForPrompt(plan) {
 function looksLikeFoodLogRequest(text) {
   const t = (text || "").toLowerCase();
   if (t.length > 800) return false;
+  const isMetricsUpdate = /\b(weight|height|bmi|profile|diseases|allergies)\b/.test(t);
+  if (isMetricsUpdate) return false;
+
   const hasFood =
-    /\b(breakfast|lunch|dinner|evening|snack|meal|paratha|parantha|roti|chapati|naan|rice|dal|curry|sabzi|egg|apple|fruit|milk|coffee|tea|juice|calorie|kcal|food|plate)\b/.test(
+    /\b(breakfast|lunch|dinner|evening|snack|meal|paratha|parantha|roti|chapati|naan|rice|dal|curry|sabzi|egg|apple|fruit|milk|coffee|tea|juice|calorie|kcal|food|plate|eat|ate)\b/.test(
       t
     ) || /\b(aloo|allo|potato)\b/.test(t);
   const hasLogVerb = /\b(log|logged|record|track|add to|enter)\b/.test(t);
@@ -1539,16 +1542,16 @@ router.post("/chat", async (req, res) => {
     const forceFoodTool = Boolean(userObj && looksLikeFoodLogRequest(lastUserText));
 
     const systemPrompt =
-      `You are FitBot. Short plain-text replies (no * # markdown).
-
-The block between BEGIN_CONTEXT and END_CONTEXT is ONLY for your reasoning. NEVER repeat it, NEVER quote it, NEVER paste it to the user. Users must not see profile or workout plan dumps.
+      `You are FitBot, the official AI Fitness Agent for FitSync. 
+- Languages: Respond in the user's language (English or Hindi/Hinglish). If they ask in Hindi, reply in Hindi.
+- Style: Friendly, concise, professional. Short plain-text (no markdown, no bold).
+- Agentic Capabilities: You can log food, log workouts, update BMI, update profile, and create plans.
+- Logging: If the user mentions eating any food (e.g., "Log 2 apples"), call log_food. If they mention exercise, call log_workout.
+- Context: Use the BEGIN_CONTEXT block for profile/plan data but NEVER show it raw to users.
 
 BEGIN_CONTEXT
 ${userContext || "(no profile/plan loaded)"}
-END_CONTEXT
-
-If the user asks to log food, meals, breakfast/lunch/dinner, or items eaten: call log_food with estimated calories (Indian foods OK). Then confirm in one friendly sentence what you logged.
-If they ask about workouts without logging food, use other tools as needed.`;
+END_CONTEXT`;
 
     // Format messages for Grok
     const formattedMessages = [
@@ -2041,6 +2044,7 @@ ${userNote ? `User note / context: ${userNote}` : ""}
           maxOutputTokens: 512,
           topP: 0.8,
           topK: 20,
+          responseMimeType: "application/json"
         },
       },
       {
@@ -2833,7 +2837,7 @@ router.post("/calorie-intake/insights/:userId", async (req, res) => {
         const suggestedFoods = getSuggestedFoodsForMeal(slot, goalKey);
         const insight = lines.length
           ? `Logged: ${lines.join(", ")}. ${mealHint(slot)}`
-          : `Nothing logged yet—${mealHint(slot)}`;
+          : `No logs yet for this meal. Suggestion: ${mealHint(slot)}`;
         out[slot] = { insight, suggestedFoods };
       }
       return out;
