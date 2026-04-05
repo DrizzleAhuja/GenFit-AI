@@ -28,6 +28,7 @@ const POINT_MAP = {
     bmi_update: 10,         // BMI update: 10 points
     workout_generate: 20,   // Workout plan generated: 20 points
     workout_log: 20,        // Workout plan completed (one day): 20 points
+    posture_log: 15,        // VTA standalone session: 15 points
     diet_chart: 20,         // Diet chart generated: 20 points
     streak_bonus: 5,        // Daily streak bonus: 5 points
 };
@@ -69,8 +70,8 @@ async function awardPoints(userId, type) {
     user.weeklyPoints += add;
     user.lastActivityAt = now;
 
-    // Weekly challenge progress (count workout logs)
-    if (type === 'workout_log') {
+    // Weekly challenge progress (count workout logs and posture sessions)
+    if (type === 'workout_log' || type === 'posture_log') {
         if (user.weeklyChallenge && user.weeklyChallenge.title) {
             user.weeklyChallenge.progress = (user.weeklyChallenge.progress || 0) + 1;
             const target = user.weeklyChallenge.target || 3;

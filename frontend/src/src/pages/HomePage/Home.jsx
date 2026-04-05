@@ -129,7 +129,7 @@ const WeeklyBarChart = ({ data, title }) => {
                       ? "bg-gradient-to-t from-[#8B5CF6] to-[#22D3EE]"
                       : "bg-[#22D3EE]/60"
                   }`}
-                  style={{ height: `${Math.max(height, 2)}%` }}
+                  style={{ height: `${height}%` }}
                 />
                 <span className={`text-xs mt-2 ${isToday ? "text-[#22D3EE] font-bold" : "text-gray-500"}`}>{day}</span>
               </div>
@@ -191,7 +191,7 @@ const CalorieBurnedSection = ({ caloriesBurnedThisWeek, weeklyBurnedPerDay }) =>
                 </div>
                 <div 
                   className="w-full max-w-[24px] rounded-t bg-gradient-to-t from-[#8B5CF6] to-[#22D3EE] transition-all duration-500" 
-                  style={{ height: `${val > 0 ? Math.max(h, 10) : 4}%` }} 
+                  style={{ height: `${val > 0 ? Math.max(h, 10) : 0}%` }} 
                 />
                 <span className="text-[10px] text-gray-500 mt-1">{day}</span>
               </div>
@@ -557,48 +557,72 @@ export default function Home() {
     }
   }, [user, navigate]);
   
-  useEffect(() => {
-    async function load() {
-
-      if (!user?.email && !user?._id) {
-        setLoading(false);
-        return;
-      }
-      try {
-        const promises = [];
-        if (user?.email) promises.push(axios.get(`${API_BASE_URL}${API_ENDPOINTS.GAMIFY}/stats`, { params: { email: user.email } }));
-        else promises.push(Promise.resolve({ data: {} }));
-        if (user?._id) promises.push(axios.get(`${API_BASE_URL}${API_ENDPOINTS.GAMIFY}/adherence`, { params: { userId: user._id } }));
-        else promises.push(Promise.resolve({ data: {} }));
-        if (user?.email) promises.push(axios.get(`${API_BASE_URL}${API_ENDPOINTS.BMI}/history`, { params: { email: user.email } }));
-        else promises.push(Promise.resolve({ data: [] }));
-        if (user?._id) {
-          promises.push(
-            axios.get(`${API_BASE_URL}${API_ENDPOINTS.AUTH}/workout-plan/active/${user._id}`).then((r) => ({ data: { sessionLogs: r.data?.sessionLogs || [] } })).catch(() => ({ data: { sessionLogs: [] } }))
-          );
-          promises.push(
-            axios
-              .get(`${API_BASE_URL}${API_ENDPOINTS.CALORIE_INTAKE}/history/${user._id}?days=15`)
-              .catch(() => ({ data: { logs: [] } }))
-          );
-        } else {
-          promises.push(Promise.resolve({ data: { sessionLogs: [] } }));
-          promises.push(Promise.resolve({ data: { logs: [] } }));
-        }
-
-        const [s, a, b, plan, calories] = await Promise.all(promises);
-        setStats(s.data || {});
-        setAdherence(a.data || {});
-        setBmiHistory((b.data || []).slice(0, 7));
-        setSessionLogs((plan.data?.sessionLogs || []).filter(Boolean));
-        setCalorieHistory(calories.data?.logs || []);
-      } catch (e) {
-        console.error("Dashboard load error:", e);
-      }
-      setLoading(false);
+  const load = async (silent = false) => {
+    if (!user?.email && !user?._id) {
+      if (!silent) setLoading(false);
+      return;
     }
+    if (!silent) setLoading(true);
+    try {
+      const promises = [];
+      if (user?.email) promises.push(axios.get(`${API_BASE_URL}${API_ENDPOINTS.GAMIFY}/stats`, { params: { email: user.email, _t: Date.now() } }));
+      else promises.push(Promise.resolve({ data: {} }));
+      
+      if (user?._id) promises.push(axios.get(`${API_BASE_URL}${API_ENDPOINTS.GAMIFY}/adherence`, { params: { userId: user._id, _t: Date.now() } }));
+      else promises.push(Promise.resolve({ data: {} }));
+      
+      if (user?.email) promises.push(axios.get(`${API_BASE_URL}${API_ENDPOINTS.BMI}/history`, { params: { email: user.email, _t: Date.now() } }));
+      else promises.push(Promise.resolve({ data: [] }));
+      
+      if (user?._id) {
+        promises.push(
+          axios.get(`${API_BASE_URL}${API_ENDPOINTS.AUTH}/workout-plan/active/${user._id}`, { params: { _t: Date.now() } }).then((r) => ({ data: { sessionLogs: r.data?.sessionLogs || [] } })).catch(() => ({ data: { sessionLogs: [] } }))
+        );
+        promises.push(
+          axios.get(`${API_BASE_URL}/api/auth/calorie-intake/history/${user._id}?days=15&_t=${Date.now()}`).catch(() => ({ data: { logs: [] } }))
+        );
+        // Added Posture Session (VTA) fetch!
+        promises.push(
+          axios.get(`${API_BASE_URL}/api/posture/sessions/${user._id}`, { params: { _t: Date.now() } }).catch(() => ({ data: { sessions: [] } }))
+        );
+      } else {
+        promises.push(Promise.resolve({ data: { sessionLogs: [] } }));
+        promises.push(Promise.resolve({ data: { logs: [] } }));
+        promises.push(Promise.resolve({ data: { sessions: [] } }));
+      }
+
+      const [s, a, b, plan, calories, vta] = await Promise.all(promises);
+      setStats(s.data || {});
+      setAdherence(a.data || {});
+      setBmiHistory((b.data || []).slice(0, 7));
+      
+      // Merge plan logs and standalone VTA logs
+      const combinedLogs = [
+        ...(plan.data?.sessionLogs || []),
+        ...(vta.data?.sessions || [])
+      ].filter(Boolean);
+      
+      setSessionLogs(combinedLogs);
+      setCalorieHistory(calories.data?.logs || []);
+
+      console.log("[Home] Loaded Sessions count:", combinedLogs.length);
+    } catch (e) {
+      console.error("Dashboard load error:", e);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
     load();
-  }, [user]);
+    // Auto-refresh every 30s and on focus
+    const interval = setInterval(() => load(true), 30000);
+    const handleFocus = () => load(true);
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [user?._id]);
 
   // Real: workouts this week from session logs
   const thisWeekStart = useMemo(() => getStartOfWeek(new Date()), []);
@@ -617,7 +641,9 @@ export default function Home() {
     const mins = [0, 0, 0, 0, 0, 0, 0];
     sessionsThisWeek.forEach((log) => {
       const idx = getWeekdayIndex(log.date);
-      mins[idx] += log.durationMinutes || 0;
+      // Handle both durationMinutes (plans) and durationSeconds (VTA)
+      const durationMins = log.durationMinutes || (log.durationSeconds ? Math.max(1, Math.round(log.durationSeconds / 60)) : 0);
+      mins[idx] += durationMins;
     });
     return mins;
   }, [sessionsThisWeek]);
@@ -631,7 +657,9 @@ export default function Home() {
     const cal = [0, 0, 0, 0, 0, 0, 0];
     sessionsThisWeek.forEach((log) => {
       const idx = getWeekdayIndex(log.date);
-      cal[idx] += log.calories || (log.durationMinutes || 0) * 5;
+      // Handle calories explicitly, fall back to duration estimation only if missing
+      const durMins = log.durationMinutes || (log.durationSeconds ? log.durationSeconds / 60 : 0);
+      cal[idx] += log.calories || (durMins * 5);
     });
     return cal;
   }, [sessionsThisWeek]);

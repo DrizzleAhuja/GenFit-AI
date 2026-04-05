@@ -379,8 +379,8 @@ const MyWorkoutPlan = () => {
           workoutDetails: updatedWorkoutDetails,
           overallNotes: existingLog?.overallNotes || "",
           perceivedExertion: existingLog?.perceivedExertion || 5,
-          durationMinutes: (existingLog?.durationMinutes || 0) + (passedDurationMinutes || 0),
-          calories: (existingLog?.calories || 0) + (passedCalories || 0), // Added!
+          durationMinutes: Math.max(0, (existingLog?.durationMinutes || 0) + (passedDurationMinutes || 0) + (!passedDurationMinutes && !passedCalories ? (!isCompleted ? 10 : -10) : 0)),
+          calories: Math.max(0, (existingLog?.calories || 0) + (passedCalories || 0) + (!passedDurationMinutes && !passedCalories ? (!isCompleted ? 60 : -60) : 0)), // Added!
           isDayCompleted: allExercisesCompletedForDay,
         }
       );
@@ -452,7 +452,8 @@ const MyWorkoutPlan = () => {
           workoutDetails: allExercisesCompleted,
           overallNotes: "",
           perceivedExertion: 5,
-          durationMinutes: 0,
+          durationMinutes: dayPlan.exercises.length * 10,
+          calories: dayPlan.exercises.length * 60,
         }
       );
 
@@ -552,7 +553,8 @@ const MyWorkoutPlan = () => {
           workoutDetails: updatedWorkoutDetails,
           overallNotes: existingLog?.overallNotes || "",
           perceivedExertion: existingLog?.perceivedExertion || 5,
-          durationMinutes: existingLog?.durationMinutes || 0,
+          durationMinutes: Math.max(0, (existingLog?.durationMinutes || 0) + (isCompleted ? 10 : -10)),
+          calories: Math.max(0, (existingLog?.calories || 0) + (isCompleted ? 60 : -60)),
           isDayCompleted: allExercisesCompletedForDay, // Send completion status of the day
         }
       );

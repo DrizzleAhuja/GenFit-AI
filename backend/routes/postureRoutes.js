@@ -1096,6 +1096,17 @@ router.post("/session-log", async (req, res) => {
     });
 
     await session.save();
+    console.log(`[PostureLog] Saved session for user ${userId}: ${exerciseType}, ${reps} reps, ${durationSeconds}s`);
+    
+    // Award points and update weekly challenge progress
+    if (user && user._id) {
+      try {
+        const { awardPoints } = require("../utils/gamify");
+        await awardPoints(user._id, "posture_log");
+      } catch (err) {
+        console.error("Gamify award error (posture):", err);
+      }
+    }
 
     return res.status(201).json({
       success: true,

@@ -299,38 +299,61 @@ export default function Dashboard() {
   const [leaderboardRank, setLeaderboardRank] = useState(-1);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function load() {
-      if (!user?.email || !user?._id) { setLoading(false); return; }
-      try {
-        const [s, a, b, w, c, p, l] = await Promise.all([
-          axios.get(`${API_BASE_URL}${API_ENDPOINTS.GAMIFY}/stats`, { params: { email: user.email, _t: Date.now() } }),
-          axios.get(`${API_BASE_URL}${API_ENDPOINTS.GAMIFY}/adherence`, { params: { userId: user._id, _t: Date.now() } }),
-          axios.get(`${API_BASE_URL}${API_ENDPOINTS.BMI}/history`, { params: { email: user.email, _t: Date.now() } }),
-          axios.get(`${API_BASE_URL}${API_ENDPOINTS.AUTH}/workout-plan/active/${user._id}`, { params: { _t: Date.now() } }).catch(() => ({ data: { plan: null, sessionLogs: [] } })),
-          axios.get(`${API_BASE_URL}/api/auth/calorie-intake/history/${user._id}`, { params: { _t: Date.now() } }).catch(() => ({ data: { logs: [] } })),
-          axios.get(`${API_BASE_URL}/api/posture/sessions/${user._id}`, { params: { _t: Date.now() } }).catch(() => ({ data: { sessions: [] } })),
-          axios.get(`${API_BASE_URL}${API_ENDPOINTS.GAMIFY}/leaderboard`, { params: { period: 'all', _t: Date.now() } }).catch(() => ({ data: { users: [] } })),
-        ]);
-        
-        setStats(s.data || {});
-        setAdherence(a.data || {});
-        setBmiHistory((b.data || []).slice(0, 7));
-        setWorkoutPlan(w.data?.plan || null);
-        setWorkoutSessionLogs(w.data?.sessionLogs || []);
-        setCalorieLogs(c.data?.logs || []);
-        setSessionLogs(p.data?.sessions || []);
-
-        const lbUsers = l.data?.users || [];
-        const rankIdx = lbUsers.findIndex(u => u.email === user.email);
-        setLeaderboardRank(rankIdx);
-      } catch (e) { 
-        console.error("Dashboard load error:", e); 
-      }
-      setLoading(false);
+  const load = async (silent = false) => {
+    if (!user?.email || !user?._id) { 
+      if (!silent) setLoading(false);
+      return; 
     }
+    if (!silent) setLoading(true);
+    try {
+      const [s, a, b, w, c, p, l] = await Promise.all([
+        axios.get(`${API_BASE_URL}${API_ENDPOINTS.GAMIFY}/stats`, { params: { email: user.email, _t: Date.now() } }),
+        axios.get(`${API_BASE_URL}${API_ENDPOINTS.GAMIFY}/adherence`, { params: { userId: user._id, _t: Date.now() } }),
+        axios.get(`${API_BASE_URL}${API_ENDPOINTS.BMI}/history`, { params: { email: user.email, _t: Date.now() } }),
+        axios.get(`${API_BASE_URL}${API_ENDPOINTS.AUTH}/workout-plan/active/${user._id}`, { params: { _t: Date.now() } }).catch(() => ({ data: { plan: null, sessionLogs: [] } })),
+        axios.get(`${API_BASE_URL}/api/auth/calorie-intake/history/${user._id}`, { params: { _t: Date.now() } }).catch(() => ({ data: { logs: [] } })),
+        axios.get(`${API_BASE_URL}/api/posture/sessions/${user._id}`, { params: { _t: Date.now() } }).catch(() => ({ data: { sessions: [] } })),
+        axios.get(`${API_BASE_URL}${API_ENDPOINTS.GAMIFY}/leaderboard`, { params: { period: 'all', _t: Date.now() } }).catch(() => ({ data: { users: [] } })),
+      ]);
+      
+      setStats(s.data || {});
+      setAdherence(a.data || {});
+      setBmiHistory((b.data || []).slice(0, 7));
+      setWorkoutPlan(w.data?.plan || null);
+      setWorkoutSessionLogs(w.data?.sessionLogs || []);
+      setCalorieLogs(c.data?.logs || []);
+      const vtaSessions = p.data?.sessions || [];
+      setSessionLogs(vtaSessions);
+
+      // Diagnostic logging
+      console.log("[Dashboard] Loaded VTA sessions:", vtaSessions.length);
+      if (vtaSessions.length > 0) {
+        console.log("[Dashboard] Latest session:", vtaSessions[0]);
+      }
+
+      const lbUsers = l.data?.users || [];
+      const rankIdx = lbUsers.findIndex(u => u.email === user.email);
+      setLeaderboardRank(rankIdx);
+    } catch (e) { 
+      console.error("Dashboard load error:", e); 
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
     load();
-  }, [user]);
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(() => load(true), 30000);
+    
+    // Refresh when user returns to tab
+    const handleFocus = () => load(true);
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [user?._id]);
 
   // Calculate metrics
   const weeklyGoalPercent = useMemo(() => {
@@ -341,7 +364,7 @@ export default function Dashboard() {
 
   // Aggregate daily durations from both posture sessions and plan logs for the current week (since Mon)
   const weeklyExerciseData = useMemo(() => {
-    const data = [0, 0, 0, 0, 0, 0, 0];
+    const dataSeconds = [0, 0, 0, 0, 0, 0, 0];
     const now = new Date();
     const currentDay = now.getDay();
     const diff = now.getDate() - currentDay + (currentDay === 0 ? -6 : 1);
@@ -349,27 +372,25 @@ export default function Dashboard() {
     startOfWeek.setDate(diff);
     startOfWeek.setHours(0,0,0,0);
 
-    // Sum Posture Session Logs (durationSeconds)
     (sessionLogs || []).forEach(log => {
       const logDate = new Date(log.date);
       if (logDate >= startOfWeek) {
         let dayIdx = logDate.getDay();
-        dayIdx = dayIdx === 0 ? 6 : dayIdx - 1; // Mon=0, Sun=6
-        data[dayIdx] += Math.round((log.durationSeconds || 0) / 60);
+        dayIdx = dayIdx === 0 ? 6 : dayIdx - 1;
+        dataSeconds[dayIdx] += (log.durationSeconds || 0);
       }
     });
 
-    // Sum Workout Session Logs from Plan (durationMinutes)
     (workoutSessionLogs || []).forEach(log => {
       const logDate = new Date(log.date);
       if (logDate >= startOfWeek) {
         let dayIdx = logDate.getDay();
         dayIdx = dayIdx === 0 ? 6 : dayIdx - 1;
-        data[dayIdx] += Math.round(log.durationMinutes || 0);
+        dataSeconds[dayIdx] += (log.durationMinutes || 0) * 60;
       }
     });
 
-    return data;
+    return dataSeconds.map(secs => secs > 0 ? Math.max(1, Math.round(secs / 60)) : 0);
   }, [sessionLogs, workoutSessionLogs]);
 
   // Sum up actual calories burned this week
@@ -387,7 +408,7 @@ export default function Dashboard() {
       if (logDate >= startOfWeek) {
         let dayIdx = logDate.getDay();
         dayIdx = dayIdx === 0 ? 6 : dayIdx - 1;
-        data[dayIdx] += Math.round(log.calories || 0);
+        data[dayIdx] += (log.calories || 0);
       }
     });
 
@@ -396,15 +417,15 @@ export default function Dashboard() {
       if (logDate >= startOfWeek) {
         let dayIdx = logDate.getDay();
         dayIdx = dayIdx === 0 ? 6 : dayIdx - 1;
-        data[dayIdx] += Math.round(log.calories || 0);
+        data[dayIdx] += (log.calories || 0);
       }
     });
 
-    return data;
+    return data.map(cal => Math.round(cal * 10) / 10);
   }, [sessionLogs, workoutSessionLogs]);
 
   const caloriesBurned = useMemo(() => {
-    return calorieBurnedData.reduce((a, b) => a + b, 0);
+    return Math.round(calorieBurnedData.reduce((a, b) => a + b, 0));
   }, [calorieBurnedData]);
 
   const workoutsThisWeek = useMemo(() => {
@@ -436,7 +457,8 @@ export default function Dashboard() {
 
   // Compute 4-week grid from active dates back from current week's Monday
   const streakHeatmapData = useMemo(() => {
-    const activeDates = new Set((sessionLogs || []).map(log => new Date(log.date).toDateString()));
+    const allLogs = [...(sessionLogs || []), ...(workoutSessionLogs || [])];
+    const activeDates = new Set(allLogs.map(log => new Date(log.date).toDateString()));
     const result = [];
     const today = new Date();
     today.setHours(0,0,0,0);
@@ -457,8 +479,14 @@ export default function Dashboard() {
       }
       result.push(week);
     }
+    const todayIdx = today.getDay() === 0 ? 6 : today.getDay() - 1;
+    console.log("[Dashboard] Sunday Metrics State:", { 
+      duration: weeklyExerciseData[6], 
+      calories: calorieBurnedData[6] 
+    });
+
     return result;
-  }, [sessionLogs]);
+  }, [sessionLogs, workoutSessionLogs, weeklyExerciseData, calorieBurnedData]);
 
   const consistencyScore = useMemo(() => {
     const totalActive = streakHeatmapData.flat().filter(Boolean).length;
@@ -523,9 +551,18 @@ export default function Dashboard() {
                 </div>
                 <p className="text-gray-400">Smart Analytics Dashboard</p>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#84CC16]/10 border border-[#84CC16]/30">
-                <div className="w-2 h-2 rounded-full bg-[#84CC16] animate-pulse" />
-                <span className="text-sm text-[#84CC16] font-medium">AI-Powered</span>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => load(false)}
+                  className="p-2 rounded-xl bg-[#1F2937] border border-[#374151] text-gray-400 hover:text-white transition-all overflow-hidden relative group"
+                  title="Refresh Dashboard"
+                >
+                  <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+                </button>
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#84CC16]/10 border border-[#84CC16]/30">
+                  <div className="w-2 h-2 rounded-full bg-[#84CC16] animate-pulse" />
+                  <span className="text-sm text-[#84CC16] font-medium">AI-Powered</span>
+                </div>
               </div>
             </div>
 
