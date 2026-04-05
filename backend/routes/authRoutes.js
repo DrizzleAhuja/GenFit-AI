@@ -341,6 +341,17 @@ router.post("/generate-plan", async (req, res) => {
       specificGoalInstruction = `The user's goal is to build muscle mass. Focus on progressive overload and hypertrophy principles over ${durationWeeks} weeks.`;
     }
 
+    const wheelchairForbidden = [
+      "Back Squat", "Front Squat", "Leg Press", "Goblet Squat", "Walking Lunge", "Reverse Lunge", 
+      "Bulgarian Split Squat", "Romanian Deadlift", "Deadlift", "Calf Raise", "Plank", "Side Plank", 
+      "Mountain Climber", "High Knees", "Forearm Plank", "Hollow Hold", "Dead Bug", "Jumping Jack",
+      "Push-up", "Diamond Push-up", "Pull-up", "Chin-up", "Dips"
+    ];
+
+    const finalAllowedExercises = isWheelchairBound 
+      ? VTA_ALLOWED_EXERCISES.filter(ex => !wheelchairForbidden.includes(ex))
+      : VTA_ALLOWED_EXERCISES;
+
     // Construct a more detailed prompt for structured output
     const prompt = `Create a detailed ${fitnessGoal} workout plan for a ${gender} at ${strengthLevel} level, with ${daysPerWeek} sessions per week, and ${timeCommitment} minute sessions. 
     Focus on ${trainingMethod} and ${workoutType} equipment. 
@@ -350,7 +361,7 @@ router.post("/generate-plan", async (req, res) => {
     The user also has the following allergies: ${allergies.join(", ") || "None"}.
     
     ${isSenior ? "CRITICAL: The user is a SENIOR CITIZEN (60+ years old). You MUST add ' - Senior Friendly' to the 'focus' of EVERY day. Add specific safety notes for seniors in the 'notes' field for EVERY exercise. Choose ONLY the safest, most senior-appropriate exercises from the allowed list (e.g., proper supported rows, basic presses, planks, avoiding heavy or dangerous compound lifts like Deadlifts unless exclusively light/bodyweight). Keep repetition schemes very safe and emphasize mobility and joint health." : ""}
-    ${isWheelchairBound ? "CRITICAL: The user is WHEELCHAIR-BOUND. All exercises MUST be performable from a seated position or focus exclusively on upper-body/arm mobility. Do not include squats, lunges, or standing movements." : ""}
+    ${isWheelchairBound ? "CRITICAL: The user is WHEELCHAIR-BOUND. All exercises MUST be performable from a seated position. We have strictly filtered the allowed exercise list to ensure no standing or leg-based movements are given. You MUST ONLY pick from the provided list below and focus on upper-body strength, mobility, and seated core stabilization." : ""}
 
 
     OUTPUT REQUIREMENTS (STRICT):
@@ -372,7 +383,7 @@ router.post("/generate-plan", async (req, res) => {
         - optional 'cooldown' (string)
 
     VIRTUAL TRAINING ASSISTANT (CRITICAL): Our app has a Virtual Training Assistant that gives form feedback. You MUST use ONLY exercises from this list for the 'name' field (use these names exactly or very close variants like "Push-up" or "Push up"):
-    ${VTA_ALLOWED_EXERCISES.join(", ")}
+    ${finalAllowedExercises.join(", ")}
     Do not invent other exercise names. If you need a similar movement, pick the closest match from the list above so users can practice with the assistant.
 
     IMPORTANT: Return ONLY valid JSON (no markdown/code fences, no extra text).`;
