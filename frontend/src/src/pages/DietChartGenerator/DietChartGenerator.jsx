@@ -114,6 +114,9 @@ export default function DietChartGenerator() {
               bmi: formatBmiOneDecimal(latestBmi.bmi),
               category: latestBmi.category,
             });
+            if (latestBmi.age && parseInt(latestBmi.age) >= 60) {
+              setIsSenior(true);
+            }
           }
         } catch (error) {
           console.error("Error fetching BMI data:", error);
@@ -124,6 +127,9 @@ export default function DietChartGenerator() {
     if (location.state?.bmiData && location.state?.bmiResult) {
       setBmiData(location.state.bmiData);
       setBmiResult(location.state.bmiResult);
+      if (location.state.bmiData.age && parseInt(location.state.bmiData.age) >= 60) {
+        setIsSenior(true);
+      }
       toast.success("BMI data loaded for personalized plan generation!");
     } else if (user?.email) {
       fetchBMIData();
@@ -853,6 +859,7 @@ export default function DietChartGenerator() {
                 </div>
                 
                 {/* Senior Citizen Toggle - Deep Niche */}
+                {!(bmiData && bmiData.age && parseInt(bmiData.age) >= 60) && (
                 <div>
                   <label className="text-sm font-semibold text-gray-300 mb-3 block flex items-center gap-2">
                     <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></span>
@@ -871,6 +878,7 @@ export default function DietChartGenerator() {
                     {isSenior && <span className="ml-auto text-[#22D3EE]">✓</span>}
                   </button>
                 </div>
+                )}
                 
                 {/* Show selected preferences summary */}
                 {(dietType || cuisineType || isSenior) && (

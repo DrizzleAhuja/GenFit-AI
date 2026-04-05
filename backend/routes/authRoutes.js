@@ -349,7 +349,7 @@ router.post("/generate-plan", async (req, res) => {
     Consider any health conditions from bmiData.diseases or bmiData.allergies to make the plan safe and effective. 
     The user also has the following allergies: ${allergies.join(", ") || "None"}.
     
-    ${isSenior ? "IMPORTANT: The user is a SENIOR CITIZEN. Avoid high-impact jumping, extreme heavy loads, or dangerous balancing exercises. Focus on mobility, stability, and moderate resistance." : ""}
+    ${isSenior ? "CRITICAL: The user is a SENIOR CITIZEN (60+ years old). You MUST add ' - Senior Friendly' to the 'focus' of EVERY day. Add specific safety notes for seniors in the 'notes' field for EVERY exercise. Choose ONLY the safest, most senior-appropriate exercises from the allowed list (e.g., proper supported rows, basic presses, planks, avoiding heavy or dangerous compound lifts like Deadlifts unless exclusively light/bodyweight). Keep repetition schemes very safe and emphasize mobility and joint health." : ""}
     ${isWheelchairBound ? "CRITICAL: The user is WHEELCHAIR-BOUND. All exercises MUST be performable from a seated position or focus exclusively on upper-body/arm mobility. Do not include squats, lunges, or standing movements." : ""}
 
 

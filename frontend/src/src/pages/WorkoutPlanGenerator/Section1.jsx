@@ -46,7 +46,11 @@ const WorkoutPlanGenerator = () => {
     if (location.state?.bmiData && location.state?.bmiResult) {
       setBmiData(location.state.bmiData);
       setBmiResult(location.state.bmiResult);
-      setFormData(prev => ({ ...prev, currentWeight: location.state.bmiData.weight }));
+      setFormData(prev => ({ 
+        ...prev, 
+        currentWeight: location.state.bmiData.weight,
+        isSenior: location.state.bmiData.age && parseInt(location.state.bmiData.age) >= 60 ? true : prev.isSenior
+      }));
       toast.success("BMI data loaded for personalized plan generation!");
     } else if (user?.email) {
       fetchBMIData();
@@ -66,7 +70,11 @@ const WorkoutPlanGenerator = () => {
           bmi: formatBmiOneDecimal(latestBmi.bmi),
           category: latestBmi.category,
         });
-        setFormData(prev => ({ ...prev, currentWeight: latestBmi.weight }));
+        setFormData(prev => ({ 
+          ...prev, 
+          currentWeight: latestBmi.weight,
+          isSenior: latestBmi.age && parseInt(latestBmi.age) >= 60 ? true : prev.isSenior
+        }));
       }
     } catch (error) {
       console.error("Error fetching BMI data", error);
@@ -1683,6 +1691,7 @@ const WorkoutPlanGenerator = () => {
                     <div className="form-group">
                       <label className="form-label">♿ Special Accessibility (Deep Niche)</label>
                       <div className="button-grid cols-2">
+                        {!(bmiData && bmiData.age && parseInt(bmiData.age) >= 60) && (
                         <button
                           type="button"
                           className={`option-button ${formData.isSenior ? "selected" : ""}`}
@@ -1692,6 +1701,7 @@ const WorkoutPlanGenerator = () => {
                             {formData.isSenior ? <FiCheckCircle color="#22D3EE" /> : null} Senior Citizen
                           </span>
                         </button>
+                        )}
                         <button
                           type="button"
                           className={`option-button ${formData.isWheelchairBound ? "selected" : ""}`}
