@@ -112,6 +112,11 @@ const WorkoutPlanGenerator = () => {
       return;
     }
 
+    if (formData.workoutType === "cardio" && formData.isWheelchairBound) {
+      toast.error("Cardio workouts are currently not optimized for wheelchair users. Please select Strength, Mixed, or Flexibility.");
+      return;
+    }
+
     if (!bmiData) {
       toast.error("Please calculate your BMI first to get personalized workout plans");
       return;
@@ -256,6 +261,12 @@ const WorkoutPlanGenerator = () => {
         toast.error("Please fill all required fields to regenerate the plan.");
         return;
     }
+
+    if (formData.workoutType === "cardio" && formData.isWheelchairBound) {
+      toast.error("Cardio workouts are currently not optimized for wheelchair users. Please select Strength, Mixed, or Flexibility.");
+      return;
+    }
+
     if (!bmiData) {
         toast.error("Please calculate your BMI first to get personalized workout plans.");
         return;
@@ -1581,7 +1592,13 @@ const WorkoutPlanGenerator = () => {
                       <div className="button-grid cols-2">
                         <button
                           type="button"
-                          onClick={() => setFormData({ ...formData, workoutType: "cardio" })}
+                          onClick={() => {
+                            if (formData.isWheelchairBound) {
+                              toast.error("Cardio workouts are not available for wheelchair bound users.");
+                              return;
+                            }
+                            setFormData({ ...formData, workoutType: "cardio" });
+                          }}
                           className={`option-button cardio ${formData.workoutType === "cardio" ? "selected" : ""}`}
                           style={{ flexDirection: 'column', gap: '0.25rem', minHeight: '64px' }}
                         >
@@ -1705,7 +1722,13 @@ const WorkoutPlanGenerator = () => {
                         <button
                           type="button"
                           className={`option-button ${formData.isWheelchairBound ? "selected" : ""}`}
-                          onClick={() => setFormData({ ...formData, isWheelchairBound: !formData.isWheelchairBound })}
+                          onClick={() => {
+                            if (!formData.isWheelchairBound && formData.workoutType === "cardio") {
+                              toast.error("Please change your workout type from Cardio to enable Wheelchair Bound.");
+                              return;
+                            }
+                            setFormData({ ...formData, isWheelchairBound: !formData.isWheelchairBound });
+                          }}
                         >
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             {formData.isWheelchairBound ? <FiCheckCircle color="#22D3EE" /> : null} Wheelchair Bound
