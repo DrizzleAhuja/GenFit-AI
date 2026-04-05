@@ -181,7 +181,6 @@ export default function CalorieTracker() {
   const [todayLogs, setTodayLogs] = useState([]);
   const [loadingMeals, setLoadingMeals] = useState({});
   const [inputs, setInputs] = useState({ Breakfast: "", Lunch: "", "Evening Snack": "", Dinner: "" });
-  const [waterIntake, setWaterIntake] = useState(0); // Today's sum
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [limitMessage, setLimitMessage] = useState("");
 
@@ -253,7 +252,6 @@ export default function CalorieTracker() {
       loadNutritionTargets();
       loadInsights();
     }
-    setupNotifications();
   }, [user]);
 
   const flushPendingLogs = useCallback(async () => {
@@ -294,22 +292,7 @@ export default function CalorieTracker() {
     return () => clearTimeout(t);
   }, [notice]);
 
-  const setupNotifications = () => {
-    if ("Notification" in window) {
-      Notification.requestPermission().then((permission) => {
-        if (permission === "granted") {
-          // Hourly reminder (3600000 ms)
-          const interval = setInterval(() => {
-            new Notification("Time to hydrate! 💧", {
-              body: "Stay on top of your water goal. Drink a glass of water now!",
-              icon: "/favicon.ico"
-            });
-          }, 3600000);
-          return () => clearInterval(interval);
-        }
-      });
-    }
-  };
+
 
   const loadHistory = async () => {
     try {
@@ -321,9 +304,6 @@ export default function CalorieTracker() {
         const today = localDateKey(new Date());
         const todayItems = logs.filter((l) => localDateKey(new Date(l.date)) === today);
         setTodayLogs(todayItems);
-
-        const totalWater = todayItems.reduce((acc, log) => acc + (log.waterIntake || 0), 0);
-        setWaterIntake(totalWater);
       }
     } catch (err) {
       console.error("Failed to load history", err);
@@ -402,28 +382,6 @@ export default function CalorieTracker() {
       });
     } finally {
       setLoadingMeals((prev) => ({ ...prev, [mealType]: false }));
-    }
-  };
-
-  const logWater = async (amount) => {
-    const newWater = waterIntake + amount;
-    if (newWater < 0) return;
-    
-    // Optimistic update
-    setWaterIntake(newWater);
-
-    try {
-      await axios.post(`${API_BASE_URL}${API_ENDPOINTS.CALORIE_INTAKE}/log`, {
-        userId: user._id,
-        totalCalories: 0,
-        source: "water",
-        waterIntake: amount, // logging the diff
-        items: []
-      });
-    } catch (err) {
-      console.error(err);
-      setNotice({ type: "error", text: "Failed to log water." });
-      setWaterIntake(waterIntake); // Revert
     }
   };
 
@@ -764,42 +722,6 @@ export default function CalorieTracker() {
               </p>
             </header>
 
-            {/* Stays under main nav (fixed/sticky); keeps today's total visible while scrolling meals */}
-            <div
-              className="sticky z-40 top-16 lg:top-[4.75rem] -mx-4 sm:mx-0 sm:rounded-xl mb-6 flex flex-wrap items-center gap-3 sm:gap-4 border border-[#22D3EE]/25 bg-[#05010d]/92 backdrop-blur-xl px-4 py-3 shadow-[0_8px_32px_rgba(15,23,42,0.65)]"
-              aria-live="polite"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#8B5CF6]/40 to-[#22D3EE]/25 border border-[#8B5CF6]/40 shadow-[0_0_18px_rgba(139,92,246,0.25)]">
-                  <Flame className="w-6 h-6 text-[#FACC15]" aria-hidden />
-                </div>
-                <div className="min-w-0">
-                  <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-gray-500">
-                    Total calories
-                  </span>
-                  <span className="text-2xl sm:text-3xl font-black text-white tabular-nums tracking-tight">
-                    {Math.round(totalCaloriesToday)}
-                    <span className="text-base sm:text-lg font-semibold text-[#22D3EE] ml-1.5">kcal</span>
-                  </span>
-                </div>
-              </div>
-              {targetCal ? (
-                <div className="flex flex-wrap items-center gap-2 sm:ml-auto sm:border-l sm:border-[#1F2937] sm:pl-4">
-                  <span className="text-xs text-gray-400">
-                    Target <span className="text-gray-200 font-semibold">{targetCal}</span> kcal
-                  </span>
-                  {calPct !== null ? (
-                    <span className="inline-flex items-center rounded-full border border-[#22D3EE]/35 bg-[#22D3EE]/10 px-2.5 py-0.5 text-xs font-bold text-[#22D3EE]">
-                      {calPct}% of goal
-                    </span>
-                  ) : null}
-                </div>
-              ) : (
-                <p className="text-[11px] text-gray-500 sm:ml-auto max-w-[14rem] sm:max-w-none">
-                  Add BMI for a daily target and progress %.
-                </p>
-              )}
-            </div>
 
             {pendingLogCount > 0 && (
               <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-amber-500/35 bg-amber-950/25 px-4 py-3">
@@ -987,59 +909,6 @@ export default function CalorieTracker() {
               </div>
             ) : null}
 
-            {/* Dashboard Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              {/* Calorie Summary */}
-              <div className={`${cardClass} p-6 flex items-center justify-between`}>
-                <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE]"></div>
-                <div>
-                  <h3 className="text-gray-400 text-sm font-medium mb-1">Calories Consumed Today</h3>
-                  <div className="text-4xl font-black text-white flex items-baseline gap-2">
-                    {Math.round(totalCaloriesToday)}{" "}
-                    <span className="text-lg text-[#22D3EE] font-semibold">kcal</span>
-                  </div>
-                  {targetCal ? (
-                    <p className="text-xs text-gray-500 mt-1">
-                      Target {targetCal} kcal · P {nutritionTargets.proteinG}g · C {nutritionTargets.carbsG}g · F{" "}
-                      {nutritionTargets.fatG}g
-                    </p>
-                  ) : null}
-                </div>
-                <div className="p-4 bg-[#22D3EE]/10 rounded-2xl border border-[#22D3EE]/20 text-[#22D3EE]">
-                  <Flame className="w-8 h-8" />
-                </div>
-              </div>
-
-              {/* Water Summary */}
-              <div className={`${cardClass} p-6 flex flex-col justify-center`}>
-                <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#38BDF8] to-[#0EA5E9]"></div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-gray-400 text-sm font-medium flex items-center gap-2">
-                    <Droplet className="w-4 h-4 text-[#38BDF8]" /> Water Intake
-                  </h3>
-                  <span className="text-xs text-[#38BDF8] font-semibold">{waterIntake} / 8 Glasses</span>
-                </div>
-                
-                {/* Visual Tracker */}
-                <div className="flex items-center justify-between gap-1 mb-4 mt-2">
-                  {[...Array(8)].map((_, i) => (
-                    <div 
-                      key={i} 
-                      className={`h-8 flex-1 rounded-sm transition-all duration-500 ${i < waterIntake ? 'bg-gradient-to-t from-[#0EA5E9] to-[#38BDF8] shadow-[0_0_10px_rgba(56,189,248,0.5)]' : 'bg-[#1F2937]/60'}`}
-                    />
-                  ))}
-                </div>
-
-                <div className="flex gap-3 mt-1">
-                  <button 
-                    onClick={() => logWater(1)}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-gradient-to-r from-[#0EA5E9] to-[#38BDF8] text-white font-bold hover:opacity-90 transition-opacity shadow-md"
-                  >
-                    <Plus className="w-5 h-5" /> Add a Glass
-                  </button>
-                </div>
-              </div>
-            </div>
 
             {/* Meal Logging Grid */}
             <div className="space-y-6">
