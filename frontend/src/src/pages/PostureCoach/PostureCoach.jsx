@@ -477,7 +477,7 @@ export default function PostureCoach() {
 
         const detector = await poseDetection.createDetector(
           poseDetection.SupportedModels.MoveNet,
-          { modelType: "SinglePose.Lightning" }
+          { modelType: "SinglePose.Thunder" }
         );
 
         if (!cancelled) {
@@ -1130,35 +1130,39 @@ export default function PostureCoach() {
       lastGoodScoreRef.current = false;
       setIsRunning(false);
     } else {
-      // Check limits for Free tier
-      if (!user?.plan || user?.plan === "free") {
-        try {
-          const res = await fetch(`${API_BASE_URL}/api/posture/start-session`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ userId: user?._id }),
-          });
-
-          if (!res.ok) {
-            const data = await res.json();
-            setLimitMessage(data.error || "You have reached your free tier limit for Virtual Training. Please upgrade to Pro.");
-            setShowLimitModal(true);
-            return; // Abort starting
-          }
-        } catch (err) {
-          console.error("Error starting VTA session:", err);
-          setLimitMessage("Error verifying session limits. Please try again.");
-          setShowLimitModal(true);
-          return;
-        }
-      }
-      
+      // Optimistically start the session immediately to prevent UI lag
       setIsRunning(true);
-
-      // Start speaking right after coaching begins (button click is a user gesture).
+      
+      // Start speaking right after coaching begins
       speakStartNarration();
+
+      // Check limits for Free tier in the background
+      if (!user?.plan || user?.plan === "free") {
+        fetch(`${API_BASE_URL}/api/posture/start-session`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ userId: user?._id }),
+        })
+          .then(async (res) => {
+            if (!res.ok) {
+              const data = await res.json();
+              setLimitMessage(data.error || "You have reached your free tier limit for Virtual Training. Please upgrade to Pro.");
+              // Limit exceeded: stop the session retroactively
+              setIsRunning(false);
+              stopNarration();
+              setShowLimitModal(true);
+            }
+          })
+          .catch((err) => {
+            console.error("Error starting VTA session:", err);
+            setLimitMessage("Error verifying session limits. Please try again.");
+            setIsRunning(false);
+            stopNarration();
+            setShowLimitModal(true);
+          });
+      }
     }
   };
 
@@ -1353,15 +1357,17 @@ export default function PostureCoach() {
                 videoConstraints={{
                   deviceId: selectedCameraId || undefined,
                   facingMode: selectedCameraId ? undefined : "user",
-                  width: { ideal: 1280, min: 640 },
-                  height: { ideal: 720, min: 480 },
-                  aspectRatio: { ideal: 16 / 9 },
+                  width: { ideal: 640 },
+                  height: { ideal: 480 },
                 }}
               />
               <canvas
                 ref={canvasRef}
                 className="absolute inset-0 w-full h-full pointer-events-none"
-                style={{ objectFit: "contain" }}
+                style={{ 
+                  objectFit: "contain",
+                  transform: "scaleX(-1)"
+                }}
               />
               {cameraError && (
                 <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-red-500/90 text-white text-[11px] md:text-xs px-3 py-1 rounded-full shadow-lg max-w-full text-center">

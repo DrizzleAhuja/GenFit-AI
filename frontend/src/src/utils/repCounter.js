@@ -293,7 +293,7 @@ export class RepCounter {
       }
       
       case 'bicep_curl': {
-        // Use shoulder-elbow-wrist angle
+        // Use shoulder-elbow-wrist angle. Smaller angle = bent (active curl)
         const leftShoulder = getKp('left_shoulder');
         const leftElbow = getKp('left_elbow');
         const leftWrist = getKp('left_wrist');
@@ -301,20 +301,19 @@ export class RepCounter {
         const rightElbow = getKp('right_elbow');
         const rightWrist = getKp('right_wrist');
         
-        if (leftShoulder && leftElbow && leftWrist &&
-            leftShoulder.score > 0.3 && leftElbow.score > 0.3 && leftWrist.score > 0.3) {
-          return this.calculateAngle(leftShoulder, leftElbow, leftWrist);
+        let minAngle = null;
+        if (leftShoulder && leftElbow && leftWrist && leftShoulder.score > 0.3 && leftElbow.score > 0.3 && leftWrist.score > 0.3) {
+          minAngle = this.calculateAngle(leftShoulder, leftElbow, leftWrist);
         }
-        
-        if (rightShoulder && rightElbow && rightWrist &&
-            rightShoulder.score > 0.3 && rightElbow.score > 0.3 && rightWrist.score > 0.3) {
-          return this.calculateAngle(rightShoulder, rightElbow, rightWrist);
+        if (rightShoulder && rightElbow && rightWrist && rightShoulder.score > 0.3 && rightElbow.score > 0.3 && rightWrist.score > 0.3) {
+          const rAngle = this.calculateAngle(rightShoulder, rightElbow, rightWrist);
+          if (minAngle === null || rAngle < minAngle) minAngle = rAngle;
         }
-        return null;
+        return minAngle;
       }
       
       case 'shoulder_press': {
-        // Use shoulder-elbow-wrist angle to detect press from bottom to top
+        // Use shoulder-elbow-wrist angle. Larger angle = arms extended (active press)
         const leftShoulder = getKp('left_shoulder');
         const leftElbow = getKp('left_elbow');
         const leftWrist = getKp('left_wrist');
@@ -322,20 +321,19 @@ export class RepCounter {
         const rightElbow = getKp('right_elbow');
         const rightWrist = getKp('right_wrist');
 
-        if (leftShoulder && leftElbow && leftWrist &&
-            leftShoulder.score > 0.3 && leftElbow.score > 0.3 && leftWrist.score > 0.3) {
-          return this.calculateAngle(leftShoulder, leftElbow, leftWrist);
+        let maxAngle = null;
+        if (leftShoulder && leftElbow && leftWrist && leftShoulder.score > 0.3 && leftElbow.score > 0.3 && leftWrist.score > 0.3) {
+          maxAngle = this.calculateAngle(leftShoulder, leftElbow, leftWrist);
         }
-
-        if (rightShoulder && rightElbow && rightWrist &&
-            rightShoulder.score > 0.3 && rightElbow.score > 0.3 && rightWrist.score > 0.3) {
-          return this.calculateAngle(rightShoulder, rightElbow, rightWrist);
+        if (rightShoulder && rightElbow && rightWrist && rightShoulder.score > 0.3 && rightElbow.score > 0.3 && rightWrist.score > 0.3) {
+          const rAngle = this.calculateAngle(rightShoulder, rightElbow, rightWrist);
+          if (maxAngle === null || rAngle > maxAngle) maxAngle = rAngle;
         }
-        return null;
+        return maxAngle;
       }
 
       case 'lateral_raise': {
-        // Use torso‑shoulder‑wrist angle to estimate arm elevation
+        // Use torso‑shoulder‑wrist angle. Larger angle = arms raised out (active raise)
         const leftHip = getKp('left_hip');
         const leftShoulder = getKp('left_shoulder');
         const leftWrist = getKp('left_wrist');
@@ -343,16 +341,15 @@ export class RepCounter {
         const rightShoulder = getKp('right_shoulder');
         const rightWrist = getKp('right_wrist');
 
-        if (leftHip && leftShoulder && leftWrist &&
-            leftHip.score > 0.3 && leftShoulder.score > 0.3 && leftWrist.score > 0.3) {
-          return this.calculateAngle(leftHip, leftShoulder, leftWrist);
+        let maxAngle = null;
+        if (leftHip && leftShoulder && leftWrist && leftHip.score > 0.3 && leftShoulder.score > 0.3 && leftWrist.score > 0.3) {
+          maxAngle = this.calculateAngle(leftHip, leftShoulder, leftWrist);
         }
-
-        if (rightHip && rightShoulder && rightWrist &&
-            rightHip.score > 0.3 && rightShoulder.score > 0.3 && rightWrist.score > 0.3) {
-          return this.calculateAngle(rightHip, rightShoulder, rightWrist);
+        if (rightHip && rightShoulder && rightWrist && rightHip.score > 0.3 && rightShoulder.score > 0.3 && rightWrist.score > 0.3) {
+          const rAngle = this.calculateAngle(rightHip, rightShoulder, rightWrist);
+          if (maxAngle === null || rAngle > maxAngle) maxAngle = rAngle;
         }
-        return null;
+        return maxAngle;
       }
 
       case 'deadlift': {
@@ -377,7 +374,7 @@ export class RepCounter {
       }
 
       case 'bent_over_row': {
-        // Use shoulder‑elbow‑wrist for pull distance
+        // Use shoulder‑elbow‑wrist. Smaller angle = pulled towards body (active row)
         const leftShoulder = getKp('left_shoulder');
         const leftElbow = getKp('left_elbow');
         const leftWrist = getKp('left_wrist');
@@ -385,20 +382,19 @@ export class RepCounter {
         const rightElbow = getKp('right_elbow');
         const rightWrist = getKp('right_wrist');
 
-        if (leftShoulder && leftElbow && leftWrist &&
-            leftShoulder.score > 0.3 && leftElbow.score > 0.3 && leftWrist.score > 0.3) {
-          return this.calculateAngle(leftShoulder, leftElbow, leftWrist);
+        let minAngle = null;
+        if (leftShoulder && leftElbow && leftWrist && leftShoulder.score > 0.3 && leftElbow.score > 0.3 && leftWrist.score > 0.3) {
+          minAngle = this.calculateAngle(leftShoulder, leftElbow, leftWrist);
         }
-
-        if (rightShoulder && rightElbow && rightWrist &&
-            rightShoulder.score > 0.3 && rightElbow.score > 0.3 && rightWrist.score > 0.3) {
-          return this.calculateAngle(rightShoulder, rightElbow, rightWrist);
+        if (rightShoulder && rightElbow && rightWrist && rightShoulder.score > 0.3 && rightElbow.score > 0.3 && rightWrist.score > 0.3) {
+          const rAngle = this.calculateAngle(rightShoulder, rightElbow, rightWrist);
+          if (minAngle === null || rAngle < minAngle) minAngle = rAngle;
         }
-        return null;
+        return minAngle;
       }
 
       case 'tricep_extension': {
-        // Shoulder‑elbow‑wrist angle again but different thresholds
+        // Shoulder‑elbow‑wrist. Larger angle = extended (active extension)
         const leftShoulder = getKp('left_shoulder');
         const leftElbow = getKp('left_elbow');
         const leftWrist = getKp('left_wrist');
@@ -406,16 +402,15 @@ export class RepCounter {
         const rightElbow = getKp('right_elbow');
         const rightWrist = getKp('right_wrist');
 
-        if (leftShoulder && leftElbow && leftWrist &&
-            leftShoulder.score > 0.3 && leftElbow.score > 0.3 && leftWrist.score > 0.3) {
-          return this.calculateAngle(leftShoulder, leftElbow, leftWrist);
+        let maxAngle = null;
+        if (leftShoulder && leftElbow && leftWrist && leftShoulder.score > 0.3 && leftElbow.score > 0.3 && leftWrist.score > 0.3) {
+          maxAngle = this.calculateAngle(leftShoulder, leftElbow, leftWrist);
         }
-
-        if (rightShoulder && rightElbow && rightWrist &&
-            rightShoulder.score > 0.3 && rightElbow.score > 0.3 && rightWrist.score > 0.3) {
-          return this.calculateAngle(rightShoulder, rightElbow, rightWrist);
+        if (rightShoulder && rightElbow && rightWrist && rightShoulder.score > 0.3 && rightElbow.score > 0.3 && rightWrist.score > 0.3) {
+          const rAngle = this.calculateAngle(rightShoulder, rightElbow, rightWrist);
+          if (maxAngle === null || rAngle > maxAngle) maxAngle = rAngle;
         }
-        return null;
+        return maxAngle;
       }
 
       case 'high_knees': {
