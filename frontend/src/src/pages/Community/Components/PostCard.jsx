@@ -140,12 +140,7 @@ export default function PostCard({ post, currentUser, onLikeToggle }) {
             <FaComment className="text-lg" />
             <span>Comments</span>
           </button>
-          <button
-            type="button"
-            className="flex items-center gap-2 hover:text-[#A855F7] transition-colors sm:ml-auto"
-          >
-            <FaShareAlt className="text-lg" />
-          </button>
+
         </div>
 
         {/* Comments Section */}
