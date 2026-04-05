@@ -32,6 +32,7 @@ import PostureCoach from "./pages/PostureCoach/PostureCoach.jsx";
 import PWAInstallBanner from "./Components/PWAInstallBanner.jsx";
 import FitBotWidget from "./pages/FitBot/Section1.jsx";
 import SplashScreen from "./Components/SplashScreen.jsx";
+import ScrollToTopButton from "./Components/ScrollToTopButton.jsx";
 import { API_BASE_URL } from "../config/api";
 import AdminLayout from "./Components/Admin/AdminLayout";
 import AdminDashboard from "./pages/Admin/Dashboard";
@@ -152,6 +153,7 @@ function App() {
 
 
         {!isAdminRoute && <FitBotWidget />}
+        <ScrollToTopButton />
         <ToastContainer
           position="bottom-right"
           autoClose={3000}
