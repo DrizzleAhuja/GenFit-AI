@@ -1,9 +1,8 @@
 import React from "react";
 import { motion } from "framer-motion";
+import genfitLogo from "../assets/genfitlogo-removebg-preview.png";
 
 const SplashScreen = () => {
-  const text = "GenFit AI";
-
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#030014] overflow-hidden">
       {/* Dynamic Background Glowing Blobs and Floating Particles */}
@@ -50,46 +49,26 @@ const SplashScreen = () => {
         ))}
       </div>
 
-      <div className="relative flex gap-2 text-5xl sm:text-7xl font-extrabold tracking-tight px-4">
-        {text.split("").map((char, index) => {
-          // Generate random offsets for the "scattered" entry effect
-          const randomX = Math.random() * 600 - 300;
-          const randomY = Math.random() * 600 - 300;
-
-          return (
-            <motion.span
-              key={index}
-              initial={{ 
-                x: randomX, 
-                y: randomY, 
-                opacity: 0, 
-                scale: 0.2,
-                filter: "blur(12px)"
-              }}
-              animate={{ 
-                x: 0, 
-                y: 0, 
-                opacity: 1, 
-                scale: 1,
-                filter: "blur(0px)" 
-              }}
-              transition={{
-                duration: 1.2,
-                delay: index * 0.08,
-                type: "spring",
-                bounce: 0.25,
-                ease: "easeOut"
-              }}
-              className={
-                char === " " 
-                  ? "w-4 sm:w-6" 
-                  : "bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE] drop-shadow-[0_0_30px_rgba(139,92,246,0.5)]"
-              }
-            >
-              {char}
-            </motion.span>
-          );
-        })}
+      <div className="relative flex flex-col items-center gap-6">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5, filter: "blur(10px)" }}
+          animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+          transition={{ 
+            duration: 1.5, 
+            ease: [0.16, 1, 0.3, 1], // Custom bouncy ease
+            delay: 0.2
+          }}
+          className="relative"
+        >
+          {/* Logo Glow Effect */}
+          <div className="absolute inset-0 bg-[#8B5CF6] rounded-full blur-2xl opacity-20 animate-pulse" />
+          
+          <img 
+            src={genfitLogo} 
+            alt="GenFit AI" 
+            className="w-64 h-64 sm:w-96 sm:h-96 object-contain relative z-10 drop-shadow-[0_0_50px_rgba(139,92,246,0.7)]"
+          />
+        </motion.div>
       </div>
 
       <motion.div

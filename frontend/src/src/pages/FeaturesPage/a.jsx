@@ -2,9 +2,9 @@ import React from "react";
 import { Link } from "react-router-dom";
 import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
+import GenFitLogo from "../../Components/GenFitLogo";
 import { useTheme } from "../../context/ThemeContext";
 import {
-  Sparkles,
   Brain,
   Activity,
   ShieldCheck,
@@ -68,31 +68,21 @@ export default function Features() {
             <div className="absolute -top-24 -left-16 w-72 h-72 bg-[#8B5CF6] rounded-full blur-3xl opacity-30" />
             <div className="absolute -bottom-28 right-0 w-80 h-80 bg-[#22D3EE] rounded-full blur-3xl opacity-25" />
           </div>
-
           <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
             {/* Header */}
             <header className="text-center mb-6 sm:mb-8 lg:mb-10">
-              <div className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-gradient-to-r from-[#8B5CF6]/20 to-[#22D3EE]/20 border border-[#8B5CF6]/40 backdrop-blur-xl mb-4">
-                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#FACC15]" />
-                <span className="text-xs sm:text-sm font-semibold text-gray-100">
-                  Why athletes love GenFit AI
-                </span>
+              <div className="flex flex-col items-center justify-center mb-4">
+                <GenFitLogo size="large" className="mb-2" />
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold">
+                  The Complete{" "}
+                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]">
+                    AI Training Stack
+                  </span>
+                </h1>
               </div>
 
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold mb-3 sm:mb-4">
-                A complete{" "}
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]">
-                  AI training stack
-                </span>
-              </h1>
-
               <p className="max-w-3xl mx-auto text-sm sm:text-base lg:text-lg text-gray-300">
-                GenFit AI brings workouts, nutrition, posture, and motivation
-                into one intelligent system so you always know{" "}
-                <span className="font-semibold text-[#22D3EE]">
-                  what to do next
-                </span>
-                .
+                Precision coaching, form tracking, and smart nutrition—powered by AI, designed for real humans.
               </p>
             </header>
 

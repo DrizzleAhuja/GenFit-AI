@@ -1,8 +1,9 @@
 import React from 'react';
 import NavBar from '../HomePage/NavBar';
 import Footer from '../HomePage/Footer';
+import GenFitLogo from '../../Components/GenFitLogo';
 import { useTheme } from '../../context/ThemeContext';
-import { Sparkles, Brain, Target, Users, Heart, TrendingUp, Award } from 'lucide-react';
+import { Brain, Target, Heart, TrendingUp, Award } from 'lucide-react';
 
 export default function About() {
   const { darkMode } = useTheme();
@@ -58,19 +59,12 @@ export default function About() {
           <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
             {/* Header */}
             <header className="text-center mb-6 sm:mb-8 lg:mb-10">
-              <div className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-gradient-to-r from-[#8B5CF6]/20 to-[#22D3EE]/20 border border-[#8B5CF6]/40 backdrop-blur-xl mb-4">
-                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#FACC15]" />
-                <span className="text-xs sm:text-sm font-semibold text-gray-100">
-                  Our story
-                </span>
+              <div className="flex flex-col items-center justify-center mb-4">
+                <GenFitLogo size="large" className="mb-2" />
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold">
+                  About the Platform
+                </h1>
               </div>
-
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold mb-3 sm:mb-4">
-                About{" "}
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]">
-                  GenFit AI
-                </span>
-              </h1>
 
               <p className="max-w-3xl mx-auto text-sm sm:text-base lg:text-lg text-gray-300">
                 Revolutionizing personal wellness through intelligent, data-driven solutions designed for real-world results.

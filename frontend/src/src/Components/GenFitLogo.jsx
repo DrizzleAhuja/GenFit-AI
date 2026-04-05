@@ -1,38 +1,32 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
+import genfitLogo from "../assets/genfitlogo-removebg-preview.png";
 
-export default function GenFitLogo({ className = "", showText = true, size = "default" }) {
+export default function GenFitLogo({ className = "", showText = false, size = "default" }) {
   const sizeClasses = {
-    small: "text-lg",
-    default: "text-xl sm:text-2xl",
-    large: "text-2xl sm:text-3xl"
-  };
+    small: "h-11 sm:h-13",
+    default: "h-14 sm:h-18",
+    large: "h-28 sm:h-36"
+  }
 
-  const logoSize = sizeClasses[size] || sizeClasses.default;
+  const logoHeight = sizeClasses[size] || sizeClasses.default;
 
   return (
     <NavLink
       to="/"
-      className={`flex items-center gap-2 group ${className}`}
+      className={`flex items-center gap-3 group px-4 py-2 rounded-xl hover:bg-white/5 transition-all duration-300 ${className}`}
     >
-      {/* Logo Icon/Text - no blur */}
-      <div className="relative">
-        <div className={`font-extrabold ${logoSize} bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE] tracking-tight`}>
-          GenFit AI
-        </div>
+      <div className="relative flex items-center justify-center">
+        {/* Persistent Branding Aura (Luminous glow) */}
+        <div className="absolute inset-x-0 h-10 w-full bg-[#8B5CF6]/30 blur-2xl opacity-40 group-hover:opacity-60 transition-opacity duration-700 rounded-full scale-110" />
+        <div className="absolute inset-y-0 w-10 h-full bg-[#22D3EE]/20 blur-2xl opacity-30 group-hover:opacity-50 transition-opacity duration-700 rounded-full scale-110" />
+        
+        <img 
+          src={genfitLogo} 
+          alt="GenFit AI Logo" 
+          className={`${logoHeight} w-auto object-contain transition-all duration-500 group-hover:scale-110 drop-shadow-[0_0_35px_rgba(139,92,246,0.8)] filter brightness-[1.15] contrast-[1.15]`}
+        />
       </div>
-      
-      {/* Logo Text
-      {showText && (
-        // <div className="flex flex-col">
-        //   <span className={`font-bold ${logoSize} text-white leading-tight`}>
-        //     GenFit<span className="bg-clip-text text-transparent bg-gradient-to-r from-[#22D3EE] to-[#8B5CF6]"> AI</span>
-        //   </span>
-        //   {/* <span className="text-[10px] sm:text-xs font-semibold tracking-[0.15em] uppercase text-[#22D3EE]/80 leading-tight">
-        //     AI
-        //   </span> */}
-        {/* // </div> */}
-      {/* )}  */}
     </NavLink>
   );
 }
