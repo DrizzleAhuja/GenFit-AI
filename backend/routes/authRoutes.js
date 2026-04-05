@@ -3537,25 +3537,44 @@ router.post("/tracker/ai-insights", async (req, res) => {
     }
 
     const prompt = `
-You are an expert fitness and health AI coach. The user wants insights on their ${metricType} data.
-Data: ${JSON.stringify(data)}
+You are an expert fitness and health AI coach for GenFit AI.
+The user wants a deep analysis of their daily activity and health metrics.
 
-Please provide a short, motivating, and actionable insight (1-3 sentences) based on this data.
-Make it personal and encouraging. Do not use markdown like bolding.
+User Data for today:
+${JSON.stringify(data)}
+
+Please provide a structured analysis in JSON format with exactly these keys:
+1. "status": A summary of their current health standing today (1 sentence).
+2. "strength": What they are doing best based on the data (1 sentence).
+3. "consistency": How well they are sticking to their goals (1 sentence).
+4. "actionPlan": One specific, actionable tip for the next few hours (1 sentence).
+
+Return ONLY the JSON. No markdown fences.
 `.trim();
 
     const response = await axios.post(
       `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
       {
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 200 },
+        generationConfig: { 
+          temperature: 0.5, 
+          maxOutputTokens: 500,
+          responseMimeType: "application/json"
+        },
       },
       { headers: { "Content-Type": "application/json" }, timeout: 15000 }
     );
 
-    const insight = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || "Keep up the great work! Consistency is key.";
+    const raw = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+    let parsed = {};
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      console.error("Failed to parse Gemini insight JSON:", raw);
+      parsed = { status: raw.substring(0, 100) };
+    }
 
-    res.status(200).json({ success: true, insight: insight.trim() });
+    res.status(200).json({ success: true, insight: parsed });
   } catch (error) {
     console.error("Error generating AI insight:", safeErrorForLog(error));
     res.status(500).json({ success: false, error: "Failed to generate AI insight" });
