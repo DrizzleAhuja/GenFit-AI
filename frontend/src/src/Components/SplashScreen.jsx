@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import genfitLogo from "../assets/genfitlogo-removebg-preview.png";
+import genfitLogo from "../assets/GenFit_AI__Elevate_Your_Fitness-removebg-preview.png";
 
 const SplashScreen = () => {
   return (

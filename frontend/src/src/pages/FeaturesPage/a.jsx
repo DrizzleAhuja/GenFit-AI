@@ -72,7 +72,7 @@ export default function Features() {
             {/* Header */}
             <header className="text-center mb-6 sm:mb-8 lg:mb-10">
               <div className="flex flex-col items-center justify-center mb-4">
-                <GenFitLogo size="large" className="mb-2" />
+                <GenFitLogo size="xllarge" className="mb-2" />
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold">
                   The Complete{" "}
                   <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]">

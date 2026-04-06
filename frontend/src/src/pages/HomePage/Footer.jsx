@@ -21,13 +21,13 @@ import { NavLink } from "react-router-dom";
 import { useTheme } from '../../context/ThemeContext'; // Corrected Import useTheme path
 import GenFitLogo from "../../Components/GenFitLogo";
 import { toast } from 'react-toastify';
-import { 
-  getInstallPrompt, 
-  onInstallPromptAvailable, 
-  triggerInstall, 
-  isPWAInstalled, 
-  isAndroid, 
-  isIOS, 
+import {
+  getInstallPrompt,
+  onInstallPromptAvailable,
+  triggerInstall,
+  isPWAInstalled,
+  isAndroid,
+  isIOS,
   isMobile,
   shouldShowInstallPrompt
 } from '../../utils/pwaInstall';
@@ -53,18 +53,18 @@ export default function Footer() {
         isMobile: isMobile(),
         isStandalone: isStandalone
       };
-      
+
       setDeviceInfo(deviceInfoUpdate);
-      
+
       // Show install options if:
       // 1. Not installed AND (has prompt OR should show based on dismissal state)
       if (!isStandalone) {
         const prompt = getInstallPrompt();
         const shouldShow = shouldShowInstallPrompt();
-        console.log('🔄 Updating install state:', { 
-          hasPrompt: !!prompt, 
-          shouldShow, 
-          isStandalone 
+        console.log('🔄 Updating install state:', {
+          hasPrompt: !!prompt,
+          shouldShow,
+          isStandalone
         });
         setHasInstallPrompt(!!prompt);
         setShouldShowInstall(shouldShow);
@@ -122,7 +122,7 @@ export default function Footer() {
     e.preventDefault();
     e.stopPropagation();
     console.log('🔘 Install button clicked');
-    
+
     if (deviceInfo.isStandalone) {
       toast.info('App is already installed!', { autoClose: 2000 });
       return;
@@ -131,7 +131,7 @@ export default function Footer() {
     // Try to get the install prompt - check multiple times as it might not be immediately available
     let prompt = getInstallPrompt();
     console.log('📦 Initial prompt check:', prompt ? 'Available' : 'Not available');
-    
+
     // If no prompt, wait a bit and check again (sometimes it takes a moment)
     if (!prompt) {
       console.log('⏳ Waiting for prompt...');
@@ -144,13 +144,13 @@ export default function Footer() {
         }
       }
     }
-    
+
     if (prompt) {
       try {
         console.log('✅ Prompt available, triggering install...');
         // Trigger the install prompt immediately
         const accepted = await triggerInstall();
-        
+
         if (accepted) {
           toast.success('Installing GenFit AI...', { autoClose: 2000 });
         } else {
@@ -219,23 +219,23 @@ export default function Footer() {
 
   const footerLinks = {
     "Download & Projects": [
-      { 
-        icon: <FaAndroid className="mr-2" />, 
-        label: "Android App", 
+      {
+        icon: <FaAndroid className="mr-2" />,
+        label: "Android App",
         href: "#",
         onClick: handleAndroidInstall,
         show: !deviceInfo.isStandalone && (deviceInfo.isAndroid || deviceInfo.isMobile)
       },
-      { 
-        icon: <FaApple className="mr-2" />, 
-        label: "iOS App", 
+      {
+        icon: <FaApple className="mr-2" />,
+        label: "iOS App",
         href: "#",
         onClick: handleIOSInstall,
         show: !deviceInfo.isStandalone && deviceInfo.isIOS
       },
-      { 
-        icon: <FaDesktop className="mr-2" />, 
-        label: "Desktop", 
+      {
+        icon: <FaDesktop className="mr-2" />,
+        label: "Desktop",
         href: "#",
         onClick: handleDesktopInstall,
         show: !deviceInfo.isStandalone && !deviceInfo.isMobile
@@ -265,7 +265,7 @@ export default function Footer() {
           {/* Brand Info */}
           <div className="lg:col-span-1">
             <div className="mb-4 flex flex-col items-start gap-3">
-              <GenFitLogo size="large" />
+              <GenFitLogo size="xlarge" />
               <div>
                 <p className="text-xs tracking-[0.25em] uppercase text-[#22D3EE]/80 mt-2">
                   Your AI Fitness Partner
@@ -287,11 +287,11 @@ export default function Footer() {
                 {links.map((link, index) => {
                   // Hide install links if app is already installed
                   if (link.show === false) return null;
-                  
+
                   return (
                     <li key={index}>
                       {link.isNavLink ? (
-                        <NavLink 
+                        <NavLink
                           to={link.href}
                           className={`flex items-center ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-700 hover:text-gray-900'} transition-colors cursor-pointer`}
                         >

@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, ArrowRight, Zap, Target, Shield, Globe } from 'lucide-react';
+import { Sparkles, ArrowRight, Zap, Target, Shield, Globe, Dumbbell, Heart, Flame } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { TypeAnimation } from 'react-type-animation';
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import GenFitLogo from '../../Components/GenFitLogo';
 
@@ -100,22 +101,61 @@ const HomeSec1 = ({ onLoginSuccess, onLoginError }) => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1 }}
           >
-            <div className="relative flex items-center justify-center" style={{minHeight: '380px'}}>
-              {/* Glowing aura behind logo */}
-              <div className="absolute w-72 h-72 bg-[#22D3EE] rounded-full blur-[120px] opacity-10 animate-pulse" />
-              <div className="absolute w-48 h-48 bg-[#3B82F6] rounded-full blur-[80px] opacity-10 animate-pulse" style={{animationDelay:'1s'}} />
-              {/* Spinning dashed ring */}
-              <div className="absolute w-64 h-64 rounded-full border-2 border-dashed border-[#22D3EE]/20 animate-spin" style={{animationDuration:'18s'}} />
-              <div className="absolute w-80 h-80 rounded-full border border-[#3B82F6]/10 animate-spin" style={{animationDuration:'28s', animationDirection:'reverse'}} />
-              {/* The Logo */}
-              <div className="relative z-10 flex flex-col items-center gap-4">
-                <GenFitLogo size="large" />
-                <div className="text-center">
-                  <div className="text-xs font-bold text-[#22D3EE] uppercase tracking-[0.3em] mt-2">GenFit AI</div>
-                  <div className="text-[10px] text-gray-500 tracking-widest uppercase mt-1">Autonomous Fitness Engine</div>
+            <motion.div 
+              className="relative flex items-center justify-center group cursor-pointer" 
+              style={{minHeight: '380px'}}
+              whileHover={{ scale: 1.05, rotateZ: 2 }}
+              transition={{ type: "spring", stiffness: 200, damping: 15 }}
+            >
+              {/* Glowing aura behind logo (Glows brighter on hover) */}
+              <div className="absolute w-72 h-72 bg-[#22D3EE] rounded-full blur-[120px] opacity-10 group-hover:opacity-30 group-hover:bg-[#8B5CF6] transition-all duration-700 animate-pulse" />
+              <div className="absolute w-48 h-48 bg-[#3B82F6] rounded-full blur-[80px] opacity-10 group-hover:opacity-40 group-hover:w-64 group-hover:h-64 transition-all duration-700 animate-pulse" style={{animationDelay:'1s'}} />
+              
+              {/* Spinning dashed ring 1 */}
+              <div className="absolute w-64 h-64 rounded-full border-2 border-dashed border-[#22D3EE]/20 group-hover:border-[#22D3EE]/50 transition-colors duration-500 animate-spin flex items-center justify-center" style={{animationDuration:'15s'}}>
+                <div className="absolute -top-3 bg-[#05010d] rounded-full p-1 opacity-90 shadow-[0_0_15px_rgba(34,211,238,0.5)]">
+                  <Dumbbell className="w-5 h-5 text-[#22D3EE]" />
+                </div>
+                <div className="absolute -bottom-3 bg-[#05010d] rounded-full p-1 opacity-90 shadow-[0_0_15px_rgba(225,29,72,0.5)]">
+                  <Heart className="w-4 h-4 text-[#E11D48]" />
                 </div>
               </div>
-            </div>
+
+              {/* Spinning solid ring 2 */}
+              <div className="absolute w-80 h-80 rounded-full border border-[#3B82F6]/10 group-hover:border-[#8B5CF6]/40 transition-colors duration-500 animate-spin flex items-center justify-center" style={{animationDuration:'25s', animationDirection:'reverse'}}>
+                <div className="absolute -right-3 bg-[#05010d] rounded-full p-1 opacity-90 shadow-[0_0_15px_rgba(249,115,22,0.5)]">
+                  <Flame className="w-5 h-5 text-[#F97316]" />
+                </div>
+                <div className="absolute -left-3 bg-[#05010d] rounded-full p-1 opacity-90 shadow-[0_0_15px_rgba(139,92,246,0.5)]">
+                  <Zap className="w-5 h-5 text-[#8B5CF6]" />
+                </div>
+              </div>
+              
+              {/* The Logo */}
+              <div className="relative z-10 flex flex-col items-center gap-4 group-hover:brightness-125 transition-all duration-300">
+                <GenFitLogo size="large" />
+                <div className="text-center">
+                  <div className="text-xs font-bold text-[#22D3EE] uppercase tracking-[0.3em] mt-2 mb-1">GenFit AI</div>
+                  <div className="text-[11px] font-medium text-gray-400 tracking-widest uppercase h-4 flex items-center justify-center min-w-[250px]">
+                    <TypeAnimation
+                      sequence={[
+                        'Autonomous Fitness Engine',
+                        2000,
+                        'Track Calories Instantly',
+                        2000,
+                        'AI Posture Correction',
+                        2000,
+                        'Personalised Diet Plans',
+                        2000,
+                      ]}
+                      wrapper="span"
+                      speed={50}
+                      repeat={Infinity}
+                    />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
           </motion.div>
 
         </div>

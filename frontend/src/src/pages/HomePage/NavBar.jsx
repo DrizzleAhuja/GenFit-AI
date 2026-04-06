@@ -222,7 +222,7 @@ export default function NavBar() {
         <nav className="hidden lg:block sticky top-0 left-0 w-full z-50 bg-[#05010d]/95 backdrop-blur-xl border-b border-purple-500/30 shadow-[0_0_25px_rgba(139,92,246,0.35)] text-white">
           <div className="container mx-auto px-6 py-3 flex justify-between items-center">
             {/* Logo */}
-            <GenFitLogo size="default" />
+            <GenFitLogo size="default" isHeader={true} />
 
             {/* Desktop Navigation Links */}
             <div className="flex space-x-6">
@@ -359,7 +359,7 @@ export default function NavBar() {
               {mobileMenuOpen ? <FiX size={28} /> : <FiMenu size={28} />}
             </button>
 
-            <GenFitLogo size="small" />
+            <GenFitLogo size="small" isHeader={true} />
 
             {user && (
               <div
@@ -385,7 +385,7 @@ export default function NavBar() {
             {/* Sidebar Header */}
             <div className="flex justify-between items-center p-4 border-b border-purple-500/40">
               <div onClick={() => setMobileMenuOpen(false)}>
-                <GenFitLogo size="small" />
+                <GenFitLogo size="small" isHeader={true} />
               </div>
               <button
                 className="text-gray-300 hover:text-white"
