@@ -59,7 +59,7 @@ function getFrontendRedirectBase() {
 const GROQ_FITBOT_TEXT_MODEL =
   process.env.GROQ_FITBOT_MODEL || "llama-3.1-8b-instant";
 const GROQ_FITBOT_VISION_MODEL =
-  process.env.GROQ_FITBOT_VISION_MODEL || "llama-3.2-11b-vision-preview";
+  process.env.GROQ_FITBOT_VISION_MODEL || "meta-llama/llama-4-scout-17b-16e-instruct";
 const FITBOT_MAX_CHAT_HISTORY = 4;
 const FITBOT_MAX_ASSISTANT_CHARS = 900;
 const FITBOT_MAX_USER_CHARS = 1200;
@@ -2022,43 +2022,33 @@ Include protein_g, carbs_g, fat_g (grams) per item for that portion. Numbers onl
 ${userNote ? `User note / context: ${userNote}` : ""}
 `.trim();
 
-    // Use the same Gemini model as the rest of the app (from config)
-    const response = await axios.post(
-      `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
-      {
-        contents: [
-          {
-            parts: [
-              { text: prompt },
-              {
-                inlineData: {
-                  mimeType: "image/jpeg",
-                  data: base64Data,
-                },
+    const payload = {
+      model: GROQ_FITBOT_VISION_MODEL,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Data}`,
               },
-            ],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.4,
-          maxOutputTokens: 512,
-          topP: 0.8,
-          topK: 20,
-          responseMimeType: "application/json"
+            },
+          ],
         },
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        timeout: 25000,
-      }
-    );
+      ],
+      temperature: 0.2,
+      max_completion_tokens: 1024,
+      response_format: { type: "json_object" }
+    };
 
-    let raw = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+    const response = await postGroqChatCompletions(payload, GROQ_API_KEY);
+
+    let raw = response.data?.choices?.[0]?.message?.content || "{}";
     raw = raw.trim();
 
-    // Strip accidental code fences if Gemini adds them
+    // Strip accidental code fences if Groq adds them
     if (raw.startsWith("```")) {
       raw = raw.replace(/^```[a-zA-Z]*\n?/, "").replace(/```$/, "").trim();
     }
@@ -2067,7 +2057,7 @@ ${userNote ? `User note / context: ${userNote}` : ""}
     try {
       parsed = JSON.parse(raw);
     } catch (e) {
-      console.error("Failed to parse Gemini calorie JSON:", e.message);
+      console.error("Failed to parse Groq calorie JSON:", e.message);
       console.error("Raw response:", raw);
 
       // Fallback: try to salvage something from the text response
@@ -2109,7 +2099,7 @@ ${userNote ? `User note / context: ${userNote}` : ""}
         };
       } catch (fallbackErr) {
         console.error(
-          "Fallback parse for Gemini calorie response also failed:",
+          "Fallback parse for Groq calorie response also failed:",
           fallbackErr.message
         );
         // Final ultra-safe fallback: return empty, not an error
@@ -2158,11 +2148,11 @@ ${userNote ? `User note / context: ${userNote}` : ""}
   } catch (error) {
     console.error("Error in calorie-tracker/scan endpoint:", safeErrorForLog(error));
     if (error.response) {
-      console.error("Gemini API response error:", error.response.data);
+      console.error("Groq API response error:", error.response.data);
     }
     return res.status(500).json({
       success: false,
-      error: "Failed to analyze food image",
+      error: "Failed to analyze food image with Groq",
       details: error.message,
     });
   }
