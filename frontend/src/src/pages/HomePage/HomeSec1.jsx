@@ -67,12 +67,6 @@ const HomeSec1 = ({ onLoginSuccess, onLoginError }) => {
                   />
                 </GoogleOAuthProvider>
               </div>
-              <Link
-                to="/AboutUs"
-                className="px-8 py-3 rounded-full font-bold text-white bg-gradient-to-r from-[#22D3EE] via-[#0EA5E9] to-[#8B5CF6] hover:opacity-95 transition-all duration-300 shadow-lg hover:shadow-[#22D3EE]/40 flex items-center justify-center min-w-[160px]"
-              >
-                Learn More
-              </Link>
             </div>
 
             {/* Alignment Badges */}

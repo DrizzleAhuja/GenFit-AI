@@ -738,7 +738,10 @@ export default function Home() {
             onLoginError={handleLoginError}
           />
           <HomeSec2 />
-          <HomeSec3 />
+          <HomeSec3 
+            onLoginSuccess={handleLoginSuccess}
+            onLoginError={handleLoginError}
+          />
           <HomeSec4 />
         </main>
       )}

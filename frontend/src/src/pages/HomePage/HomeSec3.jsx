@@ -2,8 +2,9 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ShieldCheck, BarChart3, Database, Workflow, Clock, ArrowRight, Brain } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 
-const HomeSec3 = () => {
+const HomeSec3 = ({ onLoginSuccess, onLoginError }) => {
   const features = [
     {
       title: "Verified Routines Only",
@@ -112,14 +113,23 @@ const HomeSec3 = () => {
             ))}
           </div>
 
-          <div className="mt-20 flex justify-center">
-            <Link
-              to="/signup"
-              className="px-8 py-4 rounded-full text-base font-semibold text-white bg-gradient-to-r from-[#22D3EE] via-[#0EA5E9] to-[#8B5CF6] hover:opacity-95 transition-all duration-300 shadow-lg hover:shadow-[#22D3EE]/40 inline-flex items-center gap-3"
-            >
+          <div className="mt-20 flex flex-col items-center justify-center gap-4">
+            <h4 className="text-xl md:text-2xl font-black text-white bg-clip-text text-transparent bg-gradient-to-r from-[#22D3EE] via-[#0EA5E9] to-[#8B5CF6] tracking-wide">
               START FOR FREE TODAY
-              <ArrowRight size={20} />
-            </Link>
+            </h4>
+            <div className="shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_30px_rgba(139,92,246,0.6)] transition-shadow duration-300 rounded-full">
+              <GoogleOAuthProvider clientId="702465560392-1mu8j4kqafadep516m62oa5vf5klt7pu.apps.googleusercontent.com">
+                <GoogleLogin
+                  onSuccess={onLoginSuccess}
+                  onError={onLoginError}
+                  theme="filled_blue"
+                  shape="pill"
+                  size="large"
+                  text="signup_with"
+                  width="260px"
+                />
+              </GoogleOAuthProvider>
+            </div>
           </div>
         </div>
 
