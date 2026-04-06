@@ -1,7 +1,20 @@
-# GenFit AI: AI-Powered Personalized Fitness and Wellness Platform
+<div align="center">
+  <img src="./frontend/src/src/assets/GenFit_AI__Elevate_Your_Fitness-removebg-preview.png" alt="GenFit AI Logo" width="400"/>
+  <br/>
+  <a href="https://github.com/DrizzleAhuja/MindFit-AI">
+    <img src="https://readme-typing-svg.herokuapp.com?font=Inter&weight=700&size=28&pause=1000&color=8B5CF6&center=true&vCenter=true&width=600&lines=Autonomous+Fitness+Engine;Track+Calories+Instantly;AI+Posture+Correction;Personalised+Diet+Plans" alt="Typing SVG" />
+  </a>
+  <br/>
+  <img src="https://img.shields.io/badge/React%2018-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" />
+  <img src="https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node JS" />
+  <img src="https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB" />
+  <img src="https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white" alt="TensorFlow" />
+  <img src="https://img.shields.io/badge/Gemini%20AI-8E75B2?style=for-the-badge&logo=googlebard&logoColor=white" alt="Gemini" />
+</div>
 
-![GenFit AI Logo](./frontend/src/src/assets/genfitlogo-removebg-preview.png)
+<br/>
 
+# ✨ GenFit AI: Personalized Fitness & Wellness Platform
 ## 📌 Abstract
 
 **GenFit AI** is an intelligent, holistic fitness and wellness platform designed to provide highly personalized health and fitness solutions. Leveraging Artificial Intelligence (AI), Machine Learning (ML), and Computer Vision (CV), the platform delivers comprehensive fitness management. Unlike traditional fitness apps with generic solutions, GenFit AI adapts to individual health profiles, medical conditions, and dietary restrictions to promote a sustainable, healthier lifestyle.
