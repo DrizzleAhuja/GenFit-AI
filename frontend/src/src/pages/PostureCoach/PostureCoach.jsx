@@ -195,6 +195,91 @@ const EXERCISE_GROUPS = [
 // Flat list for lookups (first occurrence per id for display fallback)
 const EXERCISES = EXERCISE_GROUPS.flatMap((g) => g.exercises);
 
+const EXERCISE_ANIMATIONS = {
+  // Base IDs fallback
+  squat: "https://fitnessprogramer.com/wp-content/uploads/2021/02/BARBELL-SQUAT.gif",
+  pushup: "https://fitnessprogramer.com/wp-content/uploads/2021/02/Push-Up.gif",
+  lunge: "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Lunge.gif",
+  bicep_curl: "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Curl.gif",
+  shoulder_press: "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Shoulder-Press.gif",
+  lateral_raise: "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Lateral-Raise.gif",
+  deadlift: "https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Deadlift.gif",
+  bent_over_row: "https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Bent-Over-Row.gif",
+  tricep_extension: "https://www.spotebi.com/wp-content/uploads/2014/10/dumbbell-triceps-extension-exercise-illustration.gif",
+  plank: "https://www.spotebi.com/wp-content/uploads/2014/10/plank-exercise-illustration.gif",
+  side_plank: "https://www.spotebi.com/wp-content/uploads/2014/10/side-plank-exercise-illustration.gif",
+  high_knees: "https://www.spotebi.com/wp-content/uploads/2014/10/high-knees-exercise-illustration.gif",
+  jumping_jack: "https://www.spotebi.com/wp-content/uploads/2014/10/jumping-jacks-exercise-illustration.gif",
+  mountain_climber: "https://www.spotebi.com/wp-content/uploads/2014/10/mountain-climbers-exercise-illustration.gif",
+  posture: "https://media1.giphy.com/media/l41lN3OhS1ZnbbE2I/giphy.gif",
+
+  // Specific Labels for EXACT mapping (covering all dropdown items)
+  "Bench Press": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Bench-Press.gif",
+  "Incline Dumbbell Press": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Incline-Dumbbell-Press.gif",
+  "Decline Press": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Decline-Barbell-Press.gif",
+  "Push-up": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Push-Up.gif",
+  "Cable Fly": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Cable-Crossover.gif",
+  "Pec Deck": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Pec-Deck-Fly.gif",
+  "Chest Press": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Lever-Chest-Press.gif",
+  "Diamond Push-up": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Diamond-Push-up.gif",
+
+  "Bent-over Row": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Bent-Over-Row.gif",
+  "Barbell Row": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Bent-Over-Row.gif",
+  "Lat Pulldown": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Lat-Pulldown.gif",
+  "Pull-up": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Pull-up.gif",
+  "Cable Row": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Seated-Cable-Row.gif",
+  "Single-Arm Row": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Row.gif",
+  "T-Bar Row": "https://fitnessprogramer.com/wp-content/uploads/2021/02/T-Bar-Row.gif",
+  "Chin-up": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Chin-Up.gif",
+
+  "Overhead Press": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Overhead-Press.gif",
+  "Military Press": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Overhead-Press.gif",
+  "Arnold Press": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Arnold-Press.gif",
+  "Front Raise": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Front-Raise.gif",
+  "Lateral Raise": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Lateral-Raise.gif",
+  "Reverse Fly": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Reverse-Fly.gif",
+  "Face Pull": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Face-Pull.gif",
+  "Upright Row": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Upright-Row.gif",
+
+  "Bicep Curl": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Curl.gif",
+  "Hammer Curl": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Hammer-Curl.gif",
+  "Preacher Curl": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Z-Bar-Preacher-Curl.gif",
+  "Concentration Curl": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Concentration-Curl.gif",
+  "Cable Curl": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Cable-Curl.gif",
+  "Barbell Curl": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Curl.gif",
+  "Incline Curl": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Incline-Dumbbell-Curl.gif",
+
+  "Tricep Extension": "https://www.spotebi.com/wp-content/uploads/2014/10/dumbbell-triceps-extension-exercise-illustration.gif",
+  "Tricep Pushdown": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Triceps-Pushdown.gif",
+  "Skull Crusher": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Lying-Triceps-Extension.gif",
+  "Overhead Extension": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Triceps-Extension.gif",
+  "Kickback": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Triceps-Kickback.gif",
+  "Close-Grip Bench": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Close-Grip-Bench-Press.gif",
+  "Dips": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Triceps-Dips.gif",
+
+  "Back Squat": "https://fitnessprogramer.com/wp-content/uploads/2021/02/BARBELL-SQUAT.gif",
+  "Front Squat": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Front-Squat.gif",
+  "Leg Press": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Leg-Press.gif",
+  "Goblet Squat": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Goblet-Squat.gif",
+  "Walking Lunge": "https://fitnessprogramer.com/wp-content/uploads/2023/06/Walking-Lunge-Thigh.gif",
+  "Reverse Lunge": "https://fitnessprogramer.com/wp-content/uploads/2021/04/Dumbbell-Reverse-Lunge.gif",
+  "Bulgarian Split Squat": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Bulgarian-Split-Squat.gif",
+  "Romanian Deadlift": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Romanian-Deadlift.gif",
+  "Deadlift": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Deadlift.gif",
+  "Calf Raise": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Calf-Raises.gif",
+
+  "Plank": "https://www.spotebi.com/wp-content/uploads/2014/10/plank-exercise-illustration.gif",
+  "Side Plank": "https://www.spotebi.com/wp-content/uploads/2014/10/side-plank-exercise-illustration.gif",
+  "Mountain Climber": "https://www.spotebi.com/wp-content/uploads/2014/10/mountain-climbers-exercise-illustration.gif",
+  "High Knees": "https://www.spotebi.com/wp-content/uploads/2014/10/high-knees-exercise-illustration.gif",
+  "Forearm Plank": "https://www.spotebi.com/wp-content/uploads/2014/10/plank-exercise-illustration.gif",
+  "Hollow Hold": "https://fitnessprogramer.com/wp-content/uploads/2024/02/Hollow-Body-Hold.gif",
+  "Dead Bug": "https://fitnessprogramer.com/wp-content/uploads/2021/08/Dead-Bug.gif",
+  "Jumping Jack": "https://www.spotebi.com/wp-content/uploads/2014/10/jumping-jacks-exercise-illustration.gif",
+
+  "Posture": "https://media1.giphy.com/media/l41lN3OhS1ZnbbE2I/giphy.gif"
+};
+
 const DEFAULT_FRONTEND_THRESHOLDS = {
   keypointScoreVisible: 0.3,
   keypointConfidenceThreshold: 0.5,
@@ -324,6 +409,7 @@ export default function PostureCoach() {
   const repCountRef = useRef(0);
   const lastRepTimeRef = useRef(null);
   const lastSpokenRepRef = useRef(0);
+  const lastPostureSpeechTimeRef = useRef(0);
   const currentFrameVisibilityRef = useRef({
     bodyVisible: false,
     fullBodyVisible: false,
@@ -389,6 +475,7 @@ export default function PostureCoach() {
     isCollectingRepFramesRef.current = false;
     lastRepTimeRef.current = null;
     lastSpokenRepRef.current = 0;
+    lastPostureSpeechTimeRef.current = 0;
     currentFrameVisibilityRef.current = { bodyVisible: false, fullBodyVisible: false };
     lastGoodScoreRef.current = false;
   }, [exercise]);
@@ -429,7 +516,7 @@ export default function PostureCoach() {
         setSessionDuration(duration);
         
         // Only calculate calories if we have reps OR if it's a time-based exercise
-        if (exercise === 'plank' || exercise === 'posture' || exercise === 'side_plank') {
+        if (exercise === 'plank' || exercise === 'side_plank') {
           // For time-based exercises, use duration
           const caloriesBurned = calculateCaloriesBurned(
             exercise,
@@ -1066,6 +1153,22 @@ export default function PostureCoach() {
                   } else {
                     lastGoodScoreRef.current = false;
                   }
+
+                  // Handle narration specifically for 'posture' mode
+                  if (exercise === 'posture' && isRunning && res.analysis) {
+                    const nowTime = Date.now();
+                    if (nowTime - (lastPostureSpeechTimeRef.current || 0) > 4000) {
+                      lastPostureSpeechTimeRef.current = nowTime;
+                      if (res.analysis.isCorrect) {
+                        speakText("Posture is correct.", 0.85);
+                      } else {
+                        const issue = Array.isArray(res.analysis.issues) && res.analysis.issues.length 
+                          ? res.analysis.issues[0] 
+                          : "Needs adjustment.";
+                        speakText(`Posture is incorrect. ${issue}`, 0.85);
+                      }
+                    }
+                  }
                 }
               })
               .catch((err) => {
@@ -1239,7 +1342,7 @@ export default function PostureCoach() {
             {/* Full-page grid: Exercises sidebar + Main camera area */}
             <section className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8">
               {/* Exercise selector - show FIRST on mobile, left sidebar on desktop */}
-              <aside className="xl:col-span-4 order-1">
+              <aside className="xl:col-span-4 order-1 flex flex-col gap-6">
                 <div className="relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] overflow-hidden hover:border-[#22D3EE]/60 transition-all duration-300">
                   <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
                   <div className="p-4 sm:p-5">
@@ -1306,6 +1409,27 @@ export default function PostureCoach() {
                         </select>
                       </div>
                     )}
+                  </div>
+                </div>
+                
+                {/* Exercise Demonstration moved to Sidebar! */}
+                <div className="relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-5 shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 transition-all flex flex-col">
+                  <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
+                  <h2 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                     <Video className="w-5 h-5 text-[#22D3EE]" />
+                     Form Demo: {selectedExerciseLabel}
+                  </h2>
+                  <div className="flex-1 w-full flex items-center justify-center bg-[#020617]/50 rounded-xl overflow-hidden border border-[#1F2937]/50 p-2 min-h-[160px]">
+                    <img 
+                      src={EXERCISE_ANIMATIONS[selectedExerciseLabel] || EXERCISE_ANIMATIONS[exercise] || "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExMjM0NzgwMjM0NzgwMjM0NzgwMjM0NzgwMjM0NzgwMjM0NzgwMjM0NyZlcD12MV9pbnRlcm5hbF9naWZzX2dpZklkJmN0PWc/3o7TqtH1jJ1A2v25sQ/giphy.gif"} 
+                      alt={selectedExerciseLabel}
+                      className="object-contain w-full h-full max-h-48 rounded-lg mix-blend-lighten"
+                      onError={(e) => {
+                        e.target.onerror = null; 
+                        e.target.src = "https://cdn-icons-png.flaticon.com/512/2964/2964514.png"; 
+                        e.target.className = "w-16 h-16 opacity-30 object-contain mx-auto";
+                      }}
+                    />
                   </div>
                 </div>
               </aside>
@@ -1402,93 +1526,122 @@ export default function PostureCoach() {
                 </div>
 
                 {/* Stats strip - horizontal, sleek, right below camera */}
-                <div className="rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl overflow-hidden shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
-                  <div className="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5">
-                    <div className="flex items-center gap-6 sm:gap-10">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
-                          <span className={`text-lg font-bold text-emerald-400 ${newRepAnimation ? 'scale-110' : ''}`}>{reps}</span>
+                {exercise !== 'posture' ? (
+                  <div className="rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl overflow-hidden shadow-[0_18px_45px_rgba(15,23,42,0.8)]">
+                    <div className="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5">
+                      <div className="flex items-center gap-6 sm:gap-10">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
+                            <span className={`text-lg font-bold text-emerald-400 ${newRepAnimation ? 'scale-110' : ''}`}>{reps}</span>
+                          </div>
+                          <div>
+                            <div className="text-[10px] text-gray-400 uppercase tracking-wider">Reps</div>
+                            <div className="text-sm font-semibold text-white">Count</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="text-[10px] text-gray-400 uppercase tracking-wider">Reps</div>
-                          <div className="text-sm font-semibold text-white">Count</div>
+                        <div className="w-px h-10 bg-[#1F2937]" />
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center">
+                            <span className="text-lg font-bold text-cyan-400">{calories.toFixed(1)}</span>
+                          </div>
+                          <div>
+                            <div className="text-[10px] text-gray-400 uppercase tracking-wider">Calories</div>
+                            <div className="text-sm font-semibold text-white">Burned</div>
+                          </div>
+                        </div>
+                        <div className="w-px h-10 bg-[#1F2937]" />
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center">
+                            <span className="text-sm font-bold text-blue-400">{formatTime(sessionDuration)}</span>
+                          </div>
+                          <div>
+                            <div className="text-[10px] text-gray-400 uppercase tracking-wider">Time</div>
+                            <div className="text-sm font-semibold text-white">Session</div>
+                          </div>
                         </div>
                       </div>
-                      <div className="w-px h-10 bg-[#1F2937]" />
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center">
-                          <span className="text-lg font-bold text-cyan-400">{calories.toFixed(1)}</span>
+                      {(exercise === 'plank' || exercise === 'side_plank') && (
+                        <span className="text-xs text-gray-400 px-3 py-1 rounded-full bg-white/5">Time-based</span>
+                      )}
+                    </div>
+                    {workoutFromPlan && workoutFromPlan.exercise && (() => {
+                      const targetTotal = parseTargetTotalReps(workoutFromPlan.exercise.sets, workoutFromPlan.exercise.reps);
+                      const isToFailure = targetTotal === null;
+                      const canMarkComplete = isToFailure ? reps >= 1 : reps >= targetTotal;
+                      return (
+                        <div className="border-t border-[#1F2937] px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                          <p className="text-sm text-cyan-200">
+                            {isToFailure
+                              ? `Reps done: ${reps}. When finished, mark complete below.`
+                              : `Reps: ${reps} / ${targetTotal} — ${canMarkComplete ? "Ready!" : "Keep training."}`}
+                          </p>
+                          <button
+                            onClick={async () => {
+                              const snapshot = {
+                                exercise,
+                                reps,
+                                calories,
+                                sessionDuration,
+                              };
+                              await logSession(snapshot);
+                              navigate("/my-workout-plan", {
+                                state: {
+                                  markExerciseComplete: true,
+                                  exerciseName: workoutFromPlan.exercise.name,
+                                  sets: workoutFromPlan.exercise.sets,
+                                  reps: workoutFromPlan.exercise.reps,
+                                  weight: workoutFromPlan.exercise.weight,
+                                  dayIndex: workoutFromPlan.dayIndex,
+                                  weekNumber: workoutFromPlan.weekNumber,
+                                  durationMinutes: Math.round(sessionDuration / 60) || 1,
+                                  calories: Math.round(calories || 0),
+                                },
+                              });
+                            }}
+                            disabled={!canMarkComplete}
+                            className={`shrink-0 py-2.5 px-5 rounded-xl font-semibold text-sm transition-all ${
+                              canMarkComplete
+                                ? "bg-cyan-500 hover:bg-cyan-600 text-gray-900"
+                                : "bg-gray-600/60 text-gray-400 cursor-not-allowed"
+                            }`}
+                          >
+                            Mark exercise complete
+                          </button>
                         </div>
-                        <div>
-                          <div className="text-[10px] text-gray-400 uppercase tracking-wider">Calories</div>
-                          <div className="text-sm font-semibold text-white">Burned</div>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl overflow-hidden shadow-[0_18px_45px_rgba(15,23,42,0.8)] p-4 sm:p-5 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      {analysis ? (
+                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${analysis.isCorrect ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' : 'bg-amber-500/20 border-amber-500/40 text-amber-500'}`}>
+                           <Activity className="w-6 h-6" />
+                         </div>
+                      ) : (
+                         <div className="w-12 h-12 rounded-xl flex items-center justify-center border bg-gray-500/20 border-gray-500/40 text-gray-400">
+                           <Activity className="w-6 h-6" />
+                         </div>
+                      )}
+                      <div>
+                        <div className="text-[11px] text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                          <Zap className="w-3 h-3 text-yellow-400" />
+                          Posture Status
                         </div>
-                      </div>
-                      <div className="w-px h-10 bg-[#1F2937]" />
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center">
-                          <span className="text-sm font-bold text-blue-400">{formatTime(sessionDuration)}</span>
-                        </div>
-                        <div>
-                          <div className="text-[10px] text-gray-400 uppercase tracking-wider">Time</div>
-                          <div className="text-sm font-semibold text-white">Session</div>
-                        </div>
+                        {analysis ? (
+                           <div className={`text-base font-bold ${analysis.isCorrect ? 'text-emerald-400' : 'text-amber-400'}`}>
+                             {analysis.isCorrect ? "Correct Posture" : "Incorrect Posture"}
+                           </div>
+                        ) : (
+                           <div className="text-sm font-semibold text-gray-300">Awaiting analysis...</div>
+                        )}
                       </div>
                     </div>
-                    {(exercise === 'plank' || exercise === 'posture') && (
-                      <span className="text-xs text-gray-400 px-3 py-1 rounded-full bg-white/5">Time-based</span>
-                    )}
                   </div>
-                  {workoutFromPlan && workoutFromPlan.exercise && (() => {
-                    const targetTotal = parseTargetTotalReps(workoutFromPlan.exercise.sets, workoutFromPlan.exercise.reps);
-                    const isToFailure = targetTotal === null;
-                    const canMarkComplete = isToFailure ? reps >= 1 : reps >= targetTotal;
-                    return (
-                      <div className="border-t border-[#1F2937] px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                        <p className="text-sm text-cyan-200">
-                          {isToFailure
-                            ? `Reps done: ${reps}. When finished, mark complete below.`
-                            : `Reps: ${reps} / ${targetTotal} — ${canMarkComplete ? "Ready!" : "Keep training."}`}
-                        </p>
-                        <button
-                          onClick={async () => {
-                            const snapshot = {
-                              exercise,
-                              reps,
-                              calories,
-                              sessionDuration,
-                            };
-                            await logSession(snapshot);
-                            navigate("/my-workout-plan", {
-                              state: {
-                                markExerciseComplete: true,
-                                exerciseName: workoutFromPlan.exercise.name,
-                                sets: workoutFromPlan.exercise.sets,
-                                reps: workoutFromPlan.exercise.reps,
-                                weight: workoutFromPlan.exercise.weight,
-                                dayIndex: workoutFromPlan.dayIndex,
-                                weekNumber: workoutFromPlan.weekNumber,
-                                durationMinutes: Math.round(sessionDuration / 60) || 1,
-                                calories: Math.round(calories || 0),
-                              },
-                            });
-                          }}
-                          disabled={!canMarkComplete}
-                          className={`shrink-0 py-2.5 px-5 rounded-xl font-semibold text-sm transition-all ${
-                            canMarkComplete
-                              ? "bg-cyan-500 hover:bg-cyan-600 text-gray-900"
-                              : "bg-gray-600/60 text-gray-400 cursor-not-allowed"
-                          }`}
-                        >
-                          Mark exercise complete
-                        </button>
-                      </div>
-                    );
-                  })()}
-                </div>
+                )}
 
-                {/* Feedback + History + How to use - clean 2-column layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Feedback + History - clean 2-column layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 xl:gap-8">
                   {/* Live Feedback - primary */}
                   <div className="relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-5 shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 transition-all">
                     <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
