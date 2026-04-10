@@ -210,17 +210,17 @@ const EXERCISE_ANIMATIONS = {
   side_plank: "https://www.spotebi.com/wp-content/uploads/2014/10/side-plank-exercise-illustration.gif",
   high_knees: "https://www.spotebi.com/wp-content/uploads/2014/10/high-knees-exercise-illustration.gif",
   jumping_jack: "https://www.spotebi.com/wp-content/uploads/2014/10/jumping-jacks-exercise-illustration.gif",
-  mountain_climber: "https://www.spotebi.com/wp-content/uploads/2014/10/mountain-climbers-exercise-illustration.gif",
-  posture: "https://media1.giphy.com/media/l41lN3OhS1ZnbbE2I/giphy.gif",
+  mountain_climber: "https://media.tenor.com/21qUJXduNeQAAAAM/working-out-deshun-murrell.gif",
+  posture: "https://media.tenor.com/ShX1lf_iH5IAAAAM/chair-posture-stretching.gif",
 
   // Specific Labels for EXACT mapping (covering all dropdown items)
   "Bench Press": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Bench-Press.gif",
   "Incline Dumbbell Press": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Incline-Dumbbell-Press.gif",
-  "Decline Press": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Decline-Barbell-Press.gif",
+  "Decline Press": "https://media.tenor.com/zKtCGjSzP6oAAAAM/chest-bench.gif",
   "Push-up": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Push-Up.gif",
   "Cable Fly": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Cable-Crossover.gif",
   "Pec Deck": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Pec-Deck-Fly.gif",
-  "Chest Press": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Lever-Chest-Press.gif",
+  "Chest Press": "https://media.tenor.com/zKtCGjSzP6oAAAAM/chest-bench.gif",
   "Diamond Push-up": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Diamond-Push-up.gif",
 
   "Bent-over Row": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Bent-Over-Row.gif",
@@ -229,55 +229,55 @@ const EXERCISE_ANIMATIONS = {
   "Pull-up": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Pull-up.gif",
   "Cable Row": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Seated-Cable-Row.gif",
   "Single-Arm Row": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Row.gif",
-  "T-Bar Row": "https://fitnessprogramer.com/wp-content/uploads/2021/02/T-Bar-Row.gif",
-  "Chin-up": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Chin-Up.gif",
+  "T-Bar Row": "https://media.tenor.com/VSPMzd4wbskAAAAM/t1e1-t-bar-row.gif",
+  "Chin-up": "https://media.tenor.com/AoUKUekRRIsAAAAM/pull-ups-this-is-happening.gif",
 
-  "Overhead Press": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Overhead-Press.gif",
-  "Military Press": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Overhead-Press.gif",
+  "Overhead Press": "https://media.tenor.com/411tsEoTwCoAAAAM/akim-williams.gif",
+  "Military Press": "https://media.tenor.com/vFJSvh8AvhAAAAAM/a1.gif",
   "Arnold Press": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Arnold-Press.gif",
   "Front Raise": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Front-Raise.gif",
   "Lateral Raise": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Lateral-Raise.gif",
   "Reverse Fly": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Reverse-Fly.gif",
   "Face Pull": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Face-Pull.gif",
-  "Upright Row": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Upright-Row.gif",
+  "Upright Row": "https://media.tenor.com/StZ4pCYVM_AAAAAM/uppright-row-z-bar.gif",
 
   "Bicep Curl": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Curl.gif",
   "Hammer Curl": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Hammer-Curl.gif",
   "Preacher Curl": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Z-Bar-Preacher-Curl.gif",
   "Concentration Curl": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Concentration-Curl.gif",
-  "Cable Curl": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Cable-Curl.gif",
+  "Cable Curl": "https://media.tenor.com/rkexMgK5nn8AAAAM/reverse-cable-arm-curl.gif",
   "Barbell Curl": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Curl.gif",
-  "Incline Curl": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Incline-Dumbbell-Curl.gif",
+  "Incline Curl": "https://media.tenor.com/OnedKDo8TeYAAAAM/girl-muscle-girl-biceps.gif",
 
   "Tricep Extension": "https://www.spotebi.com/wp-content/uploads/2014/10/dumbbell-triceps-extension-exercise-illustration.gif",
-  "Tricep Pushdown": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Triceps-Pushdown.gif",
-  "Skull Crusher": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Lying-Triceps-Extension.gif",
+  "Tricep Pushdown": "https://media.tenor.com/GpvUxIvyOZ0AAAAM/tr%C3%ADceps-pulley-corda.gif",
+  "Skull Crusher": "https://media.tenor.com/y_Z2oZ35sP8AAAAM/skull-crusher-dumbells.gif",
   "Overhead Extension": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Triceps-Extension.gif",
-  "Kickback": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Triceps-Kickback.gif",
+  "Kickback": "https://media.tenor.com/jqwaOmRs-7gAAAAM/tricep-kick-back-tricep.gif",
   "Close-Grip Bench": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Close-Grip-Bench-Press.gif",
   "Dips": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Triceps-Dips.gif",
 
   "Back Squat": "https://fitnessprogramer.com/wp-content/uploads/2021/02/BARBELL-SQUAT.gif",
-  "Front Squat": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Front-Squat.gif",
-  "Leg Press": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Leg-Press.gif",
-  "Goblet Squat": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Goblet-Squat.gif",
-  "Walking Lunge": "https://fitnessprogramer.com/wp-content/uploads/2023/06/Walking-Lunge-Thigh.gif",
-  "Reverse Lunge": "https://fitnessprogramer.com/wp-content/uploads/2021/04/Dumbbell-Reverse-Lunge.gif",
-  "Bulgarian Split Squat": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Bulgarian-Split-Squat.gif",
-  "Romanian Deadlift": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Romanian-Deadlift.gif",
+  "Front Squat": "https://media.tenor.com/pK5zTO5oSkwAAAAM/squat-exercise.gif",
+  "Leg Press": "https://media.tenor.com/FoIEqZY1mSgAAAAM/leg-press-workout.gif",
+  "Goblet Squat": "https://media.tenor.com/ovqOi2o9B08AAAAM/squat-goblet-squat.gif",
+  "Walking Lunge": "https://media.tenor.com/fWiC9Ze5eUMAAAAM/lunges-exercise.gif",
+  "Reverse Lunge": "https://media.tenor.com/fWiC9Ze5eUMAAAAM/lunges-exercise.gif",
+  "Bulgarian Split Squat": "https://media.tenor.com/Xc3PcubNYHkAAAAM/sam-mandigo-sam-gainss.gif",
+  "Romanian Deadlift": "https://media.tenor.com/VSY6K8y4zEIAAAAM/romanian-deadlift-exercise.gif",
   "Deadlift": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Deadlift.gif",
-  "Calf Raise": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Calf-Raises.gif",
+  "Calf Raise": "https://media.tenor.com/JYsGi3a3Y_4AAAAM/single-leg-calf-raise.gif",
 
   "Plank": "https://www.spotebi.com/wp-content/uploads/2014/10/plank-exercise-illustration.gif",
   "Side Plank": "https://www.spotebi.com/wp-content/uploads/2014/10/side-plank-exercise-illustration.gif",
-  "Mountain Climber": "https://www.spotebi.com/wp-content/uploads/2014/10/mountain-climbers-exercise-illustration.gif",
+  "Mountain Climber": "https://media.tenor.com/21qUJXduNeQAAAAM/working-out-deshun-murrell.gif",
   "High Knees": "https://www.spotebi.com/wp-content/uploads/2014/10/high-knees-exercise-illustration.gif",
   "Forearm Plank": "https://www.spotebi.com/wp-content/uploads/2014/10/plank-exercise-illustration.gif",
-  "Hollow Hold": "https://fitnessprogramer.com/wp-content/uploads/2024/02/Hollow-Body-Hold.gif",
-  "Dead Bug": "https://fitnessprogramer.com/wp-content/uploads/2021/08/Dead-Bug.gif",
+  "Hollow Hold": "https://media.tenor.com/q7r6mjrFVh0AAAAM/hand-raised-balance.gif",
+  "Dead Bug": "https://media.tenor.com/DN23029huGsAAAAM/deadbug-core.gif",
   "Jumping Jack": "https://www.spotebi.com/wp-content/uploads/2014/10/jumping-jacks-exercise-illustration.gif",
 
-  "Posture": "https://media1.giphy.com/media/l41lN3OhS1ZnbbE2I/giphy.gif"
+  "Posture": "https://media.tenor.com/ShX1lf_iH5IAAAAM/chair-posture-stretching.gif"
 };
 
 const DEFAULT_FRONTEND_THRESHOLDS = {
@@ -422,9 +422,9 @@ export default function PostureCoach() {
   const user = useSelector(selectUser);
   // Linkage with Workout Plan: MyWorkoutPlan passes state { fromWorkoutPlan: true, exercise: { name, sets, reps, weight }, dayIndex, weekNumber, workoutPlanId }. Keep in sync when changing either page.
   const workoutFromPlan = location.state?.fromWorkoutPlan ? location.state : null;
-  const [exercise, setExercise] = useState("squat");
+  const [exercise, setExercise] = useState("pushup");
   const [selectedExerciseLabel, setSelectedExerciseLabel] = useState(() =>
-    EXERCISES.find((e) => e.id === "squat")?.label || "Squat"
+    EXERCISES.find((e) => e.id === "pushup")?.label || "Bench Press"
   );
   const [isRunning, setIsRunning] = useState(false);
   const [isModelLoading, setIsModelLoading] = useState(true);
@@ -447,6 +447,7 @@ export default function PostureCoach() {
   const [expandedGroups, setExpandedGroups] = useState(() =>
     EXERCISE_GROUPS.reduce((acc, g) => ({ ...acc, [g.bodyPart]: ["Chest", "Back", "Legs"].includes(g.bodyPart) }), {})
   );
+  const [showDemo, setShowDemo] = useState(false);
 
   // When opened from workout plan, pre-select the matching exercise so the correct option is highlighted (e.g. Lat Pulldown, not Bent-over Row)
   useEffect(() => {
@@ -897,13 +898,13 @@ export default function PostureCoach() {
   }, []);
 
   const speakText = useCallback(
-    (text, rate = 0.78) => {
+    (text, rate = 1.25) => {
       if (typeof window === "undefined") return;
       if (!window.speechSynthesis) return;
       if (!text || typeof text !== "string") return;
 
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = Math.max(0.6, Math.min(0.95, rate));
+      utterance.rate = 1.25;
       utterance.pitch = 0.95;
       utterance.volume = 1;
 
@@ -917,7 +918,7 @@ export default function PostureCoach() {
   const speakStartNarration = useCallback(() => {
     speakText(
       "Coaching started. Keep slow, controlled reps. I will give feedback after each rep.",
-      0.78
+      1.25
     );
   }, [speakText]);
 
@@ -1154,18 +1155,20 @@ export default function PostureCoach() {
                     lastGoodScoreRef.current = false;
                   }
 
-                  // Handle narration specifically for 'posture' mode
-                  if (exercise === 'posture' && isRunning && res.analysis) {
+                  // Handle narration for ALL workouts if form is incorrect, or if posture is correct
+                  if (isRunning && res.analysis) {
                     const nowTime = Date.now();
                     if (nowTime - (lastPostureSpeechTimeRef.current || 0) > 4000) {
-                      lastPostureSpeechTimeRef.current = nowTime;
-                      if (res.analysis.isCorrect) {
-                        speakText("Posture is correct.", 0.85);
-                      } else {
+                      if (!res.analysis.isCorrect) {
+                        lastPostureSpeechTimeRef.current = nowTime;
                         const issue = Array.isArray(res.analysis.issues) && res.analysis.issues.length 
                           ? res.analysis.issues[0] 
                           : "Needs adjustment.";
-                        speakText(`Posture is incorrect. ${issue}`, 0.85);
+                        const prefix = exercise === 'posture' ? "Posture is incorrect. " : "";
+                        speakText(`${prefix}${issue}`, 1.25);
+                      } else if (exercise === 'posture') {
+                        lastPostureSpeechTimeRef.current = nowTime;
+                        speakText("Posture is correct.", 1.25);
                       }
                     }
                   }
@@ -1310,20 +1313,7 @@ export default function PostureCoach() {
               </p>
             </header>
 
-            <div className="mt-6 mx-auto max-w-3xl rounded-2xl border border-[#1F2937] bg-[#020617]/70 backdrop-blur p-5 sm:p-6 text-left shadow-[0_12px_40px_rgba(15,23,42,0.6)]">
-              <h3 className="text-white font-semibold text-base sm:text-lg mb-3 flex items-center gap-2">
-                <Zap className="w-5 h-5 text-[#FACC15]" />
-                Desk reset (no camera)
-              </h3>
-              <p className="text-xs text-gray-500 mb-3">Two minutes between meetings — open chest, neck, and hips.</p>
-              <ol className="text-sm text-gray-300 space-y-2.5 list-decimal pl-4 marker:text-[#22D3EE]">
-                <li>Seated tall: inhale, reach arms overhead, exhale and relax shoulders down — 3 breaths.</li>
-                <li>Chin retraction: glide head back (double-chin motion) hold 5s, repeat 5×.</li>
-                <li>Thoracic open: hands behind head, gentle upper-back extension over chair — 8 slow reps.</li>
-                <li>Hip flexor: stand, rear-foot on chair seat, slight tuck of tailbone — 30s each side.</li>
-                <li>Wrist &amp; forearm: interlace fingers, press palms out, circle wrists — 30s.</li>
-              </ol>
-            </div>
+
 
             {workoutFromPlan && workoutFromPlan.exercise && (
               <div className="mt-4 mx-auto max-w-3xl rounded-xl bg-cyan-500/20 border border-cyan-400/50 backdrop-blur p-4 text-center">
@@ -1412,36 +1402,50 @@ export default function PostureCoach() {
                   </div>
                 </div>
                 
-                {/* Exercise Demonstration moved to Sidebar! */}
-                <div className="relative rounded-2xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl p-5 shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 transition-all flex flex-col">
-                  <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
-                  <h2 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                     <Video className="w-5 h-5 text-[#22D3EE]" />
-                     Form Demo: {selectedExerciseLabel}
-                  </h2>
-                  <div className="flex-1 w-full flex items-center justify-center bg-[#020617]/50 rounded-xl overflow-hidden border border-[#1F2937]/50 p-2 min-h-[160px]">
-                    <img 
-                      src={EXERCISE_ANIMATIONS[selectedExerciseLabel] || EXERCISE_ANIMATIONS[exercise] || "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExMjM0NzgwMjM0NzgwMjM0NzgwMjM0NzgwMjM0NzgwMjM0NzgwMjM0NyZlcD12MV9pbnRlcm5hbF9naWZzX2dpZklkJmN0PWc/3o7TqtH1jJ1A2v25sQ/giphy.gif"} 
-                      alt={selectedExerciseLabel}
-                      className="object-contain w-full h-full max-h-48 rounded-lg mix-blend-lighten"
-                      onError={(e) => {
-                        e.target.onerror = null; 
-                        e.target.src = "https://cdn-icons-png.flaticon.com/512/2964/2964514.png"; 
-                        e.target.className = "w-16 h-16 opacity-30 object-contain mx-auto";
-                      }}
-                    />
-                  </div>
-                </div>
+
               </aside>
 
               {/* Camera + controls + stats + feedback - show AFTER exercises on mobile */}
               <div className="xl:col-span-8 order-2 space-y-6">
                 {/* Controls + Camera */}
                 <div className="space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex flex-wrap items-center justify-between gap-4 relative z-50">
                     <p className="text-sm text-gray-300">
                       Selected: <span className="font-semibold text-emerald-400">{selectedExerciseLabel}</span>
                     </p>
+                    
+                    {/* The popup trigger */}
+                    <div className="relative">
+                      <button 
+                        onClick={() => setShowDemo(!showDemo)}
+                        className="flex items-center gap-2 text-sm text-[#22D3EE] font-semibold hover:text-[#22D3EE]/80 transition-colors"
+                      >
+                        <Video className="w-4 h-4" />
+                        Don't know how to workout?
+                        {showDemo ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                      </button>
+                      
+                      {/* The dropdown demo box */}
+                      {showDemo && (
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-64 md:w-80 bg-[#020617]/95 border border-[#1F2937] rounded-2xl shadow-[0_20px_60px_rgba(15,23,42,0.9)] p-4 backdrop-blur-2xl">
+                          <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]" />
+                          <span className="block text-xs text-gray-400 mb-3 font-medium text-center">Form Demo: {selectedExerciseLabel}</span>
+                          <div className="w-full h-44 bg-[#020617]/50 rounded-xl overflow-hidden border border-[#1F2937]/50 flex items-center justify-center p-2">
+                            <img 
+                              src={EXERCISE_ANIMATIONS[selectedExerciseLabel] || EXERCISE_ANIMATIONS[exercise] || "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExMjM0NzgwMjM0NzgwMjM0NzgwMjM0NzgwMjM0NzgwMjM0NzgwMjM0NyZlcD12MV9pbnRlcm5hbF9naWZzX2dpZklkJmN0PWc/3o7TqtH1jJ1A2v25sQ/giphy.gif"} 
+                              alt={selectedExerciseLabel}
+                              className="object-contain w-full h-full max-h-40 rounded-lg mix-blend-lighten"
+                              onError={(e) => {
+                                e.target.onerror = null; 
+                                e.target.src = "https://cdn-icons-png.flaticon.com/512/2964/2964514.png"; 
+                                e.target.className = "w-16 h-16 opacity-30 object-contain mx-auto";
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     <button
                       onClick={toggleRunning}
                       disabled={isModelLoading || !!lastError}
