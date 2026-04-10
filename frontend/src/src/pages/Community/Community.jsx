@@ -6,8 +6,10 @@ import { API_BASE_URL } from "../../../config/api";
 import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
 import PostCard from "./Components/PostCard";
+import CommunitySidebar from "./Components/CommunitySidebar";
+import SkeletonPost from "./Components/SkeletonPost";
 import { useTheme } from "../../context/ThemeContext";
-import { Users, Send, Sparkles } from "lucide-react";
+import { Users, Send, Sparkles, Search, LayoutGrid, User as UserIcon } from "lucide-react";
 import { toast } from "react-toastify";
 import { validateLength, LIMITS } from "../../utils/formValidation";
 
@@ -19,10 +21,13 @@ export default function Community() {
   const [error, setError] = useState("");
   const [newPostContent, setNewPostContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState("global"); // 'global' or 'me'
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     async function fetchFeed() {
       if (!user?.email) return;
+      setLoading(true);
       try {
         const response = await axios.get(`${API_BASE_URL}/api/community/feed`, {
           headers: { email: user.email },
@@ -39,6 +44,38 @@ export default function Community() {
     }
     fetchFeed();
   }, [user]);
+
+  // Derive top contributors based on total points of users in the system/posts
+  const getTopContributors = () => {
+    const userMap = new Map();
+    posts.forEach((p) => {
+      if (p.userId && !userMap.has(p.userId._id)) {
+        userMap.set(p.userId._id, p.userId);
+      }
+    });
+    return Array.from(userMap.values()).sort((a, b) => (b.points || 0) - (a.points || 0));
+  };
+
+  // Derive user stats
+  const getUserStats = () => {
+    if (!user) return {};
+    const myPosts = posts.filter((p) => p.userId?._id === user._id);
+    const likesReceived = myPosts.reduce((acc, p) => acc + (p.likes?.length || 0), 0);
+    return {
+      postsCount: myPosts.length,
+      likesReceived,
+    };
+  };
+
+  const filteredPosts = posts.filter((post) => {
+    const matchesTab = activeTab === "global" ? true : post.userId?._id === user?._id;
+    const matchesSearch =
+      post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      `${post.userId?.firstName} ${post.userId?.lastName}`
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+    return matchesTab && matchesSearch;
+  });
 
   const handlePostSubmit = async (e) => {
     e.preventDefault();
@@ -69,6 +106,22 @@ export default function Community() {
     }
   };
 
+  const handleLikeToggle = (postId, isLiked, likesCount) => {
+    setPosts((prev) =>
+      prev.map((p) =>
+        p._id === postId
+          ? {
+              ...p,
+              isLiked,
+              likes: isLiked
+                ? [...(p.likes || []), user._id] // This is a simplification, but enough for the count check
+                : (p.likes || []).filter((id) => id !== user._id),
+            }
+          : p
+      )
+    );
+  };
+
   const cardShell =
     "relative rounded-2xl sm:rounded-3xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 transition-all duration-300 overflow-hidden";
 
@@ -87,91 +140,148 @@ export default function Community() {
             <div className="absolute -bottom-28 right-0 w-80 h-80 bg-[#22D3EE] rounded-full blur-3xl opacity-25" />
           </div>
 
-          <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl">
-            <header className="text-center mb-8 sm:mb-10">
-              <div className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-gradient-to-r from-[#8B5CF6]/20 to-[#22D3EE]/20 border border-[#8B5CF6]/40 backdrop-blur-xl mb-4">
-                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#FACC15]" />
-                <span className="text-xs sm:text-sm font-semibold text-gray-100">
-                  Connect &amp; motivate
+          <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
+            <header className="text-center mb-10">
+              <div className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-gradient-to-r from-[#8B5CF6]/20 to-[#22D3EE]/20 border border-[#8B5CF6]/40 backdrop-blur-xl mb-4">
+                <Sparkles className="w-5 h-5 text-[#FACC15]" />
+                <span className="text-sm font-semibold text-gray-100 uppercase tracking-widest">
+                  Connect &amp; Inspire
                 </span>
               </div>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold mb-3 sm:mb-4">
+              <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black mb-4 tracking-tighter">
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]">
-                  Community
+                  GenFit Community
                 </span>
               </h1>
-              <p className="text-gray-400 text-sm sm:text-base max-w-xl mx-auto">
-                Share wins, cheer each other on, and stay accountable with fellow GenFit members.
+              <p className="text-gray-400 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
+                Your journey isn't solo—share progress, celebrate wins, and fuel the fire with fellow fitness seekers.
               </p>
             </header>
 
-            {/* Create Post */}
-            {user && (
-              <div className={`${cardShell} mb-6 sm:mb-8`}>
-                <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE]" />
-                <form onSubmit={handlePostSubmit} className="p-5 sm:p-6 pt-7">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 sm:w-11 sm:h-11 shrink-0 rounded-full bg-[#0f172a] border border-[#8B5CF6]/35 flex items-center justify-center font-bold text-[#22D3EE] text-sm">
-                      {user.avatar ? (
-                        <img src={user.avatar} className="w-full h-full rounded-full object-cover" alt="" />
-                      ) : (
-                        <span>{user.firstName?.[0] || "U"}</span>
-                      )}
-                    </div>
-                    <textarea
-                      rows={3}
-                      maxLength={LIMITS.COMMUNITY_POST_MAX}
-                      className="flex-1 bg-[#0c0520]/80 border border-[#1F2937] rounded-xl p-3 sm:p-4 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-[#22D3EE]/70 focus:ring-1 focus:ring-[#22D3EE]/30 resize-none min-h-[88px]"
-                      placeholder={`What's on your mind today, ${user.firstName || "there"}?`}
-                      value={newPostContent}
-                      onChange={(e) => setNewPostContent(e.target.value)}
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                  <div className="flex justify-end mt-4">
+            <div className="flex flex-col lg:flex-row gap-8 items-start">
+              {/* Main Content Area */}
+              <div className="flex-1 w-full order-2 lg:order-1">
+                {/* Search & Tabs Row */}
+                <div className="flex flex-col md:flex-row gap-4 mb-8 justify-between items-center bg-[#020617]/50 backdrop-blur-lg p-2 rounded-2xl border border-[#1F2937]">
+                  <div className="flex p-1 bg-[#0f172a] rounded-xl border border-[#1F2937] w-full md:w-auto">
                     <button
-                      type="submit"
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE] text-black shadow-lg shadow-[#8B5CF6]/20 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:pointer-events-none"
-                      disabled={!newPostContent.trim() || isSubmitting}
+                      onClick={() => setActiveTab("global")}
+                      className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${
+                        activeTab === "global"
+                          ? "bg-gradient-to-r from-[#8B5CF6] to-[#A855F7] text-white shadow-lg shadow-[#8B5CF6]/30"
+                          : "text-gray-500 hover:text-gray-300"
+                      }`}
                     >
-                      <Send className="w-4 h-4" />
-                      Post
+                      <LayoutGrid className="w-4 h-4" />
+                      Global Feed
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("me")}
+                      className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${
+                        activeTab === "me"
+                          ? "bg-gradient-to-r from-[#8B5CF6] to-[#A855F7] text-white shadow-lg shadow-[#8B5CF6]/30"
+                          : "text-gray-500 hover:text-gray-300"
+                      }`}
+                    >
+                      <UserIcon className="w-4 h-4" />
+                      My Posts
                     </button>
                   </div>
-                </form>
-              </div>
-            )}
 
-            {/* Feed */}
-            {loading ? (
-              <div
-                className={`${cardShell} p-10 sm:p-12 text-center text-gray-400 text-sm`}
-              >
-                <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE]" />
-                <Users className="w-10 h-10 mx-auto mb-3 text-[#22D3EE]/60 animate-pulse" />
-                Loading feed…
+                  <div className="relative w-full md:w-72">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <input
+                      type="text"
+                      placeholder="Search posts or members..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full bg-[#0f172a] border border-[#1F2937] rounded-xl pl-11 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#22D3EE]/50 transition-colors"
+                    />
+                  </div>
+                </div>
+
+                {/* Create Post */}
+                {user && activeTab === "global" && (
+                  <div className={`${cardShell} mb-10 ring-1 ring-[#8B5CF6]/20 bg-gradient-to-b from-[#020617] to-[#0f172a]`}>
+                    <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE]" />
+                    <form onSubmit={handlePostSubmit} className="p-6 pt-8">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 shrink-0 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#22D3EE] p-[2px]">
+                          <div className="w-full h-full rounded-full bg-[#020617] flex items-center justify-center font-bold text-[#22D3EE] overflow-hidden">
+                            {user.avatar ? (
+                              <img src={user.avatar} className="w-full h-full object-cover" alt="" />
+                            ) : (
+                              <span className="text-lg">{user.firstName?.[0] || "U"}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex-1 relative">
+                          <textarea
+                            rows={3}
+                            maxLength={LIMITS.COMMUNITY_POST_MAX}
+                            className="w-full bg-transparent border-none text-lg text-white placeholder:text-gray-600 focus:outline-none focus:ring-0 resize-none min-h-[100px]"
+                            placeholder={`What's your progress today, ${user.firstName || "warrior"}?`}
+                            value={newPostContent}
+                            onChange={(e) => setNewPostContent(e.target.value)}
+                            disabled={isSubmitting}
+                          />
+                          <div className="absolute bottom-0 right-0 text-[10px] text-gray-500 font-mono">
+                            {newPostContent.length}/{LIMITS.COMMUNITY_POST_MAX}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center mt-6 pt-4 border-t border-[#1F2937]">
+                         <p className="text-xs text-gray-500">Inspire the community with your words.</p>
+                        <button
+                          type="submit"
+                          className="inline-flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-black bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE] text-black shadow-xl shadow-[#8B5CF6]/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none uppercase tracking-wide"
+                          disabled={!newPostContent.trim() || isSubmitting}
+                        >
+                          <Send className="w-4 h-4" />
+                          Share Now
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+                {/* Feed */}
+                {loading ? (
+                  <div className="space-y-6">
+                    <SkeletonPost />
+                    <SkeletonPost />
+                    <SkeletonPost />
+                  </div>
+                ) : error ? (
+                  <div className={`${cardShell} p-8 text-center border-red-500/30 bg-red-950/20`}>
+                    <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-red-500 to-orange-500" />
+                    <p className="text-red-200 text-sm">{error}</p>
+                  </div>
+                ) : filteredPosts.length > 0 ? (
+                  <div className="space-y-6">
+                    {filteredPosts.map((post) => (
+                      <PostCard key={post._id} post={post} currentUser={user} onLikeToggle={handleLikeToggle} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className={`${cardShell} p-16 text-center border-dashed`}>
+                    <Users className="w-16 h-16 mx-auto mb-4 text-gray-700 opacity-20" />
+                    <p className="text-gray-400 font-bold text-xl">No matching posts found</p>
+                    <p className="text-gray-600 text-sm mt-2 max-w-sm mx-auto">
+                      {searchQuery ? "Try a different search term or explore the global feed." : "Join the conversion and be the first to post!"}
+                    </p>
+                  </div>
+                )}
               </div>
-            ) : error ? (
-              <div
-                className={`${cardShell} p-8 text-center border-red-500/30 bg-red-950/20`}
-              >
-                <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-red-500 to-orange-500" />
-                <p className="text-red-200 text-sm">{error}</p>
+
+              {/* Sidebar Area */}
+              <div className="w-full lg:w-auto order-1 lg:order-2">
+                <CommunitySidebar 
+                  topContributors={getTopContributors()} 
+                  currentUserStats={getUserStats()} 
+                />
               </div>
-            ) : posts.length > 0 ? (
-              posts.map((post) => (
-                <PostCard key={post._id} post={post} currentUser={user} />
-              ))
-            ) : (
-              <div className={`${cardShell} p-10 sm:p-12 text-center`}>
-                <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE]" />
-                <Users className="w-12 h-12 mx-auto mb-4 text-[#8B5CF6]/70" />
-                <p className="text-gray-300 font-medium">No posts yet</p>
-                <p className="text-gray-500 text-sm mt-2 max-w-sm mx-auto">
-                  Be the first to share progress or a quick tip—the feed updates for everyone in real time.
-                </p>
-              </div>
-            )}
+            </div>
           </div>
         </section>
       </main>

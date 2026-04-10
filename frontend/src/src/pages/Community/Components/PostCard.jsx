@@ -4,6 +4,7 @@ import { FaHeart, FaRegHeart, FaComment, FaShareAlt } from "react-icons/fa";
 import { API_BASE_URL } from "../../../../config/api";
 import { toast } from "react-toastify";
 import { validateLength, LIMITS } from "../../../utils/formValidation";
+import { formatRelativeTime } from "../../../utils/timeUtils";
 
 export default function PostCard({ post, currentUser, onLikeToggle }) {
   const [isLiked, setIsLiked] = useState(post.isLiked || false);
@@ -23,6 +24,9 @@ export default function PostCard({ post, currentUser, onLikeToggle }) {
       if (response.data.success) {
         setIsLiked(response.data.isLiked);
         setLikesCount(response.data.likesCount);
+        if (onLikeToggle) {
+          onLikeToggle(post._id, response.data.isLiked, response.data.likesCount);
+        }
       }
     } catch (error) {
       console.error("Like error:", error);
@@ -77,37 +81,46 @@ export default function PostCard({ post, currentUser, onLikeToggle }) {
     }
   };
 
-  const formattedDate = new Date(post.createdAt).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const formattedDate = formatRelativeTime(post.createdAt);
 
   return (
     <div className="relative rounded-2xl sm:rounded-3xl border border-[#1F2937] bg-[#020617]/80 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.8)] hover:border-[#22D3EE]/60 transition-all duration-300 overflow-hidden mb-6">
       <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE]" />
       <div className="p-5 sm:p-6 pt-7">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 shrink-0 rounded-full bg-[#0f172a] border border-[#8B5CF6]/35 flex items-center justify-center font-bold text-[#22D3EE] overflow-hidden text-sm">
-              {post.userId?.avatar ? (
-                <img src={post.userId.avatar} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <span>{post.userId?.firstName?.[0] || "U"}</span>
-              )}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className={`relative w-12 h-12 shrink-0 rounded-full p-[2px] ${
+              (post.userId?.points || 0) > 1000 ? 'bg-gradient-to-tr from-yellow-400 to-orange-500 shadow-[0_0_15px_rgba(250,204,21,0.3)]' : 'bg-[#1F2937]'
+            }`}>
+              <div className="w-full h-full rounded-full bg-[#020617] flex items-center justify-center font-bold text-[#22D3EE] overflow-hidden text-sm">
+                {post.userId?.avatar ? (
+                  <img src={post.userId.avatar} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-lg">{post.userId?.firstName?.[0] || "U"}</span>
+                )}
+              </div>
             </div>
             <div className="min-w-0">
-              <h4 className="font-semibold text-white truncate">
+              <h4 className="font-bold text-white truncate text-base leading-tight group-hover:text-[#22D3EE] transition-colors">
                 {post.userId?.firstName} {post.userId?.lastName}
               </h4>
-              <p className="text-xs text-gray-500">{formattedDate}</p>
+              <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
+                <span>{formattedDate}</span>
+                {post.type === "milestone" && (
+                  <>
+                    <span className="w-1 h-1 rounded-full bg-gray-600" />
+                    <span className="text-[#FACC15]">Milestone ✨</span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
           {post.userId?.points !== undefined && (
-            <div className="text-xs px-2.5 py-1 bg-gradient-to-r from-[#8B5CF6]/15 to-[#22D3EE]/15 border border-[#22D3EE]/25 text-[#22D3EE] rounded-full font-semibold shrink-0 ml-2">
-              🏆 {post.userId.points} pts
+            <div className="flex flex-col items-end gap-1">
+              <div className="text-[10px] px-2.5 py-1 bg-gradient-to-r from-[#8B5CF6]/15 to-[#22D3EE]/15 border border-[#22D3EE]/25 text-[#22D3EE] rounded-full font-black uppercase tracking-wider shrink-0 shadow-lg shadow-black/20">
+                {post.userId.points} pts
+              </div>
             </div>
           )}
         </div>
@@ -123,24 +136,43 @@ export default function PostCard({ post, currentUser, onLikeToggle }) {
         </div>
 
         {/* Actions */}
-        <div className="flex flex-wrap items-center gap-4 sm:gap-6 border-t border-[#1F2937] pt-4 text-sm text-gray-400">
+        <div className="flex flex-wrap items-center gap-6 border-t border-[#1F2937] pt-5 text-sm">
           <button
             type="button"
             onClick={handleLike}
-            className={`flex items-center gap-2 hover:text-white transition-colors ${isLiked ? "text-[#F87171]" : "hover:text-[#F87171]"}`}
+            className={`flex items-center gap-2.5 transition-all duration-300 group ${
+              isLiked ? "text-[#F87171]" : "text-gray-400 hover:text-[#F87171]"
+            }`}
           >
-            {isLiked ? <FaHeart className="text-lg" /> : <FaRegHeart className="text-lg" />}
-            <span>{likesCount} Likes</span>
+            <div className={`p-2 rounded-full transition-colors ${isLiked ? 'bg-[#F87171]/10' : 'group-hover:bg-[#F87171]/10'}`}>
+              {isLiked ? <FaHeart className="text-lg" /> : <FaRegHeart className="text-lg" />}
+            </div>
+            <span className="font-bold">{likesCount}</span>
           </button>
+          
           <button
             type="button"
             onClick={fetchComments}
-            className="flex items-center gap-2 hover:text-[#22D3EE] transition-colors"
+            className="flex items-center gap-2.5 text-gray-400 hover:text-[#22D3EE] transition-all duration-300 group"
           >
-            <FaComment className="text-lg" />
-            <span>Comments</span>
+            <div className="p-2 rounded-full group-hover:bg-[#22D3EE]/10 transition-colors">
+              <FaComment className="text-lg" />
+            </div>
+            <span className="font-bold">Comments</span>
           </button>
 
+          <button
+            type="button"
+            className="flex items-center gap-2.5 text-gray-400 hover:text-[#8B5CF6] transition-all duration-300 group ml-auto"
+            onClick={() => {
+              navigator.clipboard.writeText(`${window.location.origin}/community?post=${post._id}`);
+              toast.success("Link copied to clipboard!");
+            }}
+          >
+            <div className="p-2 rounded-full group-hover:bg-[#8B5CF6]/10 transition-colors">
+              <FaShareAlt className="text-lg" />
+            </div>
+          </button>
         </div>
 
         {/* Comments Section */}
