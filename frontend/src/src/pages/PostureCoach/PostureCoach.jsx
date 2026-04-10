@@ -258,7 +258,7 @@ const EXERCISE_ANIMATIONS = {
   "Dips": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Triceps-Dips.gif",
 
   "Back Squat": "https://fitnessprogramer.com/wp-content/uploads/2021/02/BARBELL-SQUAT.gif",
-  "Front Squat": "https://media.tenor.com/pK5zTO5oSkwAAAAM/squat-exercise.gif",
+  "Front Squat": "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExd3djenVjc2ZpOXV3cHJ0Mzl3dXhueTJoc3AxaWdqMXFhMHp2Z3FsbCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/UeCwB3u5BDzHH2autL/giphy.gif",
   "Leg Press": "https://media.tenor.com/FoIEqZY1mSgAAAAM/leg-press-workout.gif",
   "Goblet Squat": "https://media.tenor.com/ovqOi2o9B08AAAAM/squat-goblet-squat.gif",
   "Walking Lunge": "https://media.tenor.com/fWiC9Ze5eUMAAAAM/lunges-exercise.gif",
