@@ -39,7 +39,8 @@ export default function Leaderboard() {
 
   const Row = ({ u, i, weeklyMode }) => {
     const points = weeklyMode ? (u.weeklyPoints || 0) : (u.points || 0);
-    const isCurrentUser = user?.email === u.email;
+    const safeUserEmail = user?.email?.toLowerCase() || '';
+    const isCurrentUser = Boolean(u.email && u.email.toLowerCase() === safeUserEmail);
     
     // Streak logic - we check if user has streak count. If current user, we fallback to stats.
     const userStreak = isCurrentUser ? (stats.streakCount || 0) : (u.streakCount || 0);
@@ -449,7 +450,8 @@ export default function Leaderboard() {
               <div className="mb-8">
                 {(() => {
                   const list = activeTab === 'weekly' ? weekly : allTime;
-                  const userIndex = list.findIndex(u => u.email === user.email);
+                  const safeUserEmail = user?.email?.toLowerCase() || '';
+                  const userIndex = list.findIndex(u => u.email && u.email.toLowerCase() === safeUserEmail);
                   
                   if (userIndex === -1) return (
                     <div className="dynamic-feedback-banner text-center sm:text-left">
@@ -803,11 +805,12 @@ export default function Leaderboard() {
               weekly.length > 0 ? (
                 (() => {
                   const list = weekly;
-                  const myIdx = user?.email
-                    ? list.findIndex((u) => u.email === user.email)
-                    : -1;
+                  const safeUserEmail = user?.email?.toLowerCase() || '';
+                  const myIdx = safeUserEmail === ''
+                    ? -1
+                    : list.findIndex((u) => u.email && u.email.toLowerCase() === safeUserEmail);
                   const me = myIdx >= 0 ? list[myIdx] : null;
-                  const others = me ? list.filter((u) => u.email !== user.email) : list;
+                  const others = me ? list.filter((u) => !u.email || u.email.toLowerCase() !== safeUserEmail) : list;
                   return (
                     <div className="leaderboard-split-scroll">
                       <div className="scroll-container">
@@ -837,11 +840,12 @@ export default function Leaderboard() {
             ) : allTime.length > 0 ? (
               (() => {
                 const list = allTime;
-                const myIdx = user?.email
-                  ? list.findIndex((u) => u.email === user.email)
-                  : -1;
+                const safeUserEmail = user?.email?.toLowerCase() || '';
+                const myIdx = safeUserEmail === ''
+                  ? -1
+                  : list.findIndex((u) => u.email && u.email.toLowerCase() === safeUserEmail);
                 const me = myIdx >= 0 ? list[myIdx] : null;
-                const others = me ? list.filter((u) => u.email !== user.email) : list;
+                const others = me ? list.filter((u) => !u.email || u.email.toLowerCase() !== safeUserEmail) : list;
                 return (
                   <div className="leaderboard-split-scroll">
                     <div className="scroll-container">

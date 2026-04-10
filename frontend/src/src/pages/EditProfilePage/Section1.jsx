@@ -16,7 +16,17 @@ const AVATARS = [
   "https://api.dicebear.com/7.x/avataaars/svg?seed=Mimi",
   "https://api.dicebear.com/7.x/avataaars/svg?seed=Oscar",
   "https://api.dicebear.com/7.x/avataaars/svg?seed=Chloe",
-  "https://api.dicebear.com/7.x/avataaars/svg?seed=Leo"
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Leo",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Lily",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Jack",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Mia",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Oliver",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Sophia",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Lucas",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Zoe",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Ethan",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Aria",
+  "https://api.dicebear.com/7.x/avataaars/svg?seed=Mason"
 ];
 
 export default function EditProfile() {
