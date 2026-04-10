@@ -2,6 +2,7 @@ const Post = require("../models/Post");
 const Comment = require("../models/Comment");
 const Follow = require("../models/Follow");
 const User = require("../models/User");
+const cloudinary = require("../utils/cloudinary");
 
 // @desc    Create a new post
 // @route   POST /api/community/posts
@@ -11,14 +12,22 @@ exports.createPost = async (req, res) => {
     const { content, mediaUrl, type } = req.body;
     const userId = req.user._id;
 
-    if (!content) {
-      return res.status(400).json({ success: false, message: "Content is required" });
+    if (!content && !mediaUrl) {
+      return res.status(400).json({ success: false, message: "Post must have content or an image" });
+    }
+
+    let finalMediaUrl = "";
+    if (mediaUrl) {
+      const uploadResponse = await cloudinary.uploader.upload(mediaUrl, {
+        folder: "community-posts",
+      });
+      finalMediaUrl = uploadResponse.secure_url;
     }
 
     const post = await Post.create({
       userId,
-      content,
-      mediaUrl: mediaUrl || "",
+      content: content || "",
+      mediaUrl: finalMediaUrl,
       type: type || "user_post",
     });
 

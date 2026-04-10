@@ -9,7 +9,7 @@ import PostCard from "./Components/PostCard";
 import CommunitySidebar from "./Components/CommunitySidebar";
 import SkeletonPost from "./Components/SkeletonPost";
 import { useTheme } from "../../context/ThemeContext";
-import { Users, Send, Sparkles, Search, LayoutGrid, User as UserIcon } from "lucide-react";
+import { Users, Send, Sparkles, Search, LayoutGrid, User as UserIcon, Image as ImageIcon, X } from "lucide-react";
 import { toast } from "react-toastify";
 import { validateLength, LIMITS } from "../../utils/formValidation";
 
@@ -23,6 +23,8 @@ export default function Community() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("global"); // 'global' or 'me'
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
 
   useEffect(() => {
     async function fetchFeed() {
@@ -91,12 +93,14 @@ export default function Community() {
     try {
       const response = await axios.post(
         `${API_BASE_URL}/api/community/posts`,
-        { content },
+        { content, mediaUrl: selectedImage },
         { headers: { email: user.email } }
       );
       if (response.data.success) {
         setPosts([response.data.post, ...posts]);
         setNewPostContent("");
+        setSelectedImage(null);
+        setImagePreview(null);
       }
     } catch (err) {
       console.error("Create post error:", err);
@@ -104,6 +108,27 @@ export default function Community() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image size must be less than 5MB");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedImage(reader.result);
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
   };
 
   const handleLikeToggle = (postId, isLiked, likesCount) => {
@@ -230,15 +255,49 @@ export default function Community() {
                           </div>
                         </div>
                       </div>
+
+                      {/* Image Preview */}
+                      {imagePreview && (
+                        <div className="mt-4 relative inline-block group">
+                          <img 
+                            src={imagePreview} 
+                            alt="Preview" 
+                            className="max-h-64 rounded-xl border border-[#1F2937] shadow-lg"
+                          />
+                          <button
+                            type="button"
+                            onClick={removeImage}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full shadow-lg hover:bg-red-600 transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+
                       <div className="flex justify-between items-center mt-6 pt-4 border-t border-[#1F2937]">
-                         <p className="text-xs text-gray-500">Inspire the community with your words.</p>
+                        <div className="flex items-center gap-4">
+                          <label className="cursor-pointer group flex items-center gap-2 text-gray-400 hover:text-[#22D3EE] transition-colors">
+                            <div className="p-2 rounded-lg bg-[#0f172a] border border-[#1F2937] group-hover:border-[#22D3EE]/50 transition-all">
+                              <ImageIcon className="w-5 h-5" />
+                            </div>
+                            <span className="text-xs font-bold uppercase tracking-wider hidden sm:inline">Photo</span>
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept="image/*"
+                              onChange={handleImageChange}
+                              disabled={isSubmitting}
+                            />
+                          </label>
+                          <p className="text-xs text-gray-500 hidden sm:block">Max size: 5MB</p>
+                        </div>
                         <button
                           type="submit"
                           className="inline-flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-black bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE] text-black shadow-xl shadow-[#8B5CF6]/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none uppercase tracking-wide"
-                          disabled={!newPostContent.trim() || isSubmitting}
+                          disabled={(!newPostContent.trim() && !selectedImage) || isSubmitting}
                         >
                           <Send className="w-4 h-4" />
-                          Share Now
+                          {isSubmitting ? "Sharing..." : "Share Now"}
                         </button>
                       </div>
                     </form>
