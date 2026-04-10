@@ -1,155 +1,119 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, ArrowRight, Zap, Target, Shield, Globe, Dumbbell, Heart, Flame } from 'lucide-react';
+import { Sparkles, ArrowRight, Zap, Target, Shield, Globe, Dumbbell } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { TypeAnimation } from 'react-type-animation';
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import GenFitLogo from '../../Components/GenFitLogo';
+import WorkoutScene from '../../Components/GenFitAssistant';
 
 const HomeSec1 = ({ onLoginSuccess, onLoginError }) => {
   return (
-    <section className="relative overflow-hidden bg-[#05010d] pt-20 pb-16 md:pt-32 md:pb-24">
+    <section className="relative overflow-hidden bg-[#05010d] pt-12 pb-24 md:pt-20 md:pb-32">
       {/* Background blobs for premium feel */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div 
-          className="absolute -top-40 -left-20 w-[600px] h-[600px] bg-[#22D3EE] rounded-full blur-[140px] opacity-10"
+          className="absolute -top-40 -left-20 w-[600px] h-[600px] bg-[#10B981] rounded-full blur-[140px] opacity-[0.07]"
           animate={{ scale: [1, 1.1, 1], x: [0, 30, 0], y: [0, 20, 0] }}
           transition={{ repeat: Infinity, duration: 10, ease: "easeInOut" }}
         />
         <motion.div 
-          className="absolute top-40 right-0 w-[500px] h-[500px] bg-[#22D3EE] rounded-full blur-[140px] opacity-15"
+          className="absolute top-40 right-0 w-[500px] h-[500px] bg-[#3B82F6] rounded-full blur-[140px] opacity-[0.07]"
           animate={{ scale: [1, 1.05, 1], x: [0, -20, 0], y: [0, -30, 0] }}
           transition={{ repeat: Infinity, duration: 12, ease: "easeInOut" }}
         />
       </div>
 
-      <div className="relative z-10 container mx-auto px-4 max-w-7xl">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      <div className="relative z-10 container mx-auto px-6 max-w-7xl">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
           
           {/* Left Column: Text & CTA */}
           <motion.div 
             className="lg:col-span-7 text-center lg:text-left"
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
-            {/* Feature Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#020617]/80 border border-[#1F2937] backdrop-blur-xl mb-6 shadow-lg">
-              <Sparkles className="w-4 h-4 text-[#FACC15]" />
-              <span className="text-sm font-semibold text-gray-200">India's #1 AI Fitness Platform · 2026</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl mb-8">
+              <span className="text-xs font-black text-[#10B981] tracking-widest uppercase">India's #1 AI Fitness Platform · 2026</span>
             </div>
 
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black mb-6 leading-[1.1] tracking-tight text-white">
-              Train Smarter. <br />
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#8B5CF6] via-[#A855F7] to-[#22D3EE]">
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black mb-8 leading-[1.05] tracking-tight text-white">
+              Train Smarter.<br />
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#10B981] via-[#3B82F6] to-[#8B5CF6]">
                 Live Better.
               </span>
             </h1>
 
-            <p className="text-lg md:text-xl mb-4 max-w-2xl mx-auto lg:mx-0 leading-relaxed text-gray-300">
-              GenFit AI is a full-stack health platform powered by real-time computer vision, agentic AI coaching, and verified sports science — built for India and the world.
-            </p>
-            <p className="text-base mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed text-gray-500">
-              From posture correction to personalised diet plans, our platform covers your entire fitness journey in one place — completely free to start.
-            </p>
+            <div className="space-y-6 mb-12">
+              <p className="text-lg md:text-xl leading-relaxed text-gray-300 font-medium">
+                GenFit AI is a full-stack health platform powered by real-time computer vision, agentic AI coaching, and verified sports science — built for India and the world.
+              </p>
+              <p className="text-base md:text-lg leading-relaxed text-gray-500 font-medium">
+                From posture correction to personalised diet plans, our platform covers your entire fitness journey in one place — <span className="text-white font-bold">completely free to start.</span>
+              </p>
+            </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-10 items-center">
-              <div className="relative group">
+            <div className="flex flex-col sm:flex-row gap-5 justify-center lg:justify-start mb-16 items-center">
+               <div className="shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.4)] transition-shadow duration-300 rounded-full overflow-hidden">
                 <GoogleOAuthProvider clientId="702465560392-1mu8j4kqafadep516m62oa5vf5klt7pu.apps.googleusercontent.com">
                   <GoogleLogin
                     onSuccess={onLoginSuccess}
                     onError={onLoginError}
-                    theme="filled_blue"
+                    theme="filled_black"
                     shape="pill"
                     size="large"
-                    text="signup_with"
-                    width="240px"
+                    text="signin_with"
                   />
                 </GoogleOAuthProvider>
               </div>
+               <Link to="/features" className="group flex items-center gap-2 text-white font-bold hover:text-[#10B981] transition-all px-8 py-3 rounded-full hover:bg-white/5 border border-white/10">
+                Learn More <ArrowRight className="group-hover:translate-x-1 transition-transform" />
+              </Link>
             </div>
 
-            {/* Alignment Badges */}
-            <div className="pt-8 border-t border-[#1F2937]">
-              <p className="text-xs uppercase tracking-widest text-gray-500 mb-4 font-bold">Aligned with</p>
-              <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
+            <div className="pt-8 border-t border-white/5">
+              <div className="flex items-center gap-3 mb-6">
+                <span className="text-[11px] font-black text-gray-500 uppercase tracking-[0.3em]">Aligned With</span>
+              </div>
+
+              <div className="flex flex-wrap gap-4">
                 {[
-                  { icon: Target, label: "Fit India Movement" },
-                  { icon: Shield, label: "ICMR Guidelines" },
-                  { icon: Globe, label: "WHO Health GAP 2026" },
-                  { icon: Zap, label: "MoveNet by Google" }
+                  { label: "Fit India Movement", icon: Target },
+                  { label: "ICMR Guidelines", icon: Shield },
+                  { label: "WHO Health GAP 2026", icon: Globe },
+                  { label: "MoveNet by Google", icon: Zap }
                 ].map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#020617] border border-[#1F2937] hover:border-[#22D3EE]/60 transition-all">
-                    <item.icon className="w-3.5 h-3.5 text-[#22D3EE]" />
-                    <span className="text-[10px] font-bold text-gray-300 uppercase tracking-wide">{item.label}</span>
-                  </div>
+                  <motion.div 
+                    key={idx} 
+                    className="flex items-center gap-3 px-5 py-3 bg-[#0a0a0f] border border-white/10 rounded-xl hover:border-[#22D3EE]/50 transition-all duration-300 group/pill cursor-default"
+                    whileHover={{ y: -2 }}
+                  >
+                    <item.icon className="w-4 h-4 text-[#22D3EE]" />
+                    <span className="text-[11px] font-black text-white uppercase tracking-widest">{item.label}</span>
+                  </motion.div>
                 ))}
               </div>
             </div>
+
           </motion.div>
 
-          {/* Right Column: Visual Element */}
+          {/* Right Column: Procedural Animation Element */}
           <motion.div 
-            className="lg:col-span-5 hidden lg:block"
-            initial={{ opacity: 0, scale: 0.95 }}
+            className="lg:col-span-5 relative scale-110 lg:scale-125 origin-center lg:origin-right"
+            initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1 }}
+            transition={{ duration: 1.2, ease: "easeOut" }}
           >
-            <motion.div 
-              className="relative flex items-center justify-center group cursor-pointer" 
-              style={{minHeight: '380px'}}
-              whileHover={{ scale: 1.05, rotateZ: 2 }}
-              transition={{ type: "spring", stiffness: 200, damping: 15 }}
-            >
-              {/* Glowing aura behind logo (Glows brighter on hover) */}
-              <div className="absolute w-72 h-72 bg-[#22D3EE] rounded-full blur-[120px] opacity-10 group-hover:opacity-30 group-hover:bg-[#8B5CF6] transition-all duration-700 animate-pulse" />
-              <div className="absolute w-48 h-48 bg-[#3B82F6] rounded-full blur-[80px] opacity-10 group-hover:opacity-40 group-hover:w-64 group-hover:h-64 transition-all duration-700 animate-pulse" style={{animationDelay:'1s'}} />
+            <div className="relative flex justify-center items-center">
+              {/* Dynamic Aura */}
+              <div className="absolute inset-0 bg-gradient-to-br from-[#10B981]/20 via-[#3B82F6]/10 to-transparent blur-[120px] rounded-full animate-pulse" />
               
-              {/* Spinning dashed ring 1 */}
-              <div className="absolute w-64 h-64 rounded-full border-2 border-dashed border-[#22D3EE]/20 group-hover:border-[#22D3EE]/50 transition-colors duration-500 animate-spin flex items-center justify-center" style={{animationDuration:'15s'}}>
-                <div className="absolute -top-3 bg-[#05010d] rounded-full p-1 opacity-90 shadow-[0_0_15px_rgba(34,211,238,0.5)]">
-                  <Dumbbell className="w-5 h-5 text-[#22D3EE]" />
-                </div>
-                <div className="absolute -bottom-3 bg-[#05010d] rounded-full p-1 opacity-90 shadow-[0_0_15px_rgba(225,29,72,0.5)]">
-                  <Heart className="w-4 h-4 text-[#E11D48]" />
-                </div>
+              {/* The AI Assistant Animation */}
+              <div className="relative z-10 w-full transform transition-transform duration-700">
+                <WorkoutScene size="large" />
               </div>
 
-              {/* Spinning solid ring 2 */}
-              <div className="absolute w-80 h-80 rounded-full border border-[#3B82F6]/10 group-hover:border-[#8B5CF6]/40 transition-colors duration-500 animate-spin flex items-center justify-center" style={{animationDuration:'25s', animationDirection:'reverse'}}>
-                <div className="absolute -right-3 bg-[#05010d] rounded-full p-1 opacity-90 shadow-[0_0_15px_rgba(249,115,22,0.5)]">
-                  <Flame className="w-5 h-5 text-[#F97316]" />
-                </div>
-                <div className="absolute -left-3 bg-[#05010d] rounded-full p-1 opacity-90 shadow-[0_0_15px_rgba(139,92,246,0.5)]">
-                  <Zap className="w-5 h-5 text-[#8B5CF6]" />
-                </div>
-              </div>
-              
-              {/* The Logo */}
-              <div className="relative z-10 flex flex-col items-center gap-4 group-hover:brightness-125 transition-all duration-300">
-                <GenFitLogo size="large" />
-                <div className="text-center">
-                  <div className="text-xs font-bold text-[#22D3EE] uppercase tracking-[0.3em] mt-2 mb-1">GenFit AI</div>
-                  <div className="text-[11px] font-medium text-gray-400 tracking-widest uppercase h-4 flex items-center justify-center min-w-[250px]">
-                    <TypeAnimation
-                      sequence={[
-                        'Autonomous Fitness Engine',
-                        2000,
-                        'Track Calories Instantly',
-                        2000,
-                        'AI Posture Correction',
-                        2000,
-                        'Personalised Diet Plans',
-                        2000,
-                      ]}
-                      wrapper="span"
-                      speed={50}
-                      repeat={Infinity}
-                    />
-                  </div>
-                </div>
-              </div>
-            </motion.div>
+            </div>
           </motion.div>
 
         </div>

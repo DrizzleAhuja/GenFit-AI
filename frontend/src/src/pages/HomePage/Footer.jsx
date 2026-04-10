@@ -217,158 +217,69 @@ export default function Footer() {
     await handleAndroidInstall(e);
   };
 
-  const footerLinks = {
-    "Download & Projects": [
-      {
-        icon: <FaAndroid className="mr-2" />,
-        label: "Android App",
-        href: "#",
-        onClick: handleAndroidInstall,
-        show: !deviceInfo.isStandalone && (deviceInfo.isAndroid || deviceInfo.isMobile)
-      },
-      {
-        icon: <FaApple className="mr-2" />,
-        label: "iOS App",
-        href: "#",
-        onClick: handleIOSInstall,
-        show: !deviceInfo.isStandalone && deviceInfo.isIOS
-      },
-      {
-        icon: <FaDesktop className="mr-2" />,
-        label: "Desktop",
-        href: "#",
-        onClick: handleDesktopInstall,
-        show: !deviceInfo.isStandalone && !deviceInfo.isMobile
-      },
-      { icon: <FaProjectDiagram className="mr-2" />, label: "Projects", href: "#" },
-      { icon: <FaTasks className="mr-2" />, label: "My Tasks", href: "#" }
-    ],
-    "Help & Documentation": [
-      { icon: <FaQuestionCircle className="mr-2" />, label: "FAQ", href: "#" },
-      { icon: <FaQuestionCircle className="mr-2" />, label: "Feedback", href: "/Feedback", isNavLink: true },
-      { icon: <FaQuestionCircle className="mr-2" />, label: "Support", href: "/Support", isNavLink: true },
-
-
-
-      { icon: <FaFileContract className="mr-2" />, label: "Terms & Conditions", href: "#" },
-      { icon: <FaChartLine className="mr-2" />, label: "Reporting", href: "#" },
-      { icon: <FaFileAlt className="mr-2" />, label: "Documentation", href: "#" },
-      { icon: <FaShieldAlt className="mr-2" />, label: "Support Policy", href: "#" },
-      { icon: <FaLock className="mr-2" />, label: "Privacy", href: "#" }
-    ]
-  };
+  const navLinks = [
+    { path: "/about", label: "ABOUT US" },
+    { path: "/features", label: "FEATURES" },
+    { path: "/Contactus", label: "CONTACT US" },
+    { path: "/leaderboard", label: "LEADERBOARD" },
+  ];
 
   return (
-    <footer className={`py-4 sm:py-6 ${darkMode ? 'bg-[#05010d] text-gray-300' : 'bg-[#020617] text-gray-100'}`}>
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Brand Info */}
-          <div className="lg:col-span-1">
-            <div className="mb-4 flex flex-col items-start gap-3">
-              <GenFitLogo size="xlarge" />
-              <div>
-                <p className="text-xs tracking-[0.25em] uppercase text-[#22D3EE]/80 mt-2">
-                  Your AI Fitness Partner
-                </p>
-                <p className={`mt-3 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-300'}`}>
-                  Precision coaching, posture tracking, and smart nutrition—powered by AI, designed for real humans.
-                </p>
-              </div>
+    <footer className="bg-[#020617] border-t border-white/5 py-16">
+      <div className="container mx-auto px-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+          {/* Brand & Social */}
+          <div className="space-y-6">
+            <GenFitLogo size="large" />
+            <p className="text-gray-400 text-sm max-w-xs leading-relaxed">
+              Precision coaching, posture tracking, and smart nutrition—powered by AI, designed for real humans.
+            </p>
+            <div className="flex space-x-4">
+              {[FaFacebook, FaInstagram, FaLinkedin, FaEnvelope].map((Icon, i) => (
+                <a key={i} href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:bg-emerald-500/10 hover:text-[#10B981] transition-all border border-white/5">
+                  <Icon size={18} />
+                </a>
+              ))}
             </div>
           </div>
 
-          {/* Footer Links */}
-          {Object.entries(footerLinks).map(([title, links]) => (
-            <div key={title} className="lg:col-span-1">
-              <h5 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                {title}
-              </h5>
-              <ul className="space-y-3">
-                {links.map((link, index) => {
-                  // Hide install links if app is already installed
-                  if (link.show === false) return null;
+          {/* Navigation */}
+          <div>
+            <h5 className="text-white font-bold mb-6 tracking-tight">NAVIGATION</h5>
+            <ul className="space-y-4">
+              {navLinks.map((link) => (
+                <li key={link.path}>
+                  <NavLink to={link.path} className="text-gray-400 hover:text-[#10B981] text-sm font-medium transition-colors">
+                    {link.label}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-                  return (
-                    <li key={index}>
-                      {link.isNavLink ? (
-                        <NavLink
-                          to={link.href}
-                          className={`flex items-center ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-700 hover:text-gray-900'} transition-colors cursor-pointer`}
-                        >
-                          {link.icon}
-                          {link.label}
-                        </NavLink>
-                      ) : (
-                        <a
-                          href={link.href}
-                          onClick={link.onClick || undefined}
-                          className={`flex items-center ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-700 hover:text-gray-900'} transition-colors cursor-pointer`}
-                        >
-                          {link.icon}
-                          {link.label}
-                        </a>
-                      )}
-                    </li>
-
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
-
-          {/* Social Links */}
-          <div className="lg:col-span-1">
-            <h5 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              Follow Us
-            </h5>
-            <div className="flex space-x-4 mb-6">
-              <a
-                href="#"
-                className={`p-2 rounded-full shadow-sm transition-colors ${darkMode ? 'bg-[#020617]/80 backdrop-blur-sm border border-[#1F2937] text-gray-300 hover:bg-[#1F2937] hover:text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-900'}`}
-                aria-label="Facebook"
-              >
-                <FaFacebook size={18} />
-              </a>
-              <a
-                href="#"
-                className={`p-2 rounded-full shadow-sm transition-colors ${darkMode ? 'bg-[#020617]/80 backdrop-blur-sm border border-[#1F2937] text-gray-300 hover:bg-[#1F2937] hover:text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-900'}`}
-                aria-label="Instagram"
-              >
-                <FaInstagram size={18} />
-              </a>
-              <a
-                href="#"
-                className={`p-2 rounded-full shadow-sm transition-colors ${darkMode ? 'bg-[#020617]/80 backdrop-blur-sm border border-[#1F2937] text-gray-300 hover:bg-[#1F2937] hover:text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-900'}`}
-                aria-label="LinkedIn"
-              >
-                <FaLinkedin size={18} />
-              </a>
-            </div>
-            <div className={`flex items-center ${darkMode ? 'text-gray-400' : 'text-gray-700'}`}>
-              <FaEnvelope className="mr-2" />
-              <a href="mailto:genfitai@example.com" className="hover:underline">
-                genfitai@example.com
-              </a>
-            </div>
+          {/* Contact Info */}
+          <div>
+            <h5 className="text-white font-bold mb-6 tracking-tight">CONTACT INFO</h5>
+            <ul className="space-y-4 text-sm">
+              <li className="flex items-center text-gray-400 gap-3">
+                <FaEnvelope className="text-[#10B981]" />
+                <span>support@genfit.ai</span>
+              </li>
+              <li className="flex items-center text-gray-400 gap-3">
+                <FaMapMarkerAlt className="text-[#10B981]" />
+                <span>Innovation Hub, Tech City</span>
+              </li>
+            </ul>
           </div>
         </div>
 
-        <div className={`border-t mt-6 pt-4 ${darkMode ? 'border-gray-700' : 'border-gray-300'}`}>
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className={`text-sm text-center sm:text-left ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>
-              &copy; {new Date().getFullYear()} GenFit AI. All rights reserved.
-            </p>
-            <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
-              <a href="#" className={`text-sm ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-700 hover:text-gray-900'} transition-colors`}>
-                Privacy Policy
-              </a>
-              <a href="#" className={`text-sm ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-700 hover:text-gray-900'} transition-colors`}>
-                Terms of Service
-              </a>
-              <a href="#" className={`text-sm ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-700 hover:text-gray-900'} transition-colors`}>
-                Cookie Policy
-              </a>
-            </div>
+        <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
+          <p className="text-gray-500 text-xs">
+            &copy; {new Date().getFullYear()} GenFit AI. All rights reserved.
+          </p>
+          <div className="flex gap-8">
+            <a href="#" className="text-gray-500 hover:text-gray-300 text-xs transition-colors">Privacy Policy</a>
+            <a href="#" className="text-gray-500 hover:text-gray-300 text-xs transition-colors">Terms of Service</a>
           </div>
         </div>
       </div>

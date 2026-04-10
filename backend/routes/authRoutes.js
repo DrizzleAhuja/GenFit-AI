@@ -39,15 +39,15 @@ function getGoogleFitRedirectUri(req) {
   if (process.env.GOOGLE_FIT_REDIRECT_URI) {
     return process.env.GOOGLE_FIT_REDIRECT_URI;
   }
-  
+
   // Construct from backend base URL (remove trailing slash if present)
   const baseUrl = getCurrentUrl(req).replace(/\/$/, '');
   const redirectUri = `${baseUrl}/api/auth/google-fit/callback`;
-  
+
   // Log for debugging
   console.log('🔗 [Google Fit] Redirect URI:', redirectUri);
   console.log('🔗 [Google Fit] Backend base URL:', baseUrl);
-  
+
   return redirectUri;
 }
 
@@ -345,13 +345,13 @@ router.post("/generate-plan", async (req, res) => {
     }
 
     const wheelchairForbidden = [
-      "Back Squat", "Front Squat", "Leg Press", "Goblet Squat", "Walking Lunge", "Reverse Lunge", 
-      "Bulgarian Split Squat", "Romanian Deadlift", "Deadlift", "Calf Raise", "Plank", "Side Plank", 
+      "Back Squat", "Front Squat", "Leg Press", "Goblet Squat", "Walking Lunge", "Reverse Lunge",
+      "Bulgarian Split Squat", "Romanian Deadlift", "Deadlift", "Calf Raise", "Plank", "Side Plank",
       "Mountain Climber", "High Knees", "Forearm Plank", "Hollow Hold", "Dead Bug", "Jumping Jack",
       "Push-up", "Diamond Push-up", "Pull-up", "Chin-up", "Dips"
     ];
 
-    const finalAllowedExercises = isWheelchairBound 
+    const finalAllowedExercises = isWheelchairBound
       ? VTA_ALLOWED_EXERCISES.filter(ex => !wheelchairForbidden.includes(ex))
       : VTA_ALLOWED_EXERCISES;
 
@@ -483,11 +483,11 @@ function calculateScheduledDates(startDate, daysPerWeek, durationWeeks, planCont
   const scheduledDates = [];
   const start = new Date(startDate);
   start.setHours(0, 0, 0, 0); // Reset time to start of day
-  
+
   let currentDate = new Date(start);
   const daysInWeek = 7;
   const interval = Math.floor(daysInWeek / daysPerWeek); // Spread workouts evenly
-  
+
   // Generate schedule for all weeks
   for (let week = 1; week <= durationWeeks; week++) {
     // Reset to start of week (same weekday as start date)
@@ -495,11 +495,11 @@ function calculateScheduledDates(startDate, daysPerWeek, durationWeeks, planCont
       currentDate = new Date(start);
       currentDate.setDate(currentDate.getDate() + (week - 1) * 7);
     }
-    
+
     // Schedule workouts for this week
     for (let dayIndex = 0; dayIndex < planContent.length && dayIndex < daysPerWeek; dayIndex++) {
       const workoutDate = new Date(currentDate);
-      
+
       // Distribute workouts evenly across the week
       // For 2 days/week: days 0, 3 (or similar)
       // For 3 days/week: days 0, 2, 4
@@ -518,7 +518,7 @@ function calculateScheduledDates(startDate, daysPerWeek, durationWeeks, planCont
         // Default: spread evenly
         workoutDate.setDate(currentDate.getDate() + Math.floor(dayIndex * (daysInWeek / daysPerWeek)));
       }
-      
+
       scheduledDates.push({
         date: workoutDate,
         dayIndex: dayIndex,
@@ -527,7 +527,7 @@ function calculateScheduledDates(startDate, daysPerWeek, durationWeeks, planCont
       });
     }
   }
-  
+
   return scheduledDates.sort((a, b) => a.date - b.date); // Sort by date
 }
 
@@ -573,7 +573,7 @@ router.post("/workout-plan/save", async (req, res) => {
     // Calculate start date (today)
     const startDate = new Date();
     startDate.setHours(0, 0, 0, 0);
-    
+
     // Calculate scheduled dates for all workouts
     const scheduledDates = calculateScheduledDates(
       startDate,
@@ -581,7 +581,7 @@ router.post("/workout-plan/save", async (req, res) => {
       durationWeeks,
       planContent
     );
-    
+
     // Calculate end date
     const endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + durationWeeks * 7);
@@ -711,26 +711,26 @@ router.get("/workout-plan/active/:userId", async (req, res) => {
 async function markMissedWorkouts(workoutPlan) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   let hasUpdates = false;
-  
+
   if (workoutPlan.scheduledDates && workoutPlan.scheduledDates.length > 0) {
     for (let scheduled of workoutPlan.scheduledDates) {
       const scheduledDate = new Date(scheduled.date);
       scheduledDate.setHours(0, 0, 0, 0);
-      
+
       // If scheduled date is in the past and status is still pending, mark as missed
       if (scheduledDate < today && scheduled.status === 'pending') {
         scheduled.status = 'missed';
         hasUpdates = true;
       }
     }
-    
+
     if (hasUpdates) {
       await workoutPlan.save();
     }
   }
-  
+
   return hasUpdates;
 }
 
@@ -738,27 +738,27 @@ async function markMissedWorkouts(workoutPlan) {
 router.get("/workout-plan/today/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
-    
+
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: "User not found" });
-    
+
     let activePlan = await WorkoutPlan.findOne({ userId, isActive: true });
     if (!activePlan) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: "No active workout plan found",
         todayWorkout: null
       });
     }
-    
+
     // Mark missed workouts
     await markMissedWorkouts(activePlan);
-    
+
     // Refresh plan from DB after marking missed
     activePlan = await WorkoutPlan.findOne({ userId, isActive: true });
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     // Find today's scheduled workout
     let todayWorkout = null;
     if (activePlan.scheduledDates && activePlan.scheduledDates.length > 0) {
@@ -767,12 +767,12 @@ router.get("/workout-plan/today/:userId", async (req, res) => {
         scheduledDate.setHours(0, 0, 0, 0);
         return scheduledDate.getTime() === today.getTime();
       });
-      
+
       if (todaySchedule) {
         // Get the workout content for this day
         const dayIndex = todaySchedule.dayIndex;
         const workoutContent = activePlan.planContent[dayIndex];
-        
+
         // Check if already completed today (full day marked complete)
         const isCompleted = todaySchedule.status === 'completed';
         // Always fetch today's session log so UI can show which exercises are done (partial or full)
@@ -782,7 +782,7 @@ router.get("/workout-plan/today/:userId", async (req, res) => {
           dayIndex: dayIndex,
           date: { $gte: today, $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000) }
         });
-        
+
         const isSkipped = todaySchedule.status === "skipped";
         todayWorkout = {
           scheduledDate: todaySchedule.date,
@@ -797,7 +797,7 @@ router.get("/workout-plan/today/:userId", async (req, res) => {
         };
       }
     }
-    
+
     // Get next workout date (for info)
     let nextWorkoutDate = null;
     if (activePlan.scheduledDates && activePlan.scheduledDates.length > 0) {
@@ -808,18 +808,18 @@ router.get("/workout-plan/today/:userId", async (req, res) => {
           return scheduledDate > today && s.status === 'pending';
         })
         .sort((a, b) => new Date(a.date) - new Date(b.date));
-      
+
       if (upcomingSchedules.length > 0) {
         nextWorkoutDate = upcomingSchedules[0].date;
       }
     }
-    
+
     // Get missed workouts count and details
     const missedSchedules = activePlan.scheduledDates
       ? activePlan.scheduledDates.filter(s => s.status === 'missed')
       : [];
     const missedCount = missedSchedules.length;
-    
+
     // Format missed workouts for display
     const missedWorkoutDetails = missedSchedules.map(scheduled => {
       const workoutContent = activePlan.planContent[scheduled.dayIndex];
@@ -830,17 +830,17 @@ router.get("/workout-plan/today/:userId", async (req, res) => {
         focus: workoutContent?.focus || `Day ${scheduled.dayIndex + 1}`,
       };
     });
-    
+
     res.status(200).json({
       success: true,
       todayWorkout: todayWorkout,
       nextWorkoutDate: nextWorkoutDate,
       missedWorkouts: missedCount,
       missedWorkoutDetails: missedWorkoutDetails,
-      message: todayWorkout 
-        ? (todayWorkout.isCompleted 
-            ? "Today's workout is already completed!" 
-            : "Today's workout is ready!")
+      message: todayWorkout
+        ? (todayWorkout.isCompleted
+          ? "Today's workout is already completed!"
+          : "Today's workout is ready!")
         : "No workout scheduled for today. Rest day!",
     });
   } catch (error) {
@@ -1031,30 +1031,30 @@ router.post("/workout-session/log", async (req, res) => {
     today.setHours(0, 0, 0, 0);
     const sessionDateOnly = new Date(sessionDate);
     sessionDateOnly.setHours(0, 0, 0, 0);
-    
+
     // VALIDATION: Only allow logging today's workout (block future dates)
     if (sessionDateOnly > today) {
       return res.status(400).json({
         error: "Cannot log future workouts. You can only log today's scheduled workout.",
       });
     }
-    
+
     // Check if this workout is scheduled for today
     let scheduledWorkout = null;
     if (plan.scheduledDates && plan.scheduledDates.length > 0) {
       scheduledWorkout = plan.scheduledDates.find(scheduled => {
         const scheduledDate = new Date(scheduled.date);
         scheduledDate.setHours(0, 0, 0, 0);
-        return scheduledDate.getTime() === sessionDateOnly.getTime() && 
-               scheduled.dayIndex === dayIndex;
+        return scheduledDate.getTime() === sessionDateOnly.getTime() &&
+          scheduled.dayIndex === dayIndex;
       });
-      
+
       if (!scheduledWorkout && sessionDateOnly.getTime() === today.getTime()) {
         return res.status(400).json({
           error: "No workout scheduled for today. Check your plan schedule.",
         });
       }
-      
+
       // If logging for past date (missed workout), allow it but show warning
       if (sessionDateOnly < today && scheduledWorkout) {
         if (scheduledWorkout.status === 'missed') {
@@ -1063,7 +1063,7 @@ router.post("/workout-session/log", async (req, res) => {
         }
       }
     }
-    
+
     let actualWeekNumber = weekNumber;
     if (actualWeekNumber === undefined) {
       const msInWeek = 7 * 24 * 60 * 60 * 1000;
@@ -1179,7 +1179,7 @@ router.post("/workout-session/log", async (req, res) => {
       });
       plan.completedDayCount = (plan.completedDayCount || 0) + 1;
       planUpdated = true;
-      
+
       // Update scheduled date status to 'completed'
       if (scheduledWorkout) {
         scheduledWorkout.status = 'completed';
@@ -1197,7 +1197,7 @@ router.post("/workout-session/log", async (req, res) => {
       );
       plan.completedDayCount = (plan.completedDayCount || 0) - 1;
       planUpdated = true;
-      
+
       // Revert scheduled date status back to 'pending' or 'missed'
       if (scheduledWorkout) {
         const scheduledDateOnly = new Date(scheduledWorkout.date);
@@ -1822,14 +1822,14 @@ END_CONTEXT`;
                   overallNotes: args.overallNotes,
                   allExercisesCompleted: true
                 });
-                
+
                 try {
                   const { awardPoints } = require("../utils/gamify");
                   await awardPoints(userObj._id, 'workout_log');
                 } catch (e) {
                   console.error('Gamify error logging workout from chat:', safeErrorForLog(e));
                 }
-                
+
                 toolResult = JSON.stringify({ success: true, message: "Workout logged successfully", logId: log._id });
               }
             } else if (functionName === "update_bmi") {
@@ -1887,8 +1887,8 @@ END_CONTEXT`;
             } else if (functionName === "create_diet_chart") {
               let planIdToUse = activeWorkoutPlan ? activeWorkoutPlan._id : null;
               if (!planIdToUse) {
-                 const latestPlan = await WorkoutPlan.findOne({ userId: userObj._id }).sort({ createdAt: -1 });
-                 if (latestPlan) planIdToUse = latestPlan._id;
+                const latestPlan = await WorkoutPlan.findOne({ userId: userObj._id }).sort({ createdAt: -1 });
+                if (latestPlan) planIdToUse = latestPlan._id;
               }
               if (!planIdToUse) {
                 toolResult = JSON.stringify({ error: "Cannot create a diet chart without an associated workout plan." });
@@ -2196,7 +2196,7 @@ router.post("/calorie-intake/log", async (req, res) => {
           typeof it.name === "string"
             ? it.name.trim()
             : String(it.name ?? "")
-                .trim();
+              .trim();
         if (!name) return null;
 
         const cpi = Number(it.caloriesPerItem ?? it.estimated_calories);
@@ -2529,7 +2529,7 @@ User input: "${text}"
             typeof row.name === "string"
               ? row.name.trim()
               : String(row.name ?? "")
-                  .trim();
+                .trim();
           const estimated_calories = Number(row.estimated_calories);
           if (!name || !Number.isFinite(estimated_calories) || estimated_calories < 0) return null;
           let protein_g = Number(row.protein_g ?? row.proteinG);
@@ -2749,14 +2749,14 @@ router.post("/calorie-intake/insights/:userId", async (req, res) => {
     );
     const nt = latestBmi
       ? computeNutritionTargets({
-          weightKg: latestBmi.weight,
-          heightFeet: latestBmi.heightFeet,
-          heightInches: latestBmi.heightInches,
-          age: latestBmi.age,
-          gender: user.gender,
-          fitnessGoal,
-          workoutParams: params,
-        })
+        weightKg: latestBmi.weight,
+        heightFeet: latestBmi.heightFeet,
+        heightInches: latestBmi.heightInches,
+        age: latestBmi.age,
+        gender: user.gender,
+        fitnessGoal,
+        workoutParams: params,
+      })
       : null;
 
     const MEAL_SLOTS = ["Breakfast", "Lunch", "Evening Snack", "Dinner"];
@@ -2879,11 +2879,10 @@ router.post("/calorie-intake/insights/:userId", async (req, res) => {
 User goal key: ${goalKey} (resolved from plan/BMI: ${fitnessGoal})
 BMI: ${latestBmi ? `${latestBmi.bmi} (${latestBmi.category})` : "not set"}
 Workout: ${activePlan?.name || "none"} ${params?.daysPerWeek ? `— ${params.daysPerWeek}x/week, ${params.intensity || ""}` : ""}
-Daily targets: ${
-      nt
+Daily targets: ${nt
         ? `${nt.targetCalories} kcal target (maintenance ~${nt.maintenanceCalories} kcal); P ${nt.proteinG}g, C ${nt.carbsG}g, F ${nt.fatG}g`
         : "BMI not set"
-    }
+      }
 So far today total: ~${Math.round(sumCal)} kcal, P ~${Math.round(sumP)}g, C ~${Math.round(sumC)}g, F ~${Math.round(sumF)}g.
 
 Foods logged TODAY by meal:
@@ -3160,19 +3159,19 @@ router.post("/generate-diet-chart", async (req, res) => {
     );
 
     // Determine diet type label
-    const dietTypeLabel = dietType === "vegetarian" ? "Pure Vegetarian (No eggs, no meat)" 
+    const dietTypeLabel = dietType === "vegetarian" ? "Pure Vegetarian (No eggs, no meat)"
       : dietType === "eggetarian" ? "Eggetarian (Vegetarian + Eggs allowed)"
-      : "Non-Vegetarian (Chicken, fish, eggs, mutton allowed)";
-    
+        : "Non-Vegetarian (Chicken, fish, eggs, mutton allowed)";
+
     // Get cuisine description
     const cuisineDesc = CUISINE_DESCRIPTIONS[cuisineType] || "Indian cuisine";
-    
+
     // Get today's day name for variety
     const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const todayName = dayNames[new Date().getDay()];
 
     let dietChartPrompt;
-    
+
     if (singleDayPlan) {
       // Generate 1-day diet chart with 4 meals
       dietChartPrompt = `Generate a SINGLE DAY diet chart for TODAY (${todayName}) with EXACTLY 4 meals.
@@ -3536,7 +3535,7 @@ router.delete("/diet-chart/:dietChartId", async (req, res) => {
 router.post("/tracker/ai-insights", async (req, res) => {
   try {
     const { userId, metricType, data } = req.body;
-    
+
     if (!userId || !metricType || !data) {
       return res.status(400).json({ success: false, error: "Missing required fields" });
     }
@@ -3561,8 +3560,8 @@ Return ONLY the JSON. No markdown fences.
       `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
       {
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { 
-          temperature: 0.5, 
+        generationConfig: {
+          temperature: 0.5,
           maxOutputTokens: 500,
           responseMimeType: "application/json"
         },
@@ -3602,18 +3601,18 @@ router.get("/google-fit/link", async (req, res) => {
     // Validate environment variables
     const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
-    
+
     if (!clientId) {
       console.error('❌ [Google Fit] GOOGLE_CLIENT_ID is missing or empty');
-      return res.status(500).json({ 
+      return res.status(500).json({
         error: "Google OAuth configuration error: Client ID is missing",
         hint: "Check your .env file - ensure GOOGLE_CLIENT_ID has no spaces around the = sign"
       });
     }
-    
+
     if (!clientSecret) {
       console.error('❌ [Google Fit] GOOGLE_CLIENT_SECRET is missing or empty');
-      return res.status(500).json({ 
+      return res.status(500).json({
         error: "Google OAuth configuration error: Client Secret is missing",
         hint: "Check your .env file - ensure GOOGLE_CLIENT_SECRET has no spaces around the = sign"
       });
@@ -3624,7 +3623,7 @@ router.get("/google-fit/link", async (req, res) => {
     console.log('🔗 [Google Fit] Redirect URI:', redirectUri);
     console.log('🔗 [Google Fit] Client ID:', clientId.substring(0, 20) + '...');
     console.log('🔗 [Google Fit] Client Secret:', clientSecret.substring(0, 10) + '...');
-    
+
     const oauth2Client = new OAuth2Client(
       clientId,
       clientSecret,
@@ -3783,8 +3782,8 @@ router.get("/google-fit/steps/today", async (req, res) => {
             typeof val?.intVal === "number"
               ? val.intVal
               : typeof val?.fpVal === "number"
-              ? Math.round(val.fpVal)
-              : 0;
+                ? Math.round(val.fpVal)
+                : 0;
           totalSteps += stepsVal;
         }
       }
