@@ -422,9 +422,9 @@ export default function PostureCoach() {
   const user = useSelector(selectUser);
   // Linkage with Workout Plan: MyWorkoutPlan passes state { fromWorkoutPlan: true, exercise: { name, sets, reps, weight }, dayIndex, weekNumber, workoutPlanId }. Keep in sync when changing either page.
   const workoutFromPlan = location.state?.fromWorkoutPlan ? location.state : null;
-  const [exercise, setExercise] = useState("squat");
+  const [exercise, setExercise] = useState("pushup");
   const [selectedExerciseLabel, setSelectedExerciseLabel] = useState(() =>
-    EXERCISES.find((e) => e.id === "squat")?.label || "Squat"
+    EXERCISES.find((e) => e.id === "pushup")?.label || "Bench Press"
   );
   const [isRunning, setIsRunning] = useState(false);
   const [isModelLoading, setIsModelLoading] = useState(true);
@@ -898,13 +898,13 @@ export default function PostureCoach() {
   }, []);
 
   const speakText = useCallback(
-    (text, rate = 0.78) => {
+    (text, rate = 1.25) => {
       if (typeof window === "undefined") return;
       if (!window.speechSynthesis) return;
       if (!text || typeof text !== "string") return;
 
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = Math.max(0.6, Math.min(0.95, rate));
+      utterance.rate = 1.25;
       utterance.pitch = 0.95;
       utterance.volume = 1;
 
@@ -918,7 +918,7 @@ export default function PostureCoach() {
   const speakStartNarration = useCallback(() => {
     speakText(
       "Coaching started. Keep slow, controlled reps. I will give feedback after each rep.",
-      0.78
+      1.25
     );
   }, [speakText]);
 
@@ -1155,18 +1155,20 @@ export default function PostureCoach() {
                     lastGoodScoreRef.current = false;
                   }
 
-                  // Handle narration specifically for 'posture' mode
-                  if (exercise === 'posture' && isRunning && res.analysis) {
+                  // Handle narration for ALL workouts if form is incorrect, or if posture is correct
+                  if (isRunning && res.analysis) {
                     const nowTime = Date.now();
                     if (nowTime - (lastPostureSpeechTimeRef.current || 0) > 4000) {
-                      lastPostureSpeechTimeRef.current = nowTime;
-                      if (res.analysis.isCorrect) {
-                        speakText("Posture is correct.", 0.85);
-                      } else {
+                      if (!res.analysis.isCorrect) {
+                        lastPostureSpeechTimeRef.current = nowTime;
                         const issue = Array.isArray(res.analysis.issues) && res.analysis.issues.length 
                           ? res.analysis.issues[0] 
                           : "Needs adjustment.";
-                        speakText(`Posture is incorrect. ${issue}`, 0.85);
+                        const prefix = exercise === 'posture' ? "Posture is incorrect. " : "";
+                        speakText(`${prefix}${issue}`, 1.25);
+                      } else if (exercise === 'posture') {
+                        lastPostureSpeechTimeRef.current = nowTime;
+                        speakText("Posture is correct.", 1.25);
                       }
                     }
                   }
