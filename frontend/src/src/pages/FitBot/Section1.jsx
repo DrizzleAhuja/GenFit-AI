@@ -40,6 +40,7 @@ Try using the microphone 🎤 or attaching an image 🖼️! 💪`
   const [isOpen, setIsOpen] = useState(Boolean(defaultOpen));
   const [imageBase64, setImageBase64] = useState(null);
   const [isListening, setIsListening] = useState(false);
+  const [interimInput, setInterimInput] = useState("");
   const chatEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -97,19 +98,47 @@ Try using the microphone 🎤 or attaching an image 🖼️! 💪`;
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = 'en-US';
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      // 'hi-IN' natively auto-detects and supports both English and Hindi in most modern browsers
+      recognition.lang = 'hi-IN';
 
-      recognition.onstart = () => setIsListening(true);
-      recognition.onend = () => setIsListening(false);
+      recognition.onstart = () => {
+        setIsListening(true);
+        setInterimInput("");
+      };
+      recognition.onend = () => {
+        setIsListening(false);
+        setInterimInput("");
+      };
       recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        setInput((prev) => prev + (prev ? " " : "") + transcript);
+        let currentInterim = "";
+        let newFinal = "";
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            newFinal += event.results[i][0].transcript;
+          } else {
+            currentInterim += event.results[i][0].transcript;
+          }
+        }
+        
+        if (currentInterim) {
+          setInterimInput(currentInterim);
+        } else {
+          setInterimInput("");
+        }
+
+        if (newFinal) {
+          setInput((prev) => prev.trim() + (prev ? " " : "") + newFinal.trim() + " ");
+        }
       };
       recognition.onerror = (event) => {
         console.error("Speech recognition error", event.error);
-        setIsListening(false);
+        if (event.error !== 'no-speech') {
+          setIsListening(false);
+          setInterimInput("");
+        }
       };
       recognitionRef.current = recognition;
     }
@@ -119,6 +148,7 @@ Try using the microphone 🎤 or attaching an image 🖼️! 💪`;
     if (isListening) {
       recognitionRef.current?.stop();
     } else {
+      setInterimInput("");
       recognitionRef.current?.start();
     }
   };
@@ -333,7 +363,12 @@ Try using the microphone 🎤 or attaching an image 🖼️! 💪`;
         </div>
 
         {/* Input Area */}
-        <div className={`border-t border-[#1F2937] bg-[#020617]/80 p-4`}>
+        <div className={`border-t border-[#1F2937] bg-[#020617]/80 p-4 relative`}>
+          {isListening && interimInput && (
+            <div className="absolute -top-12 left-4 bg-gradient-to-r from-[#8B5CF6] to-[#22D3EE] text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-2xl animate-pulse max-w-[85%] whitespace-nowrap overflow-hidden text-ellipsis z-50">
+              🗣️ "{interimInput}"
+            </div>
+          )}
           {error && (
             <div className="mb-3 px-4 py-2 bg-red-900 text-red-300 rounded-lg text-sm border border-red-700">
               {error}
@@ -344,6 +379,7 @@ Try using the microphone 🎤 or attaching an image 🖼️! 💪`;
               type="button"
               onClick={toggleListening}
               className={`p-3 text-gray-400 hover:text-white transition ${isListening ? 'text-red-500 animate-pulse' : ''}`}
+              title="Start/Stop Voice Input"
             >
               {isListening ? <FaMicrophoneSlash /> : <FaMicrophone />}
             </button>

@@ -220,7 +220,7 @@ const EXERCISE_ANIMATIONS = {
   "Push-up": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Push-Up.gif",
   "Cable Fly": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Cable-Crossover.gif",
   "Pec Deck": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Pec-Deck-Fly.gif",
-  "Chest Press": "https://media.tenor.com/zKtCGjSzP6oAAAAM/chest-bench.gif",
+  "Chest Press": "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExamYzcHd0ZTlrOWtoOTRjeTNkbnRlM2lqdm1mOHB3b3QzM3V4NmE3NSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/cKPsQVloxwsPgbpamd/giphy.gif",
   "Diamond Push-up": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Diamond-Push-up.gif",
 
   "Bent-over Row": "https://fitnessprogramer.com/wp-content/uploads/2021/02/Barbell-Bent-Over-Row.gif",
