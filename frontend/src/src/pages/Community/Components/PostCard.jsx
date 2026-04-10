@@ -160,19 +160,6 @@ export default function PostCard({ post, currentUser, onLikeToggle }) {
             </div>
             <span className="font-bold">Comments</span>
           </button>
-
-          <button
-            type="button"
-            className="flex items-center gap-2.5 text-gray-400 hover:text-[#8B5CF6] transition-all duration-300 group ml-auto"
-            onClick={() => {
-              navigator.clipboard.writeText(`${window.location.origin}/community?post=${post._id}`);
-              toast.success("Link copied to clipboard!");
-            }}
-          >
-            <div className="p-2 rounded-full group-hover:bg-[#8B5CF6]/10 transition-colors">
-              <FaShareAlt className="text-lg" />
-            </div>
-          </button>
         </div>
 
         {/* Comments Section */}
