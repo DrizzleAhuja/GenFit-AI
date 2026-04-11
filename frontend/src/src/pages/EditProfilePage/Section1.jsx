@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { selectUser, setUser } from "../../redux/userSlice";
-import { FiUser, FiMail, FiSave, FiArrowLeft, FiUpload } from "react-icons/fi";
+import { FiUser, FiMail, FiSave, FiArrowLeft, FiUpload, FiBarChart2 } from "react-icons/fi";
 import { Activity, Heart, Zap, Moon, RefreshCw, Watch, Plus } from "lucide-react";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
 import GamifyBadge from "../../Components/GamifyBadge";
@@ -105,6 +105,7 @@ export default function EditProfile() {
         }
       }
     }
+
     fetchStats();
     fetchFitStatus();
   }, [user?._id]);

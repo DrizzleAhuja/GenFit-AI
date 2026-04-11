@@ -1,12 +1,13 @@
 const express = require("express");
-const { getStats, getLeaderboard, updatePreferences, getAdherence } = require("../controllers/gamifyController");
+const gamifyController = require("../controllers/gamifyController");
 const router = express.Router();
 
-router.get("/stats", getStats);
-router.get("/leaderboard", getLeaderboard);
-router.put("/preferences", updatePreferences);
-router.get("/adherence", getAdherence);
+router.get("/stats", gamifyController.getStats);
+router.get("/leaderboard", gamifyController.getLeaderboard);
+router.get("/adherence", gamifyController.getAdherence);
+router.post("/preferences", gamifyController.updatePreferences);
+router.post("/weekly-report/generate", gamifyController.generateWeeklyReport);
+router.post("/weekly-report/auto-trigger", gamifyController.checkAndAutoGenerateReport);
+router.get("/weekly-report/latest", gamifyController.getLatestWeeklyReport);
 
 module.exports = router;
-
-

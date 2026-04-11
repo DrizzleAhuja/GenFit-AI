@@ -98,6 +98,21 @@ const userSchema = new mongoose.Schema({
   },
   proUpgradedAt: { type: Date, default: null },
 
+  weeklyReports: [
+    {
+      weekStarting: { type: Date },
+      markdownContent: { type: String },
+      metrics: {
+        totalCalories: Number,
+        avgCalories: Number,
+        totalWorkouts: Number,
+        avgPostureScore: Number,
+        totalSets: Number,
+        totalReps: Number
+      },
+      generatedAt: { type: Date, default: Date.now }
+    }
+  ],
   limits: {
     vtaUsage: { type: Number, default: 0 },
     photoUsage: { type: Number, default: 0 },

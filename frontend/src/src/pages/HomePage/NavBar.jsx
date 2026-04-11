@@ -6,7 +6,7 @@ import { GoogleOAuthProvider, GoogleLogin, useGoogleLogin } from "@react-oauth/g
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
-import { FiMenu, FiX, FiUser, FiEdit2, FiLogOut, FiBell, FiCheck, FiMessageSquare, FiHelpCircle, FiUsers } from "react-icons/fi";
+import { FiMenu, FiX, FiUser, FiEdit2, FiLogOut, FiBell, FiCheck, FiMessageSquare, FiHelpCircle, FiUsers, FiBarChart2 } from "react-icons/fi";
 
 
 import { io } from "socket.io-client";
@@ -33,6 +33,24 @@ export default function NavBar() {
   useEffect(() => {
     setIsStandalone(isPWAInstalled());
   }, []);
+
+  // Sunday Auto-Report Trigger
+  useEffect(() => {
+    const triggerAutoReport = async () => {
+      if (user?._id && new Date().getDay() === 0) {
+        const hasCheckedToday = sessionStorage.getItem(`sunday_report_check_${user._id}`);
+        if (!hasCheckedToday) {
+          try {
+            await axios.post(`${API_BASE_URL}${API_ENDPOINTS.GAMIFY}/weekly-report/auto-trigger`, { userId: user._id });
+            sessionStorage.setItem(`sunday_report_check_${user._id}`, "true");
+          } catch (e) {
+            console.error("Auto-report trigger failed", e);
+          }
+        }
+      }
+    };
+    triggerAutoReport();
+  }, [user?._id]);
 
   const getUserInitials = (user) => {
     if (user && user.firstName) {
@@ -141,6 +159,21 @@ export default function NavBar() {
 
   useEffect(() => {
     if (user && user._id) {
+      // Weekly Report Trigger (Every Sunday)
+      const checkWeeklyReport = async () => {
+        const today = new Date();
+        if (today.getDay() === 0) { // Sunday
+          try {
+            // We can just call generate. The backend handles "already generated" logic.
+            await axios.post(`${API_BASE_URL}${API_ENDPOINTS.GAMIFY}/weekly-report/generate`, {
+              userId: user._id
+            });
+          } catch (e) {
+            console.error("Auto Weekly Report failed", e);
+          }
+        }
+      };
+
       const fetchNotifications = async () => {
         try {
           const res = await axios.get(`${API_BASE_URL}/api/notifications`, {
@@ -270,7 +303,6 @@ export default function NavBar() {
                       className="flex items-center space-x-2 cursor-pointer group"
                       onClick={() => {
                         setDropdownOpen(!dropdownOpen);
-                        setNotificationsOpen(false);
                       }}
                   >
                     {user.avatar ? (
@@ -306,6 +338,13 @@ export default function NavBar() {
                         onClick={() => setDropdownOpen(false)}
                       >
                         <FiUsers className="mr-2" /> Community
+                      </NavLink>
+                      <NavLink
+                        to="/weekly-report"
+                        className="flex px-4 py-2 text-sm items-center text-gray-200 hover:bg-gray-700 font-bold text-[#22D3EE]"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <FiBarChart2 className="mr-2" /> Weekly AI Report
                       </NavLink>
                       <NavLink
                         to="/Feedback"

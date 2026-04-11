@@ -3,6 +3,8 @@ import { Route, Routes, useLocation } from "react-router-dom";
 import "./App.css";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useDispatch } from "react-redux";
+import { setUser } from "./redux/userSlice";
 import Home from "./pages/HomePage/Home";
 import Signin from "./pages/SigninPage/Signin";
 import Report from "./pages/BMICalculator/Report.jsx";
@@ -25,6 +27,7 @@ import MyWorkoutPlan from "./pages/WorkoutPlanGenerator/MyWorkoutPlan.jsx";
 import DietChartGenerator from "./pages/DietChartGenerator/DietChartGenerator.jsx";
 import UserFeedback from "./pages/Feedback/UserFeedback.jsx";
 import UserSupport from "./pages/Support/UserSupport.jsx";
+import WeeklyReport from "./pages/WeeklyReportPage/WeeklyReport.jsx";
 
 import Leaderboard from "./pages/Leaderboard/Leaderboard.jsx";
 import Dashboard from "./pages/Dashboard/Dashboard.jsx";
@@ -50,10 +53,22 @@ import NoPageFound from "./pages/NoPageFound/NoPageFound.jsx";
 
 function App() {
   const location = useLocation();
+  const dispatch = useDispatch();
   const isAdminRoute = location.pathname.startsWith("/admin");
   const [isSplashLoading, setIsSplashLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     const savedLoginStatus = localStorage.getItem("isLoggedIn");
+    const savedUser = localStorage.getItem("user");
+    
+    // Auto-hydrate Redux on startup if user exists in storage
+    if (savedUser && savedUser !== "undefined") {
+      try {
+        dispatch(setUser(JSON.parse(savedUser)));
+      } catch (e) {
+        console.error("Failed to parse saved user", e);
+      }
+    }
+    
     return savedLoginStatus === "true";
   });
 
@@ -106,6 +121,7 @@ function App() {
           <Route path="/ContactUs" element={<Contactus />} />
           <Route path="/Feedback" element={<UserFeedback />} />
           <Route path="/Support" element={<UserSupport />} />
+          <Route path="/weekly-report" element={<WeeklyReport />} />
 
 
           <Route path="/UserLogs" element={<UserLogsPage />} />
