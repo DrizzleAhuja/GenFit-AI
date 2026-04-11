@@ -3630,7 +3630,12 @@ router.get("/google-fit/link", async (req, res) => {
       redirectUri
     );
 
-    const scopes = ["https://www.googleapis.com/auth/fitness.activity.read"];
+    const scopes = [
+      "https://www.googleapis.com/auth/fitness.activity.read",
+      "https://www.googleapis.com/auth/fitness.heart_rate.read",
+      "https://www.googleapis.com/auth/fitness.body.read",
+      "https://www.googleapis.com/auth/fitness.sleep.read"
+    ];
 
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: "offline",
@@ -3808,6 +3813,102 @@ router.get("/google-fit/steps/today", async (req, res) => {
       error: "Failed to fetch steps from Google Fit",
       details: e?.response?.data || e?.message,
     });
+  }
+});
+
+// Centralized sync for all fitness metrics
+router.get("/google-fit/sync", async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ error: "userId is required" });
+
+    const user = await User.findById(userId).select("+googleFit.refreshToken");
+    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user.googleFitLinked || !user.googleFit?.refreshToken) {
+      return res.status(400).json({ error: "Google Fit not linked" });
+    }
+
+    const oauth2Client = new OAuth2Client(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      getGoogleFitRedirectUri(req)
+    );
+    oauth2Client.setCredentials({ refresh_token: user.googleFit.refreshToken });
+
+    const { token: accessToken } = await oauth2Client.getAccessToken();
+    if (!accessToken) return res.status(500).json({ error: "Failed to refresh token" });
+
+    const now = new Date();
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
+    const startTimeMillis = startOfDay.getTime();
+    const endTimeMillis = now.getTime();
+
+    // Aggregate query for multiple data types
+    const aggregateBy = [
+      { dataTypeName: "com.google.step_count.delta" },
+      { dataTypeName: "com.google.calories.expended" },
+      { dataTypeName: "com.google.heart_rate.bpm" },
+      { dataTypeName: "com.google.sleep.segment" }
+    ];
+
+    const fitResponse = await axios.post(
+      "https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate",
+      {
+        aggregateBy,
+        bucketByTime: { durationMillis: 24 * 60 * 60 * 1000 },
+        startTimeMillis,
+        endTimeMillis,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        timeout: 20000,
+      }
+    );
+
+    const buckets = fitResponse.data?.bucket || [];
+    let metrics = { steps: 0, calories: 0, heartRate: 0, sleepMinutes: 0 };
+
+    if (buckets.length > 0) {
+      const datasets = buckets[0].dataset || [];
+      datasets.forEach((ds) => {
+        const type = ds.dataSourceId || "";
+        const points = ds.point || [];
+        
+        points.forEach((p) => {
+          const val = p.value?.[0];
+          if (type.includes("step_count")) {
+            metrics.steps += val?.intVal || Math.round(val?.fpVal || 0);
+          } else if (type.includes("calories")) {
+            metrics.calories += val?.fpVal || 0;
+          } else if (type.includes("heart_rate")) {
+            // Take average heart rate for the day
+            metrics.heartRate = val?.fpVal || 0;
+          } else if (type.includes("sleep")) {
+            // Sleep segment returns milliseconds
+            const start = parseInt(p.startTimeNanos) / 1000000;
+            const end = parseInt(p.endTimeNanos) / 1000000;
+            metrics.sleepMinutes += (end - start) / (1000 * 60);
+          }
+        });
+      });
+    }
+
+    // Update User
+    user.googleFit.lastSyncedSteps = metrics.steps;
+    user.googleFit.lastSyncedCalories = Math.round(metrics.calories);
+    user.googleFit.lastSyncedHeartRate = Math.round(metrics.heartRate);
+    user.googleFit.lastSyncedSleep = Math.round(metrics.sleepMinutes);
+    user.googleFit.lastSyncAt = new Date();
+    await user.save();
+
+    return res.status(200).json({ success: true, metrics, lastSyncAt: user.googleFit.lastSyncAt });
+  } catch (e) {
+    console.error("Google Fit Sync Error:", e?.response?.data || e.message);
+    return res.status(500).json({ error: "Failed to sync wearable data", details: e?.message });
   }
 });
 

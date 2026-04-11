@@ -85,6 +85,9 @@ const userSchema = new mongoose.Schema({
   googleFit: {
     refreshToken: { type: String, select: false, default: null },
     lastSyncedSteps: { type: Number, default: 0 },
+    lastSyncedHeartRate: { type: Number, default: 0 },
+    lastSyncedCalories: { type: Number, default: 0 },
+    lastSyncedSleep: { type: Number, default: 0 },
     lastSyncAt: { type: Date, default: null },
   },
   avatar: { type: String, default: "" },

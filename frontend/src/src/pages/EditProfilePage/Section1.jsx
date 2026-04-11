@@ -6,6 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { selectUser, setUser } from "../../redux/userSlice";
 import { FiUser, FiMail, FiSave, FiArrowLeft, FiUpload } from "react-icons/fi";
+import { Activity, Heart, Zap, Moon, RefreshCw, Watch, Plus } from "lucide-react";
 import { API_BASE_URL, API_ENDPOINTS } from "../../../config/api";
 import GamifyBadge from "../../Components/GamifyBadge";
 import { validateLength, LIMITS } from "../../utils/formValidation";
@@ -43,6 +44,8 @@ export default function EditProfile() {
 
   const [stats, setStats] = useState({ points: 0, weeklyPoints: 0, streakCount: 0 });
   const [rank, setRank] = useState(null);
+  const [fitStatus, setFitStatus] = useState({ linked: false, metrics: {} });
+  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -83,8 +86,58 @@ export default function EditProfile() {
         }
       }
     }
+    async function fetchFitStatus() {
+      if (user?._id) {
+        try {
+          const res = await axios.get(`${API_BASE_URL}/api/auth/google-fit/status`, { params: { userId: user._id } });
+          setFitStatus({
+            linked: res.data.linked,
+            metrics: {
+              steps: res.data.lastSyncedSteps || 0,
+              hr: res.data.lastSyncedHeartRate || 0,
+              calories: res.data.lastSyncedCalories || 0,
+              sleep: res.data.lastSyncedSleep || 0,
+            },
+            lastSyncAt: res.data.lastSyncAt
+          });
+        } catch (e) {
+          console.error("Fit status error", e);
+        }
+      }
+    }
     fetchStats();
+    fetchFitStatus();
   }, [user?._id]);
+
+  const handleFitSync = async () => {
+    if (!user?._id) return;
+    setIsSyncing(true);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/auth/google-fit/sync`, { params: { userId: user._id } });
+      if (res.data.success) {
+        setFitStatus({
+          linked: true,
+          metrics: {
+            steps: res.data.metrics.steps,
+            hr: res.data.metrics.heartRate,
+            calories: res.data.metrics.calories,
+            sleep: res.data.metrics.sleepMinutes,
+          },
+          lastSyncAt: res.data.lastSyncAt
+        });
+        toast.success("Health data synchronized!");
+      }
+    } catch (e) {
+      console.error("Sync error", e);
+      toast.error("Failed to sync wearable data");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleFitLink = () => {
+    window.location.href = `${API_BASE_URL}/api/auth/google-fit/link?userId=${user._id}`;
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -302,6 +355,71 @@ export default function EditProfile() {
                   <p className="text-[10px] text-gray-500">Limits reset monthly.</p>
                 </div>
               )}
+            </div>
+
+            {/* Wearables Section */}
+            <div className="mb-8 p-6 rounded-xl bg-[#020617]/40 border border-[#1F2937] relative overflow-hidden group hover:border-[#22D3EE]/40 transition-all duration-300">
+               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                  <Watch size={80} />
+               </div>
+               
+               <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h4 className="font-black text-white text-lg flex items-center gap-2">
+                      Wearables & Devices
+                    </h4>
+                    <p className="text-xs text-gray-400 mt-1">Connect your smart watch to auto-sync health data.</p>
+                  </div>
+                  {!fitStatus.linked ? (
+                    <button 
+                      type="button"
+                      onClick={handleFitLink}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold bg-[#0f172a] border border-[#1F2937] text-[#22D3EE] hover:bg-[#22D3EE]/10 hover:border-[#22D3EE]/50 transition-all"
+                    >
+                      <Plus size={14} /> Link Google Fit
+                    </button>
+                  ) : (
+                    <button 
+                      type="button"
+                      disabled={isSyncing}
+                      onClick={handleFitSync}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold bg-[#22D3EE]/10 border border-[#22D3EE]/30 text-[#22D3EE] hover:bg-[#22D3EE]/20 transition-all disabled:opacity-50"
+                    >
+                      <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} /> {isSyncing ? "Syncing..." : "Sync Now"}
+                    </button>
+                  )}
+               </div>
+
+               {fitStatus.linked && (
+                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="p-3 rounded-lg bg-[#0f172a]/50 border border-white/5 flex flex-col items-center">
+                       <Activity size={18} className="text-[#22D3EE] mb-2" />
+                       <span className="text-sm font-bold text-white">{fitStatus.metrics.steps}</span>
+                       <span className="text-[10px] text-gray-500 uppercase font-black">Steps</span>
+                    </div>
+                    <div className="p-3 rounded-lg bg-[#0f172a]/50 border border-white/5 flex flex-col items-center">
+                       <Heart size={18} className="text-[#F87171] mb-2" />
+                       <span className="text-sm font-bold text-white">{fitStatus.metrics.hr || '--'}</span>
+                       <span className="text-[10px] text-gray-500 uppercase font-black">BPM</span>
+                    </div>
+                    <div className="p-3 rounded-lg bg-[#0f172a]/50 border border-white/5 flex flex-col items-center">
+                       <Zap size={18} className="text-[#FACC15] mb-2" />
+                       <span className="text-sm font-bold text-white">{fitStatus.metrics.calories}</span>
+                       <span className="text-[10px] text-gray-500 uppercase font-black">Kcal</span>
+                    </div>
+                    <div className="p-3 rounded-lg bg-[#0f172a]/50 border border-white/5 flex flex-col items-center">
+                       <Moon size={18} className="text-[#8B5CF6] mb-2" />
+                       <span className="text-sm font-bold text-white">{Math.floor(fitStatus.metrics.sleep / 60)}h {fitStatus.metrics.sleep % 60}m</span>
+                       <span className="text-[10px] text-gray-500 uppercase font-black">Sleep</span>
+                    </div>
+                 </div>
+               )}
+
+               {fitStatus.linked && fitStatus.lastSyncAt && (
+                 <p className="text-[10px] text-gray-500 mt-4 text-center">
+                    Last synchronised: {new Date(fitStatus.lastSyncAt).toLocaleString()}
+                 </p>
+               )}
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
