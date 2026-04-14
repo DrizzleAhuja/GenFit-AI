@@ -3770,15 +3770,28 @@ router.get("/google-fit/steps/today", async (req, res) => {
     }
 
     const now = new Date();
-    const start = new Date(now);
-    start.setHours(0, 0, 0, 0);
-    const startTimeMillis = start.getTime();
+    // Offset in milliseconds for IST (+5:30)
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const nowIst = new Date(now.getTime() + istOffset);
+    
+    // Start of day in IST (defaults to 4:00 AM today)
+    const startOfDayIst = new Date(nowIst);
+    if (nowIst.getUTCHours() < 4) {
+      // If it's before 4 AM, we are still counting from 4 AM yesterday
+      startOfDayIst.setUTCDate(startOfDayIst.getUTCDate() - 1);
+    }
+    startOfDayIst.setUTCHours(4, 0, 0, 0);
+    
+    // Convert back to UTC for the API call
+    const startTimeMillis = startOfDayIst.getTime() - istOffset;
     const endTimeMillis = now.getTime();
 
     const fitResponse = await axios.post(
       "https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate",
       {
-        aggregateBy: [{ dataTypeName: "com.google.step_count.delta" }],
+        aggregateBy: [
+          { dataTypeName: "com.google.step_count.delta" }
+        ],
         bucketByTime: { durationMillis: 24 * 60 * 60 * 1000 },
         startTimeMillis,
         endTimeMillis,
@@ -3855,16 +3868,79 @@ router.get("/google-fit/sync", async (req, res) => {
     const { token: accessToken } = await oauth2Client.getAccessToken();
     if (!accessToken) return res.status(500).json({ error: "Failed to refresh token" });
 
+    // Calculate "Today" based on a 4 AM IST start time boundary
     const now = new Date();
-    const startOfDay = new Date(now);
-    startOfDay.setHours(0, 0, 0, 0);
-    const startTimeMillis = startOfDay.getTime();
+    // Offset in milliseconds for +5:30
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const nowIst = new Date(now.getTime() + istOffset);
+    
+    // Start of day in IST (defaults to 4:00 AM today)
+    const startOfDayIst = new Date(nowIst);
+    if (nowIst.getUTCHours() < 4) {
+      // If it's before 4 AM, the "day" started 4 AM yesterday
+      startOfDayIst.setUTCDate(startOfDayIst.getUTCDate() - 1);
+    }
+    startOfDayIst.setUTCHours(4, 0, 0, 0);
+    
+    // Convert back to UTC for the API call
+    const startTimeMillis = startOfDayIst.getTime() - istOffset;
     const endTimeMillis = now.getTime();
 
-    // Aggregate query for multiple data types
+    console.log(`🕒 [Google Fit Sync] Time Range (IST): ${new Date(startTimeMillis + istOffset).toISOString()} to ${new Date(endTimeMillis + istOffset).toISOString()}`);
+
+    // 1. Fetch available data sources to find the most accurate ones
+    const dataSourcesResponse = await axios.get(
+      "https://www.googleapis.com/fitness/v1/users/me/dataSources",
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    const dataSources = dataSourcesResponse.data.dataSource || [];
+    
+    // 2. Discover best source IDs
+    const findSourceId = (dataType) => {
+      // Prioritize "estimated" or "merge" sources from Google Play Services
+      const prioritized = dataSources.filter(ds => ds.dataType.name === dataType);
+      const best = prioritized.find(ds => ds.dataStreamId.includes("estimated")) || 
+                   prioritized.find(ds => ds.dataStreamId.includes("merge")) ||
+                   prioritized[0];
+      return best?.dataStreamId;
+    };
+
+    const stepSourceId = findSourceId("com.google.step_count.delta");
+    const caloriesSourceId = findSourceId("com.google.calories.expended");
+
+    console.log(`🔍 [Google Fit Sync] Discovered Sources: Steps=${stepSourceId || "None"}, Calories=${caloriesSourceId || "None"}`);
+
+    let metrics = { steps: 0, calories: 0, heartRate: 0, sleepMinutes: 0 };
+
+    // 3. Helper to fetch direct dataset for a source
+    const fetchDataset = async (sourceId) => {
+      if (!sourceId) return [];
+      const startTimeNanos = startTimeMillis * 1000000;
+      const endTimeNanos = endTimeMillis * 1000000;
+      const url = `https://www.googleapis.com/fitness/v1/users/me/dataSources/${sourceId}/datasets/${startTimeNanos}-${endTimeNanos}`;
+      const res = await axios.get(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+      return res.data.point || [];
+    };
+
+    // 4. Fetch and Sum Steps
+    if (stepSourceId) {
+      const stepPoints = await fetchDataset(stepSourceId);
+      console.log(`📊 [Google Fit Sync] Fetched ${stepPoints.length} raw step points`);
+      metrics.steps = stepPoints.reduce((acc, p) => acc + (p.value[0].intVal || p.value[0].fpVal || 0), 0);
+      metrics.steps = Math.round(metrics.steps);
+    }
+
+    // 5. Fetch and Sum Calories
+    if (caloriesSourceId) {
+      const caloriePoints = await fetchDataset(caloriesSourceId);
+      console.log(`📊 [Google Fit Sync] Fetched ${caloriePoints.length} raw calorie points`);
+      metrics.calories = caloriePoints.reduce((acc, p) => acc + (p.value[0].fpVal || 0), 0);
+      metrics.calories = Math.round(metrics.calories);
+    }
+
+    // 6. Aggregate other metrics (Heart Rate & Sleep) via standard aggregate API for efficiency
+    // These metrics are less prone to "double counting" issues than steps/calories
     const aggregateBy = [
-      { dataTypeName: "com.google.step_count.delta" },
-      { dataTypeName: "com.google.calories.expended" },
       { dataTypeName: "com.google.heart_rate.bpm" },
       { dataTypeName: "com.google.sleep.segment" }
     ];
@@ -3887,38 +3963,34 @@ router.get("/google-fit/sync", async (req, res) => {
     );
 
     const buckets = fitResponse.data?.bucket || [];
-    let metrics = { steps: 0, calories: 0, heartRate: 0, sleepMinutes: 0 };
-
     if (buckets.length > 0) {
-      const datasets = buckets[0].dataset || [];
-      datasets.forEach((ds) => {
-        const type = ds.dataSourceId || "";
-        const points = ds.point || [];
-        
-        points.forEach((p) => {
-          const val = p.value?.[0];
-          if (type.includes("step_count")) {
-            metrics.steps += val?.intVal || Math.round(val?.fpVal || 0);
-          } else if (type.includes("calories")) {
-            metrics.calories += Math.round(val?.fpVal || 0);
-          } else if (type.includes("heart_rate")) {
-            // Take average heart rate for the day
-            metrics.heartRate = Math.round(val?.fpVal || 0);
-          } else if (type.includes("sleep")) {
-            // Sleep segment returns milliseconds
-            const start = parseInt(p.startTimeNanos) / 1000000;
-            const end = parseInt(p.endTimeNanos) / 1000000;
-            metrics.sleepMinutes += Math.round((end - start) / (1000 * 60));
-          }
+      buckets.forEach((bucket) => {
+        const datasets = bucket.dataset || [];
+        datasets.forEach((ds, dsIdx) => {
+          const points = ds.point || [];
+          points.forEach((p) => {
+            const val = p.value?.[0];
+            const pVal = val?.fpVal || 0;
+
+            if (dsIdx === 0) { // Heart Rate
+              metrics.heartRate = Math.round(pVal || metrics.heartRate || 0);
+            } else if (dsIdx === 1) { // Sleep
+              const start = parseInt(p.startTimeNanos) / 1000000;
+              const end = parseInt(p.endTimeNanos) / 1000000;
+              metrics.sleepMinutes += Math.round((end - start) / (1000 * 60));
+            }
+          });
         });
       });
     }
 
+    console.log(`✅ [Google Fit Sync] Final totals for Today:`, metrics);
+
     // Update User
     user.googleFit.lastSyncedSteps = metrics.steps;
-    user.googleFit.lastSyncedCalories = Math.round(metrics.calories);
-    user.googleFit.lastSyncedHeartRate = Math.round(metrics.heartRate);
-    user.googleFit.lastSyncedSleep = Math.round(metrics.sleepMinutes);
+    user.googleFit.lastSyncedCalories = metrics.calories;
+    user.googleFit.lastSyncedHeartRate = metrics.heartRate;
+    user.googleFit.lastSyncedSleep = metrics.sleepMinutes;
     user.googleFit.lastSyncAt = new Date();
     await user.save();
 
