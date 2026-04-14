@@ -37,6 +37,7 @@ function getGoogleFitRedirectUri(req) {
   // Must match an Authorized redirect URI in Google Cloud Console
   // Use explicit env var if set, otherwise construct from backend URL
   if (process.env.GOOGLE_FIT_REDIRECT_URI) {
+    console.log('🔗 [Google Fit] Using explicit REDIRECT_URI from ENV:', process.env.GOOGLE_FIT_REDIRECT_URI);
     return process.env.GOOGLE_FIT_REDIRECT_URI;
   }
 
@@ -44,10 +45,11 @@ function getGoogleFitRedirectUri(req) {
   const baseUrl = getCurrentUrl(req).replace(/\/$/, '');
   const redirectUri = `${baseUrl}/api/auth/google-fit/callback`;
 
-  // Log for debugging
-  console.log('🔗 [Google Fit] Redirect URI:', redirectUri);
-  console.log('🔗 [Google Fit] Backend base URL:', baseUrl);
-
+  console.log('🔗 [Google Fit] Auto-constructed Redirect URI:', redirectUri);
+  console.log('   - Req Host:', req.get('host'));
+  console.log('   - Req Protocol:', req.protocol);
+  console.log('   - ENV NODE_ENV:', process.env.NODE_ENV);
+  
   return redirectUri;
 }
 
@@ -3658,21 +3660,33 @@ router.get("/google-fit/callback", async (req, res) => {
   try {
     const { code, state, error } = req.query;
 
+    console.log('🔄 [Google Fit] Callback received:', {
+      hasCode: !!code,
+      state,
+      error
+    });
+
     if (error) {
-      console.error("Google Fit OAuth error:", safeErrorForLog(error));
+      console.error("❌ [Google Fit] OAuth error parameter from Google:", error);
       return res.redirect(
-        `${getFrontendRedirectBase()}/home?googleFit=error`
+        `${getFrontendRedirectBase()}/home?googleFit=error&reason=${encodeURIComponent(error)}`
       );
     }
     if (!code || !state) {
+      console.error("❌ [Google Fit] Missing code or state in callback");
       return res.status(400).send("Missing code/state");
     }
 
     const userId = String(state);
     const user = await User.findById(userId).select("+googleFit.refreshToken");
-    if (!user) return res.status(404).send("User not found");
+    if (!user) {
+      console.error("❌ [Google Fit] User not found for state (userId):", userId);
+      return res.status(404).send("User not found");
+    }
 
     const redirectUri = getGoogleFitRedirectUri(req);
+    console.log('🔄 [Google Fit] Exchanging code for tokens using redirectUri:', redirectUri);
+
     const oauth2Client = new OAuth2Client(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
@@ -3682,9 +3696,11 @@ router.get("/google-fit/callback", async (req, res) => {
     const tokenResponse = await oauth2Client.getToken(String(code));
     const tokens = tokenResponse.tokens || {};
 
+    console.log('✅ [Google Fit] Tokens received successfully');
+
     if (!tokens.refresh_token && !user.googleFit?.refreshToken) {
       console.warn(
-        "Google Fit: missing refresh_token (user may have previously consented)"
+        "⚠️ [Google Fit] missing refresh_token (user may have previously consented)"
       );
     }
 
@@ -3693,13 +3709,14 @@ router.get("/google-fit/callback", async (req, res) => {
     if (tokens.refresh_token) user.googleFit.refreshToken = tokens.refresh_token;
 
     await user.save();
+    console.log('✅ [Google Fit] User updated and linked');
 
     return res.redirect(
       `${getFrontendRedirectBase()}/home?googleFit=linked`
     );
   } catch (e) {
-    console.error("Google Fit callback error:", safeErrorForLog(e));
-    return res.redirect(`${getFrontendRedirectBase()}/home?googleFit=error`);
+    console.error("❌ [Google Fit] callback exception:", safeErrorForLog(e));
+    return res.redirect(`${getFrontendRedirectBase()}/home?googleFit=error&msg=${encodeURIComponent(e.message)}`);
   }
 });
 

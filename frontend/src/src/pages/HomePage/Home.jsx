@@ -615,7 +615,6 @@ export default function Home() {
 
   useEffect(() => {
     load();
-    // Auto-refresh every 30s and on focus
     const interval = setInterval(() => load(true), 30000);
     const handleFocus = () => load(true);
     window.addEventListener('focus', handleFocus);
@@ -624,6 +623,30 @@ export default function Home() {
       window.removeEventListener('focus', handleFocus);
     };
   }, [user?._id]);
+
+  // Handle Google Fit OAuth Redirect status
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const gfStatus = params.get("googleFit");
+    const reason = params.get("reason");
+    const msg = params.get("msg");
+
+    if (gfStatus) {
+      console.log("🔗 [Google Fit] Status from URL:", gfStatus, { reason, msg });
+
+      if (gfStatus === "linked") {
+        toast.success("Google Fit linked successfully! 🏃‍♂️");
+      } else if (gfStatus === "error") {
+        const errorDetail = reason || msg || "Unknown error";
+        toast.error(`Failed to link Google Fit: ${errorDetail}`);
+        console.error("❌ [Google Fit] Link Error:", errorDetail);
+      }
+
+      // Clean up URL parameters without refreshing
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+  }, []);
 
   // Real: workouts this week from session logs
   const thisWeekStart = useMemo(() => getStartOfWeek(new Date()), []);
