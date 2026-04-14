@@ -240,7 +240,7 @@ export default function NavBar() {
   return (
     <>
       <GoogleOAuthProvider
-        clientId="702465560392-1mu8j4kqafadep516m62oa5vf5klt7pu.apps.googleusercontent.com"
+        clientId="210526097600-m437ldngthea5krkmo4e8k07k6iouv99.apps.googleusercontent.com"
         onScriptLoadError={() => {
           console.error("Google OAuth script failed to load");
           toast.error("Google sign-in unavailable. Please check your connection.", {

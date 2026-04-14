@@ -55,7 +55,7 @@ const HomeSec1 = ({ onLoginSuccess, onLoginError }) => {
 
             <div className="flex flex-col sm:flex-row gap-5 justify-center lg:justify-start mb-16 items-center">
                <div className="shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.4)] transition-shadow duration-300 rounded-full overflow-hidden">
-                <GoogleOAuthProvider clientId="702465560392-1mu8j4kqafadep516m62oa5vf5klt7pu.apps.googleusercontent.com">
+                <GoogleOAuthProvider clientId="210526097600-m437ldngthea5krkmo4e8k07k6iouv99.apps.googleusercontent.com">
                   <GoogleLogin
                     onSuccess={onLoginSuccess}
                     onError={onLoginError}

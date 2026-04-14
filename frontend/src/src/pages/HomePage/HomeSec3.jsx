@@ -292,7 +292,7 @@ const HomeSec3 = ({ onLoginSuccess, onLoginError }) => {
             </h4>
             <div className="z-10 shadow-2xl rounded-full overflow-hidden hover:scale-105 transition-transform duration-500">
                <div className="bg-black/90 p-1 rounded-full border border-white/10">
-                <GoogleOAuthProvider clientId="702465560392-1mu8j4kqafadep516m62oa5vf5klt7pu.apps.googleusercontent.com">
+                <GoogleOAuthProvider clientId="210526097600-m437ldngthea5krkmo4e8k07k6iouv99.apps.googleusercontent.com">
                   <GoogleLogin
                     onSuccess={onLoginSuccess}
                     onError={onLoginError}

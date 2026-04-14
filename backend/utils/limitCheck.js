@@ -6,7 +6,6 @@ const FREE_TIER_LIMITS = {
 };
 
 const EXCEPTION_EMAILS = [
-  "kumarprasadaman1234@gmail.com",
   "study.drizzle@gmail.com"
 ];
 
