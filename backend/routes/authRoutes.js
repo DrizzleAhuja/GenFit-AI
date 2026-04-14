@@ -3802,7 +3802,7 @@ router.get("/google-fit/steps/today", async (req, res) => {
           const val = p?.value?.[0];
           const stepsVal =
             typeof val?.intVal === "number"
-              ? val.intVal
+              ? Math.round(val.intVal)
               : typeof val?.fpVal === "number"
                 ? Math.round(val.fpVal)
                 : 0;
@@ -3900,15 +3900,15 @@ router.get("/google-fit/sync", async (req, res) => {
           if (type.includes("step_count")) {
             metrics.steps += val?.intVal || Math.round(val?.fpVal || 0);
           } else if (type.includes("calories")) {
-            metrics.calories += val?.fpVal || 0;
+            metrics.calories += Math.round(val?.fpVal || 0);
           } else if (type.includes("heart_rate")) {
             // Take average heart rate for the day
-            metrics.heartRate = val?.fpVal || 0;
+            metrics.heartRate = Math.round(val?.fpVal || 0);
           } else if (type.includes("sleep")) {
             // Sleep segment returns milliseconds
             const start = parseInt(p.startTimeNanos) / 1000000;
             const end = parseInt(p.endTimeNanos) / 1000000;
-            metrics.sleepMinutes += (end - start) / (1000 * 60);
+            metrics.sleepMinutes += Math.round((end - start) / (1000 * 60));
           }
         });
       });

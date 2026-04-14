@@ -22,8 +22,8 @@ exports.login = async (req, res) => {
       family_name: lastName,
     } = ticket.getPayload();
 
-    const ADMIN_EMAILS = ["drizzle003.ace@gmail.com", "study.drizzle@gmail.com"];
-    const EXCEPTION_EMAILS = ["study.drizzle@gmail.com"];
+    const ADMIN_EMAILS = ["drizzle003.ace@gmail.com", "study.drizzle@gmail.com", "amanamna12344@gmail.com"];
+    const EXCEPTION_EMAILS = ["study.drizzle@gmail.com", "amanamna12344@gmail.com"];
 
     // Check for admin role validation
     if (role === "admin" && !ADMIN_EMAILS.includes(email)) {
