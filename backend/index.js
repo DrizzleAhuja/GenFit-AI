@@ -49,6 +49,8 @@ app.use(async (req, res, next) => {
 const allowedOrigins = [
   "https://genfitai.vercel.app",
   "https://www.genfitai.vercel.app",
+  "https://genfit.fun",
+  "https://www.genfit.fun",
   "http://localhost:5173",
   "http://127.0.0.1:5173",
   "http://localhost:3000",
