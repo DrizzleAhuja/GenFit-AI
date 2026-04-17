@@ -26,6 +26,7 @@ const { init } = require("./utils/socket");
 const { startCronJobs } = require("./services/cronService");
 
 const app = express();
+app.set("trust proxy", 1); // Trust Vercel proxy for req.protocol and req.ip
 const server = http.createServer(app);
 
 // Start cron jobs
@@ -198,6 +199,15 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/community", communityRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
+
+// ✅ Graceful Socket.io dummy route for Vercel
+// Vercel doesn't support WebSockets; this prevents 404 logs for polling attempts
+app.all("/socket.io", (req, res) => {
+  res.status(200).json({
+    message: "Socket.io is not supported on Vercel serverless. Use a dedicated server for WebSockets.",
+    polling: true
+  });
+});
 
 
 // app.use("/api", messageRoutes);

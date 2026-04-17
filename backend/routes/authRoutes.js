@@ -3827,7 +3827,7 @@ router.get("/google-fit/steps/today", async (req, res) => {
 
     return res.status(200).json({
       steps: totalSteps,
-      date: start.toISOString().slice(0, 10),
+      date: startOfDayIst.toISOString().slice(0, 10),
       source: "google_fit",
     });
   } catch (e) {
@@ -3852,6 +3852,15 @@ router.get("/google-fit/sync", async (req, res) => {
     if (!user) return res.status(404).json({ error: "User not found" });
     if (!user.googleFitLinked || !user.googleFit?.refreshToken) {
       return res.status(400).json({ error: "Google Fit not linked" });
+    }
+
+    // Check for required environment variables
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      console.error("❌ [Google Fit Sync] Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET in environment");
+      return res.status(500).json({ 
+        error: "Server configuration error", 
+        details: "Google Fit API credentials are not configured on the server." 
+      });
     }
 
     const oauth2Client = new OAuth2Client(
@@ -3905,8 +3914,13 @@ router.get("/google-fit/sync", async (req, res) => {
                              stepSources[0];
     
     if (masterStepSource) {
-      metrics.steps = Math.round(await getSourceTotal(masterStepSource.dataStreamId));
-      console.log(`🌍 [Google Fit Sync] Global Accumulated Steps: ${metrics.steps} (${masterStepSource.dataStreamId})`);
+      try {
+        metrics.steps = Math.round(await getSourceTotal(masterStepSource.dataStreamId));
+        console.log(`🌍 [Google Fit Sync] Global Accumulated Steps: ${metrics.steps} (${masterStepSource.dataStreamId})`);
+      } catch (sumError) {
+        console.error(`⚠️ [Google Fit Sync] Error fetching steps from source ${masterStepSource.dataStreamId}:`, sumError.message);
+        metrics.steps = 0;
+      }
     } else {
       metrics.steps = 0;
     }
