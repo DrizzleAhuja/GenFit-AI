@@ -105,6 +105,33 @@ function stripGeminiMarkdownFences(text) {
   return s;
 }
 
+/**
+ * Helper to get Google Fit credentials.
+ * Supports:
+ * 1. Separate env vars: GOOGLE_CLIENT_ID and GOOGLE_ANDROID_CLIENT_ID
+ * 2. Comma-separated list in GOOGLE_CLIENT_ID: "web_id,android_id"
+ */
+function getGoogleClientCredentials() {
+  const webIdRaw = process.env.GOOGLE_CLIENT_ID || "";
+  let webId = webIdRaw.trim();
+  let androidId = (process.env.GOOGLE_ANDROID_CLIENT_ID || "").trim();
+
+  // Handle single-variable comma-separated list
+  if (webId.includes(",")) {
+    const parts = webId.split(",");
+    webId = parts[0].trim();
+    if (!androidId && parts[1]) {
+      androidId = parts[1].trim();
+    }
+  }
+
+  return {
+    webId,
+    androidId,
+    clientSecret: (process.env.GOOGLE_CLIENT_SECRET || "").trim()
+  };
+}
+
 /** Parse JSON array from Gemini (workout week plan). */
 function parseGeminiJsonArray(rawText) {
   const stripped = stripGeminiMarkdownFences(rawText);
@@ -3600,34 +3627,32 @@ router.get("/google-fit/link", async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    // Validate environment variables
-    const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
-    const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
+    // Get credentials using helper
+    const { webId, clientSecret, androidId } = getGoogleClientCredentials();
 
-    if (!clientId) {
-      console.error('❌ [Google Fit] GOOGLE_CLIENT_ID is missing or empty');
+    if (!webId) {
+      console.error('❌ [Google Fit] Web Client ID is missing');
       return res.status(500).json({
-        error: "Google OAuth configuration error: Client ID is missing",
-        hint: "Check your .env file - ensure GOOGLE_CLIENT_ID has no spaces around the = sign"
+        error: "Google OAuth configuration error: Web Client ID is missing",
+        hint: "Check your GOOGLE_CLIENT_ID environment variable"
       });
     }
 
     if (!clientSecret) {
-      console.error('❌ [Google Fit] GOOGLE_CLIENT_SECRET is missing or empty');
+      console.error('❌ [Google Fit] GOOGLE_CLIENT_SECRET is missing');
       return res.status(500).json({
-        error: "Google OAuth configuration error: Client Secret is missing",
-        hint: "Check your .env file - ensure GOOGLE_CLIENT_SECRET has no spaces around the = sign"
+        error: "Google OAuth configuration error: Client Secret is missing"
       });
     }
 
     const redirectUri = getGoogleFitRedirectUri(req);
     console.log('🔗 [Google Fit] Starting OAuth flow');
     console.log('🔗 [Google Fit] Redirect URI:', redirectUri);
-    console.log('🔗 [Google Fit] Client ID:', clientId.substring(0, 20) + '...');
-    console.log('🔗 [Google Fit] Client Secret:', clientSecret.substring(0, 10) + '...');
+    console.log('🔗 [Google Fit] Web ID:', webId.substring(0, 15) + '...');
+    if (androidId) console.log('🔗 [Google Fit] Android ID:', androidId.substring(0, 15) + '...');
 
     const oauth2Client = new OAuth2Client(
-      clientId,
+      webId,
       clientSecret,
       redirectUri
     );
@@ -3685,11 +3710,13 @@ router.get("/google-fit/callback", async (req, res) => {
     }
 
     const redirectUri = getGoogleFitRedirectUri(req);
+    const { webId, clientSecret } = getGoogleClientCredentials();
+    
     console.log('🔄 [Google Fit] Exchanging code for tokens using redirectUri:', redirectUri);
 
     const oauth2Client = new OAuth2Client(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
+      webId,
+      clientSecret,
       redirectUri
     );
 
@@ -3756,9 +3783,11 @@ router.get("/google-fit/steps/today", async (req, res) => {
     }
 
     const redirectUri = getGoogleFitRedirectUri(req);
+    const { webId, clientSecret } = getGoogleClientCredentials();
+    
     const oauth2Client = new OAuth2Client(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
+      webId,
+      clientSecret,
       redirectUri
     );
     oauth2Client.setCredentials({ refresh_token: user.googleFit.refreshToken });
@@ -3854,18 +3883,21 @@ router.get("/google-fit/sync", async (req, res) => {
       return res.status(400).json({ error: "Google Fit not linked" });
     }
 
-    // Check for required environment variables
-    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-      console.error("❌ [Google Fit Sync] Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET in environment");
+    const { webId, clientSecret } = getGoogleClientCredentials();
+
+    if (!webId || !clientSecret) {
+      console.error("❌ [Google Fit Sync] Missing Google Client credentials");
       return res.status(500).json({ 
         error: "Server configuration error", 
         details: "Google Fit API credentials are not configured on the server." 
       });
     }
 
+    console.log(`🔍 [Google Fit Sync] Using Web Client ID: ${webId.substring(0, 15)}...`);
+
     const oauth2Client = new OAuth2Client(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
+      webId,
+      clientSecret,
       getGoogleFitRedirectUri(req)
     );
     oauth2Client.setCredentials({ refresh_token: user.googleFit.refreshToken });
