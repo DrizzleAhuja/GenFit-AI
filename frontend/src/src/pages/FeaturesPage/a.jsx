@@ -4,13 +4,7 @@ import NavBar from "../HomePage/NavBar";
 import Footer from "../HomePage/Footer";
 import GenFitLogo from "../../Components/GenFitLogo";
 import { useTheme } from "../../context/ThemeContext";
-import {
-  Brain,
-  Activity,
-  ShieldCheck,
-  Trophy,
-  LineChart,
-} from "lucide-react";
+import { Brain, Activity, ShieldCheck, Trophy, LineChart } from "lucide-react";
 
 const coreFeatures = [
   {
@@ -82,7 +76,8 @@ export default function Features() {
               </div>
 
               <p className="max-w-3xl mx-auto text-sm sm:text-base lg:text-lg text-gray-300">
-                Precision coaching, form tracking, and smart nutrition—powered by AI, designed for real humans.
+                Precision coaching, form tracking, and smart nutrition—powered
+                by AI, designed for real humans.
               </p>
             </header>
 
@@ -139,15 +134,11 @@ export default function Features() {
                   </div>
                   <div className="px-3 py-2 rounded-xl bg-white/5 border border-white/10">
                     <div className="font-bold text-white">4.9/5</div>
-                    <div className="text-gray-400 text-[11px]">
-                      User rating
-                    </div>
+                    <div className="text-gray-400 text-[11px]">User rating</div>
                   </div>
                   <div className="px-3 py-2 rounded-xl bg-white/5 border border-white/10">
                     <div className="font-bold text-white">24/7</div>
-                    <div className="text-gray-400 text-[11px]">
-                      AI support
-                    </div>
+                    <div className="text-gray-400 text-[11px]">AI support</div>
                   </div>
                 </div>
               </div>
@@ -166,10 +157,10 @@ export default function Features() {
                   </p>
                 </div>
                 <Link
-                  to="/signup"
+                  to="/home#ready-to-start-training"
                   className="group inline-flex items-center justify-center px-6 sm:px-8 py-3 rounded-full text-sm sm:text-base font-semibold text-white bg-gradient-to-r from-[#22D3EE] via-[#0EA5E9] to-[#8B5CF6] hover:opacity-95 transition-all duration-300 shadow-lg hover:shadow-[#22D3EE]/40"
                 >
-                  Get started free
+                  Get Started
                 </Link>
               </div>
             </section>
