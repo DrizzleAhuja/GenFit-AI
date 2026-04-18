@@ -1,53 +1,60 @@
-import React from 'react';
-import NavBar from '../HomePage/NavBar';
-import Footer from '../HomePage/Footer';
-import GenFitLogo from '../../Components/GenFitLogo';
-import { useTheme } from '../../context/ThemeContext';
-import { Brain, Target, Heart, TrendingUp, Award } from 'lucide-react';
+import React from "react";
+import { Link } from "react-router-dom";
+import NavBar from "../HomePage/NavBar";
+import Footer from "../HomePage/Footer";
+import GenFitLogo from "../../Components/GenFitLogo";
+import { useTheme } from "../../context/ThemeContext";
+import { Brain, Target, Heart, TrendingUp, Award } from "lucide-react";
 
 export default function About() {
   const { darkMode } = useTheme();
-  
+
   const features = [
     {
       icon: <Brain className="w-7 h-7 text-[#22D3EE]" />,
       title: "AI-Powered Insights",
-      description: "Personalized recommendations based on your unique health data and goals",
+      description:
+        "Personalized recommendations based on your unique health data and goals",
       tag: "Intelligence",
     },
     {
       icon: <Target className="w-7 h-7 text-[#8B5CF6]" />,
       title: "Custom Workouts",
-      description: "Tailored exercise plans that adapt to your fitness level and preferences",
+      description:
+        "Tailored exercise plans that adapt to your fitness level and preferences",
       tag: "Training",
     },
     {
       icon: <Heart className="w-7 h-7 text-[#22D3EE]" />,
       title: "Mindfulness & Meditation",
-      description: "Guided sessions to reduce stress and improve mental clarity",
+      description:
+        "Guided sessions to reduce stress and improve mental clarity",
       tag: "Wellness",
     },
     {
       icon: <TrendingUp className="w-7 h-7 text-[#8B5CF6]" />,
       title: "Nutrition Tracking",
-      description: "Smart meal planning and nutritional insights for optimal health",
+      description:
+        "Smart meal planning and nutritional insights for optimal health",
       tag: "Nutrition",
-    }
+    },
   ];
 
   const stats = [
     { value: "10K+", label: "Active Users" },
     { value: "50K+", label: "Workouts Completed" },
     { value: "95%", label: "Satisfaction Rate" },
-    { value: "24/7", label: "AI Support" }
+    { value: "24/7", label: "AI Support" },
   ];
 
   return (
-    <div className={`min-h-screen flex flex-col ${
-      darkMode ? 'bg-[#05010d] text-white' : 'bg-[#020617] text-gray-100'
-    }`}>
+    <div
+      className={`min-h-screen flex flex-col ${
+        darkMode ? "bg-[#05010d] text-white" : "bg-[#020617] text-gray-100"
+      }`}
+    >
       <NavBar />
-      
+
       <main className="flex-grow">
         <section className="relative overflow-hidden py-6 sm:py-8 lg:py-10">
           {/* Background blobs */}
@@ -67,7 +74,8 @@ export default function About() {
               </div>
 
               <p className="max-w-3xl mx-auto text-sm sm:text-base lg:text-lg text-gray-300">
-                Revolutionizing personal wellness through intelligent, data-driven solutions designed for real-world results.
+                Revolutionizing personal wellness through intelligent,
+                data-driven solutions designed for real-world results.
               </p>
             </header>
 
@@ -81,10 +89,14 @@ export default function About() {
                       Our Mission
                     </h2>
                     <p className="text-sm sm:text-base lg:text-lg leading-relaxed mb-4 text-gray-300">
-                      We empower individuals to achieve optimal mental and physical health through personalized guidance, cutting-edge AI technology, and a supportive community.
+                      We empower individuals to achieve optimal mental and
+                      physical health through personalized guidance,
+                      cutting-edge AI technology, and a supportive community.
                     </p>
                     <p className="text-sm sm:text-base lg:text-lg leading-relaxed text-gray-300">
-                      Our platform integrates innovative solutions to help you build sustainable habits for a balanced and fulfilling life.
+                      Our platform integrates innovative solutions to help you
+                      build sustainable habits for a balanced and fulfilling
+                      life.
                     </p>
                   </div>
                   <div className="flex items-center justify-center">
@@ -160,19 +172,23 @@ export default function About() {
                     Ready to Transform Your Life?
                   </h3>
                   <p className="text-sm sm:text-base text-gray-300 max-w-md">
-                    Join thousands of users who are already on their journey to better health and wellness.
+                    Join thousands of users who are already on their journey to
+                    better health and wellness.
                   </p>
                 </div>
-                <button className="group inline-flex items-center justify-center px-6 sm:px-8 py-3 rounded-full text-sm sm:text-base font-semibold text-white bg-gradient-to-r from-[#22D3EE] via-[#0EA5E9] to-[#8B5CF6] hover:opacity-95 transition-all duration-300 shadow-lg hover:shadow-[#22D3EE]/40">
+                <Link
+                  to="/home#ready-to-start-training"
+                  className="group inline-flex items-center justify-center px-6 sm:px-8 py-3 rounded-full text-sm sm:text-base font-semibold text-white bg-gradient-to-r from-[#22D3EE] via-[#0EA5E9] to-[#8B5CF6] hover:opacity-95 transition-all duration-300 shadow-lg hover:shadow-[#22D3EE]/40"
+                >
                   Get Started Today
                   <Award className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </button>
+                </Link>
               </div>
             </section>
           </div>
         </section>
       </main>
-      
+
       <Footer />
     </div>
   );
